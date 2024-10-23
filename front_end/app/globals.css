@@ -1,0 +1,16 @@
+@tailwind utilities;
+
+.hex-tile {
+  position: relative;
+  background-color: lightgray;
+  clip-path: polygon(
+    50% 0%,
+    100% 25%,
+    100% 75%,
+    50% 100%,
+    0% 75%,
+    0% 25%
+  );
+  border: 1px solid black;
+  margin-right: 0px;
+}
