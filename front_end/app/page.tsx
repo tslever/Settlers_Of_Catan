@@ -2,11 +2,11 @@ import React from 'react';
 
 export default function Home() {
   const board = [
-    [1, 2, 3],          // Row 1
-    [4, 5, 6, 7],       // Row 2 (offset)
-    [8, 9, 10, 11, 12], // Row 3
-    [13, 14, 15, 16],   // Row 4 (offset)
-    [17, 18, 19],       // Row 5
+    ["H1", "H2", "H3"], // Row 1
+    ["H4", "H5", "H6", "H7"], // Row 2
+    ["H8", "H9", "H10", "H11", "H12"], // Row 3
+    ["H13", "H14", "H15", "H16"], // Row 4
+    ["H17", "H18", "H19"], // Row 5
   ];
 
   return (
@@ -15,10 +15,10 @@ export default function Home() {
         {board.map((row, rowIndex) => (
           <div
             key={rowIndex}
-            className={`row ${rowIndex % 2 === 1 ? 'offset' : ''}`}
+            className={"row"}
           >
-            {row.map((tileNumber) => (
-              <HexTile key={tileNumber} number={tileNumber} />
+            {row.map((id) => (
+              <HexTile key={id} id={id} />
             ))}
           </div>
         ))}
@@ -27,6 +27,6 @@ export default function Home() {
   );
 }
 
-function HexTile({ number }: { number: number }) {
-  return <div className="hex-tile">{number}</div>;
+function HexTile({ id }: { id: string }) {
+  return <div className="hex-tile">{id}</div>;
 }

@@ -38,10 +38,6 @@
   margin-top: 0; /* No negative margin on the first row */
 }
 
-.row.offset {
-  margin-left: 0;
-}
-
 .hex-tile {
   width: var(--hex-width);
   height: var(--hex-height);
