@@ -2,14 +2,15 @@
 
 :root {
   /* Calculate the hexagon width based on the viewport's minimum dimension
-  The `vmin` CSS unit represents 1 percent of the viewport's minimum dimension,
-  which is the smaller of the viewport's width or height. */
-  --hex-width: calc(100vmin / 6); /* The simplified board has a maximum of 5
-  hexagons in the middle row. Dividing by 6 (instead of 5) provides extra space
-  around the board for margins and ensures that the board doesn't touch the edges
-  of the viewport. This prevents overflow and potential scrollbars, enhancing the
-  user experience. */
-  --hex-height: calc(var(--hex-width) * 1.1547); /* Height = width * 1 / sind(60) */
+     The `vmin` CSS unit represents 1 percent of the viewport's minimum dimension,
+     which is the smaller of the viewport's width or height.
+     The simplified board has a maximum of 5
+     hexagons in the middle row. Dividing by 6 (instead of 5) provides extra space
+     around the board for margins and ensures that the board doesn't touch the edges
+     of the viewport. This prevents overflow and potential scrollbars, enhancing the
+     user experience. */
+  --hex-width: calc(100vmin / 6); /* Dividing by 6 provides extra space around the board */
+  --hex-height: calc(var(--hex-width) * 1.1547); /* Height = width * 1 / sin(60°) */
   --hex-overlap: calc(var(--hex-height) * 0.25); /* Adjust vertical overlap */
 }
 
@@ -37,7 +38,7 @@
   margin-top: 0; /* No negative margin on the first row */
 }
 
-.row.offset .hex-tile:first-child {
+.row.offset {
   margin-left: 0;
 }
 
@@ -54,4 +55,8 @@
     0% 25%
   );
   border: 1px solid black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--hex-width) / 3);
 }
