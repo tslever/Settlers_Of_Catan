@@ -2,9 +2,9 @@ import React from 'react';
 
 export default function Home() {
   const board = [
-    ["H1", "H2", "H3"], // Row 1
-    ["H4", "H5", "H6", "H7"], // Row 2
-    ["H8", "H9", "H10", "H11", "H12"], // Row 3
+    ["H01", "H02", "H03"], // Row 1
+    ["H04", "H05", "H06", "H07"], // Row 2
+    ["H08", "H09", "H10", "H11", "H12"], // Row 3
     ["H13", "H14", "H15", "H16"], // Row 4
     ["H17", "H18", "H19"], // Row 5
   ];
