@@ -1,7 +1,43 @@
 @tailwind utilities;
 
+:root {
+  /* Calculate the hexagon width based on the viewport's minimum dimension */
+  --hex-width: calc(100vmin / 6);
+  --hex-height: calc(var(--hex-width) * 1.1547); /* Height = width * sqrt(3)/2 */
+  --hex-overlap: calc(var(--hex-height) * 0.25); /* Adjust vertical overlap */
+}
+
+.board-container {
+  width: 100vmin;
+  height: 100vmin;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.row {
+  display: flex;
+  margin-top: calc(-1 * var(--hex-overlap));
+}
+
+.row:first-child {
+  margin-top: 0; /* No negative margin on the first row */
+}
+
+.row.offset .hex-tile:first-child {
+  margin-left: 0;
+}
+
 .hex-tile {
-  position: relative;
+  width: var(--hex-width);
+  height: var(--hex-height);
   background-color: lightgray;
   clip-path: polygon(
     50% 0%,
