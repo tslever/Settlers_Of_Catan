@@ -32,9 +32,9 @@ def get_list_of_labels_of_all_vertices():
             x = baseX + colIndex * hexWidth
             hexes.append((hex_id, x, y))
 
-    vertex_set = {}
+    unique_vertices = []
     for (_, x, y) in hexes:
-        verts = [
+        potential_vertices = [
             (x + 0.5 * hexWidth, y),
             (x + hexWidth, y + 0.25 * hexHeight),
             (x + hexWidth, y + 0.75 * hexHeight),
@@ -42,14 +42,11 @@ def get_list_of_labels_of_all_vertices():
             (x, y + 0.75 * hexHeight),
             (x, y + 0.25 * hexHeight)
         ]
-        for v in verts:
-            key_str = vertex_key(v)
-            if key_str not in vertex_set:
-                vertex_set[key_str] = v
-    
-    vertices_list = list(vertex_set.values())
+        for v in potential_vertices:
+            if not vertex_already_exists(unique_vertices, v):
+                unique_vertices.append(v)
 
-    list_of_labels_of_all_vertices = [f"V{(i+1):02d}" for i in range(len(vertices_list))]
+    list_of_labels_of_all_vertices = [f"V{(i+1):02d}" for i in range(len(unique_vertices))]
     return list_of_labels_of_all_vertices
 
 
@@ -72,6 +69,13 @@ def initialize_database():
     )
     connection.commit()
     connection.close()
+
+
+def vertex_already_exists(vertex_list, v, epsilon = 0.01):
+    for vx, vy in vertex_list:
+        if abs(vx - v[0]) < epsilon and abs(vy - v[1]) < epsilon:
+            return True
+    return False
 
 
 def vertex_key(v):

@@ -65,10 +65,16 @@ board.forEach((row, rowIndex) => {
 });
 
 type VertexCoord = { x: number; y: number };
-const vertexSet = new Map<string, VertexCoord>();
+
+function isClose(v1: VertexCoord, v2: VertexCoord, epsilon: number): boolean {
+  return Math.abs(v1.x - v2.x) < epsilon && Math.abs(v1.y - v2.y) < epsilon;
+}
+
+const epsilon = 0.01;
+const uniqueVertices: VertexCoord[] = [];
 
 hexes.forEach(({ x, y }) => {
-  const vertices: VertexCoord[] = [
+  const potentialVertices: VertexCoord[] = [
     {x: x + 0.5 * hexWidth, y: y },
     {x: x + hexWidth, y: y + 0.25 * hexHeight},
     {x: x + hexWidth, y: y + 0.75 * hexHeight},
@@ -76,12 +82,13 @@ hexes.forEach(({ x, y }) => {
     {x: x, y: y + 0.75 * hexHeight},
     {x: x, y: y + 0.25 * hexHeight}
   ];
-  vertices.forEach(v => {
-    const key = `${v.x.toFixed(2)}-${v.y.toFixed(2)}`;
-    vertexSet.set(key, v);
+  potentialVertices.forEach(v => {
+    if (!uniqueVertices.some(existing => isClose(existing, v, epsilon))) {
+      uniqueVertices.push(v);
+    }
   });
 });
-const vertices = Array.from(vertexSet.values());
+const vertices = uniqueVertices;
 console.log("Unique vertices:", vertices.length);
 
 type Edge = { x1: number; y1: number; x2: number; y2: number };
