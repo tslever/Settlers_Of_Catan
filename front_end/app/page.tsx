@@ -137,16 +137,30 @@ const portMapping: { [vertexLabel: string]: string } = {
   "V18": "Wood",
 };
 
+type Settlement = {
+  id: number;
+  player: number;
+  vertex: string;
+};
+
 export default function Home() {
   const [serverMessage, setServerMessage] = useState<string>('');
+  const [settlements, setSettlements] = useState<Settlement[]>([]);
 
   async function handleNext() {
     try {
-      const response = await fetch("http://localhost:5000");
+      const response = await fetch("http://localhost:5000/settlement", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
       }
       const data = await response.json();
+      setSettlements(prev => [...prev, data.settlement]);
       setServerMessage(data.message);
     } catch (error: any) {
       setServerMessage(`Error: ${error.message}`);
@@ -206,6 +220,14 @@ export default function Home() {
                 </React.Fragment>
               );
             })}
+            {settlements.map(s => {
+              const vertexIndex = parseInt(s.vertex.substring(1)) - 1;
+              const v = vertices[vertexIndex];
+              if (!v) return null;
+              return (
+                <SettlementMarker key={s.id} x={v.x} y={v.y} player={s.player} />
+              );
+            })}
           </div>
         </div>
       </div>
@@ -262,6 +284,14 @@ function Port({ x, y, type }: { x: number; y: number; type: string }) {
   return (
     <div className="port" style={{ left: `${x}vmin`, top: `${y}vmin` }}>
       <span className="port-label">{type}</span>
+    </div>
+  );
+}
+
+function SettlementMarker({ x, y, player }: { x: number; y: number; player: number }) {
+  return (
+    <div className="settlement" style={{ left: `${x}vmin`, top: `${y}vmin` }}>
+      {player}
     </div>
   );
 }
