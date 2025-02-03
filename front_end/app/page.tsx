@@ -65,11 +65,11 @@ const vertexSet = new Map<string, VertexCoord>();
 hexes.forEach(({ x, y }) => {
   const vertices: VertexCoord[] = [
     { x: x + 0.5 * hexWidth, y: y },
-    { x: x + hexWidth,     y: y + 0.25 * hexHeight },
-    { x: x + hexWidth,     y: y + 0.75 * hexHeight },
+    { x: x + hexWidth,       y: y + 0.25 * hexHeight },
+    { x: x + hexWidth,       y: y + 0.75 * hexHeight },
     { x: x + 0.5 * hexWidth, y: y + hexHeight },
-    { x: x,                y: y + 0.75 * hexHeight },
-    { x: x,                y: y + 0.25 * hexHeight }
+    { x: x,                  y: y + 0.75 * hexHeight },
+    { x: x,                  y: y + 0.25 * hexHeight }
   ];
   vertices.forEach(v => {
     const key = `${v.x.toFixed(2)}-${v.y.toFixed(2)}`;
@@ -77,7 +77,39 @@ hexes.forEach(({ x, y }) => {
   });
 });
 const vertices = Array.from(vertexSet.values());
-console.log(vertices.length)
+console.log("Unique vertices:", vertices.length);
+
+type Edge = { x1: number; y1: number; x2: number; y2: number };
+
+function getEdgeKey(v1: VertexCoord, v2: VertexCoord): string {
+  if (v1.x < v2.x || (v1.x === v2.x && v1.y <= v2.y)) {
+    return `${v1.x.toFixed(2)}-${v1.y.toFixed(2)}_${v2.x.toFixed(2)}-${v2.y.toFixed(2)}`;
+  } else {
+    return `${v2.x.toFixed(2)}-${v2.y.toFixed(2)}_${v1.x.toFixed(2)}-${v1.y.toFixed(2)}`;
+  }
+}
+
+const edgeSet = new Map<string, Edge>();
+
+hexes.forEach(({ x, y }) => {
+  const verts: VertexCoord[] = [
+    { x: x + 0.5 * hexWidth, y: y },
+    { x: x + hexWidth,       y: y + 0.25 * hexHeight },
+    { x: x + hexWidth,       y: y + 0.75 * hexHeight },
+    { x: x + 0.5 * hexWidth, y: y + hexHeight },
+    { x: x,                  y: y + 0.75 * hexHeight },
+    { x: x,                  y: y + 0.25 * hexHeight }
+  ];
+  for (let i = 0; i < verts.length; i++) {
+    const v1 = verts[i];
+    const v2 = verts[(i + 1) % verts.length];
+    const key = getEdgeKey(v1, v2);
+    if (!edgeSet.has(key)) {
+      edgeSet.set(key, { x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y });
+    }
+  }
+});
+const edges = Array.from(edgeSet.values());
 
 export default function Home() {
   return (
@@ -91,6 +123,19 @@ export default function Home() {
             style={{ left: `${x}vmin`, top: `${y}vmin` }}
           />
         ))}
+        <svg className="edge-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
+          {edges.map((edge, index) => (
+            <line
+              key={index}
+              x1={edge.x1}
+              y1={edge.y1}
+              x2={edge.x2}
+              y2={edge.y2}
+              stroke="blue"
+              strokeWidth="0.5"
+            />
+          ))}
+        </svg>
         {vertices.map((v, i) => (
           <Vertex
             key={i}
@@ -122,10 +167,7 @@ function HexTile({
 
 function Vertex({ x, y, label }: { x: number; y: number; label: string }) {
   return (
-    <div
-      className="vertex"
-      style={{ left: `${x}vmin`, top: `${y}vmin` }}
-    >
+    <div className="vertex" style={{ left: `${x}vmin`, top: `${y}vmin` }}>
       <span className="vertex-label">{label}</span>
     </div>
   );
