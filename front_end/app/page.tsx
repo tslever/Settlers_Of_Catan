@@ -92,7 +92,12 @@ export default function Home() {
           />
         ))}
         {vertices.map((v, i) => (
-          <Vertex key={i} x={v.x} y={v.y} />
+          <Vertex
+            key={i}
+            x={v.x}
+            y={v.y}
+            label={`V${(i + 1).toString().padStart(2, '0')}`}
+          />
         ))}
       </div>
     </div>
@@ -115,11 +120,13 @@ function HexTile({
   );
 }
 
-function Vertex({ x, y }: { x: number; y: number }) {
+function Vertex({ x, y, label }: { x: number; y: number; label: string }) {
   return (
     <div
       className="vertex"
       style={{ left: `${x}vmin`, top: `${y}vmin` }}
-    />
+    >
+      <span className="vertex-label">{label}</span>
+    </div>
   );
 }
