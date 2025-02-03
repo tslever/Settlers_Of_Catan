@@ -1,47 +1,20 @@
-@tailwind utilities;
-
-:root {
-  /* Calculate the hexagon width based on the viewport's minimum dimension
-     The vmin CSS unit represents 1 percent of the viewport's minimum dimension,
-     which is the smaller of the viewport's width or height.
-     The simplified board has a maximum of 5
-     hexagons in the middle row. Dividing by 6 (instead of 5) provides extra space
-     around the board for margins and ensures that the board doesn't touch the edges
-     of the viewport. This prevents overflow and potential scrollbars, enhancing the
-     user experience. */
-  --hex-width: calc(100vmin / 6);
-  --hex-height: calc(var(--hex-width) * 1.1547); /* Height = width * 1 / sin(60°) */
-  --hex-overlap: calc(var(--hex-height) * 0.25); /* Adjust vertical overlap */
-}
-
 .board-container {
   width: 100vmin;
   height: 100vmin;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: relative;
   overflow: hidden;
 }
 
 .board {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.row {
-  display: flex;
-  margin-top: calc(-1 * var(--hex-overlap));
-}
-
-.row:first-child {
-  margin-top: 0; /* No negative margin on the first row */
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .hex-tile {
-  width: var(--hex-width);
-  height: var(--hex-height);
-  /* Remove background-color from CSS to allow inline styles to set it */
+  position: absolute;
+  width: calc(100vmin / 6);
+  height: calc((100vmin / 6) * 1.1547);
   clip-path: polygon(
     50% 0%,
     100% 25%,
@@ -54,5 +27,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(var(--hex-width) / 5);
+  font-size: calc((100vmin / 6) / 5);
+}
+
+.vertex {
+  position: absolute;
+  width: 2vmin;
+  height: 2vmin;
+  background-color: black;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
 }

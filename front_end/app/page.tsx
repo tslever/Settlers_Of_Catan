@@ -31,40 +31,95 @@ const idToColor = {
   H19: colorOf.Wool,
 } as const;
 
-type HexID = keyof typeof idToColor;
+export type HexID = keyof typeof idToColor;
+
+const board: HexID[][] = [
+  ['H01', 'H02', 'H03'],
+  ['H04', 'H05', 'H06', 'H07'],
+  ['H08', 'H09', 'H10', 'H11', 'H12'],
+  ['H13', 'H14', 'H15', 'H16'],
+  ['H17', 'H18', 'H19']
+];
+
+const hexWidth = 100 / 6;
+const hexHeight = hexWidth * 1.1547;
+const hexOverlap = hexHeight * 0.25;
+const verticalSpacing = hexHeight - hexOverlap;
+
+type HexPosition = { id: HexID; x: number; y: number };
+const hexes: HexPosition[] = [];
+
+board.forEach((row, rowIndex) => {
+  const n = row.length;
+  let baseX = (100 - n * hexWidth) / 2;
+  const y = rowIndex * verticalSpacing;
+  row.forEach((id, colIndex) => {
+    const x = baseX + colIndex * hexWidth;
+    hexes.push({ id, x, y });
+  });
+});
+
+type VertexCoord = { x: number; y: number };
+const vertexSet = new Map<string, VertexCoord>();
+
+hexes.forEach(({ x, y }) => {
+  const vertices: VertexCoord[] = [
+    { x: x + 0.5 * hexWidth, y: y },
+    { x: x + hexWidth,     y: y + 0.25 * hexHeight },
+    { x: x + hexWidth,     y: y + 0.75 * hexHeight },
+    { x: x + 0.5 * hexWidth, y: y + hexHeight },
+    { x: x,                y: y + 0.75 * hexHeight },
+    { x: x,                y: y + 0.25 * hexHeight }
+  ];
+  vertices.forEach(v => {
+    const key = `${v.x.toFixed(2)}-${v.y.toFixed(2)}`;
+    vertexSet.set(key, v);
+  });
+});
+const vertices = Array.from(vertexSet.values());
+console.log(vertices.length)
 
 export default function Home() {
-
-  const board: HexID[][] = [
-    ['H01', 'H02', 'H03'], // Row 1
-    ['H04', 'H05', 'H06', 'H07'], // Row 2
-    ['H08', 'H09', 'H10', 'H11', 'H12'], // Row 3
-    ['H13', 'H14', 'H15', 'H16'], // Row 4
-    ['H17', 'H18', 'H19'], // Row 5
-  ];
-
   return (
     <div className="board-container">
       <div className="board">
-        {board.map((row, rowIndex) => (
-          <div
-            key={rowIndex}
-            className={"row"}
-          >
-            {row.map((id) => (
-              <HexTile key={id} id={id} color={idToColor[id]} />
-            ))}
-          </div>
+        {hexes.map(({ id, x, y }) => (
+          <HexTile
+            key={id}
+            id={id}
+            color={idToColor[id]}
+            style={{ left: `${x}vmin`, top: `${y}vmin` }}
+          />
+        ))}
+        {vertices.map((v, i) => (
+          <Vertex key={i} x={v.x} y={v.y} />
         ))}
       </div>
     </div>
   );
 }
 
-function HexTile({ id, color }: { id: HexID; color: string }) {
+function HexTile({
+  id,
+  color,
+  style,
+}: {
+  id: HexID;
+  color: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <div className="hex-tile" style={{ backgroundColor: color }}>
+    <div className="hex-tile" style={{ ...style, backgroundColor: color }}>
       {id}
     </div>
+  );
+}
+
+function Vertex({ x, y }: { x: number; y: number }) {
+  return (
+    <div
+      className="vertex"
+      style={{ left: `${x}vmin`, top: `${y}vmin` }}
+    />
   );
 }
