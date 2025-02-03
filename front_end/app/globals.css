@@ -56,9 +56,23 @@
   pointer-events: none;
 }
 
-/* Style for edge labels in the SVG */
 .edge-label {
   fill: red;
   font-size: 0.25vmin;
   user-select: none;
+}
+
+.port {
+  position: absolute;
+  transform: translate(-50%, -150%);
+  background-color: white;
+  border: 1px solid black;
+  border-radius: 0.5vmin;
+  padding: 0.2vmin 0.5vmin;
+  pointer-events: none;
+}
+
+.port-label {
+  font-size: 1.5vmin;
+  color: black;
 }

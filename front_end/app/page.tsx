@@ -111,6 +111,27 @@ hexes.forEach(({ x, y }) => {
 });
 const edges = Array.from(edgeSet.values());
 
+const portMapping: { [vertexLabel: string]: string } = {
+  "V01": "3:1",
+  "V06": "3:1",
+  "V07": "Grain",
+  "V08": "Grain",
+  "V13": "Ore",
+  "V23": "Ore",
+  "V36": "3:1",
+  "V37": "3:1",
+  "V46": "Wool",
+  "V47": "Wool",
+  "V51": "3:1",
+  "V52": "3:1",
+  "V49": "3:1",
+  "V50": "3:1",
+  "V41": "Brick",
+  "V27": "Brick",
+  "V17": "Wood",
+  "V18": "Wood",
+};
+
 export default function Home() {
   return (
     <div className="board-container">
@@ -125,7 +146,6 @@ export default function Home() {
         ))}
         <svg className="edge-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
           {edges.map((edge, index) => {
-            // Compute the midpoint of the edge for placing the label.
             const midX = (edge.x1 + edge.x2) / 2;
             const midY = (edge.y1 + edge.y2) / 2;
             const label = `E${(index + 1).toString().padStart(2, '0')}`;
@@ -152,14 +172,21 @@ export default function Home() {
             );
           })}
         </svg>
-        {vertices.map((v, i) => (
-          <Vertex
-            key={i}
-            x={v.x}
-            y={v.y}
-            label={`V${(i + 1).toString().padStart(2, '0')}`}
-          />
-        ))}
+        {vertices.map((v, i) => {
+          const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
+          return (
+            <React.Fragment key={i}>
+              <Vertex x={v.x} y={v.y} label={vLabel} />
+              {portMapping[vLabel] && (
+                <Port
+                  x={v.x}
+                  y={v.y}
+                  type={portMapping[vLabel]}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
   );
@@ -185,6 +212,14 @@ function Vertex({ x, y, label }: { x: number; y: number; label: string }) {
   return (
     <div className="vertex" style={{ left: `${x}vmin`, top: `${y}vmin` }}>
       <span className="vertex-label">{label}</span>
+    </div>
+  );
+}
+
+function Port({ x, y, type }: { x: number; y: number; type: string }) {
+  return (
+    <div className="port" style={{ left: `${x}vmin`, top: `${y}vmin` }}>
+      <span className="port-label">{type}</span>
     </div>
   );
 }
