@@ -48,13 +48,16 @@ const hexHeight = hexWidth * 1.1547;
 const hexOverlap = hexHeight * 0.25;
 const verticalSpacing = hexHeight - hexOverlap;
 
+const boardHeight = (board.length - 1) * verticalSpacing + hexHeight;
+const boardYOffset = (100 - boardHeight) / 2;
+
 type HexPosition = { id: HexID; x: number; y: number };
 const hexes: HexPosition[] = [];
 
 board.forEach((row, rowIndex) => {
   const n = row.length;
   let baseX = (100 - n * hexWidth) / 2;
-  const y = rowIndex * verticalSpacing;
+  const y = boardYOffset + rowIndex * verticalSpacing;
   row.forEach((id, colIndex) => {
     const x = baseX + colIndex * hexWidth;
     hexes.push({ id, x, y });
@@ -152,59 +155,58 @@ export default function Home() {
 
   return (
     <div>
-      <div className="board-container">
-        <div className="board">
-          {hexes.map(({ id, x, y }) => (
-            <HexTile
-              key={id}
-              id={id}
-              color={idToColor[id]}
-              style={{ left: `${x}vmin`, top: `${y}vmin` }}
-            />
-          ))}
-          <svg className="edge-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {edges.map((edge, index) => {
-              const midX = (edge.x1 + edge.x2) / 2;
-              const midY = (edge.y1 + edge.y2) / 2;
-              const label = `E${(index + 1).toString().padStart(2, '0')}`;
+      <div className="outer-container">
+        <Ocean />
+        <div className="board-container">
+          <div className="board">
+            {hexes.map(({ id, x, y }) => (
+              <HexTile
+                key={id}
+                id={id}
+                color={idToColor[id]}
+                style={{ left: `${x}vmin`, top: `${y}vmin` }}
+              />
+            ))}
+            <svg className="edge-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {edges.map((edge, index) => {
+                const midX = (edge.x1 + edge.x2) / 2;
+                const midY = (edge.y1 + edge.y2) / 2;
+                const label = `E${(index + 1).toString().padStart(2, '0')}`;
+                return (
+                  <g key={index}>
+                    <line
+                      x1={edge.x1}
+                      y1={edge.y1}
+                      x2={edge.x2}
+                      y2={edge.y2}
+                      stroke="blue"
+                      strokeWidth="0.5"
+                    />
+                    <text
+                      x={midX}
+                      y={midY}
+                      className="edge-label"
+                      textAnchor="middle"
+                      alignmentBaseline="middle"
+                    >
+                      {label}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+            {vertices.map((v, i) => {
+              const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
               return (
-                <g key={index}>
-                  <line
-                    x1={edge.x1}
-                    y1={edge.y1}
-                    x2={edge.x2}
-                    y2={edge.y2}
-                    stroke="blue"
-                    strokeWidth="0.5"
-                  />
-                  <text
-                    x={midX}
-                    y={midY}
-                    className="edge-label"
-                    textAnchor="middle"
-                    alignmentBaseline="middle"
-                  >
-                    {label}
-                  </text>
-                </g>
+                <React.Fragment key={i}>
+                  <Vertex x={v.x} y={v.y} label={vLabel} />
+                  {portMapping[vLabel] && (
+                    <Port x={v.x} y={v.y} type={portMapping[vLabel]} />
+                  )}
+                </React.Fragment>
               );
             })}
-          </svg>
-          {vertices.map((v, i) => {
-            const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
-            return (
-              <React.Fragment key={i}>
-                <Vertex x={v.x} y={v.y} label={vLabel} />
-                {portMapping[vLabel] && (
-                  <Port
-                    x={v.x}
-                    y={v.y}
-                    type={portMapping[vLabel]}
-                  />
-                )}
-              </React.Fragment>
-            );
-          })}
+          </div>
         </div>
       </div>
       <div style={{ textAlign: 'center', marginTop: '1rem' }}>
@@ -212,6 +214,23 @@ export default function Home() {
         {serverMessage && <p>{serverMessage}</p>}
       </div>
     </div>
+  );
+}
+
+function Ocean() {
+  const oceanWidth = 90; // vmin
+  const oceanHeight = oceanWidth * 1.1547;
+  return (
+    <div
+      className="ocean"
+      style={{
+        left: '50%',
+        top: '50%',
+        width: `${oceanWidth}vmin`,
+        height: `${oceanHeight}vmin`,
+        transform: 'translate(-50%, -50%) rotate(30deg)'
+      }}
+    />
   );
 }
 

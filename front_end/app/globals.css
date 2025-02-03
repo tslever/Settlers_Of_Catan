@@ -1,3 +1,9 @@
+.outer-container {
+  position: relative;
+  width: 100vmin;
+  height: 100vmin;
+}
+
 .board-container {
   width: 100vmin;
   height: 100vmin;
@@ -9,6 +15,20 @@
   position: relative;
   width: 100%;
   height: 100%;
+}
+
+.ocean {
+  position: absolute;
+  background-color: rgb(0, 150, 200);
+  clip-path: polygon(
+    50% 0%,
+    100% 25%,
+    100% 75%,
+    50% 100%,
+    0% 75%,
+    0% 25%
+  );
+  z-index: -1;
 }
 
 .hex-tile {
