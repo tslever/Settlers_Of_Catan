@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const colorOf = {
   Brick: 'rgb(170, 74, 68)',
@@ -69,12 +69,12 @@ const vertexSet = new Map<string, VertexCoord>();
 
 hexes.forEach(({ x, y }) => {
   const vertices: VertexCoord[] = [
-    { x: x + 0.5 * hexWidth, y: y },
-    { x: x + hexWidth,       y: y + 0.25 * hexHeight },
-    { x: x + hexWidth,       y: y + 0.75 * hexHeight },
-    { x: x + 0.5 * hexWidth, y: y + hexHeight },
-    { x: x,                  y: y + 0.75 * hexHeight },
-    { x: x,                  y: y + 0.25 * hexHeight }
+    {x: x + 0.5 * hexWidth, y: y },
+    {x: x + hexWidth, y: y + 0.25 * hexHeight},
+    {x: x + hexWidth, y: y + 0.75 * hexHeight},
+    {x: x + 0.5 * hexWidth, y: y + hexHeight},
+    {x: x, y: y + 0.75 * hexHeight},
+    {x: x, y: y + 0.25 * hexHeight}
   ];
   vertices.forEach(v => {
     const key = `${v.x.toFixed(2)}-${v.y.toFixed(2)}`;
@@ -99,11 +99,11 @@ const edgeSet = new Map<string, Edge>();
 hexes.forEach(({ x, y }) => {
   const verts: VertexCoord[] = [
     { x: x + 0.5 * hexWidth, y: y },
-    { x: x + hexWidth,       y: y + 0.25 * hexHeight },
-    { x: x + hexWidth,       y: y + 0.75 * hexHeight },
+    { x: x + hexWidth, y: y + 0.25 * hexHeight },
+    { x: x + hexWidth, y: y + 0.75 * hexHeight },
     { x: x + 0.5 * hexWidth, y: y + hexHeight },
-    { x: x,                  y: y + 0.75 * hexHeight },
-    { x: x,                  y: y + 0.25 * hexHeight }
+    { x: x, y: y + 0.75 * hexHeight },
+    { x: x, y: y + 0.25 * hexHeight }
   ];
   for (let i = 0; i < verts.length; i++) {
     const v1 = verts[i];
@@ -146,6 +146,22 @@ type Settlement = {
 export default function Home() {
   const [serverMessage, setServerMessage] = useState<string>('');
   const [settlements, setSettlements] = useState<Settlement[]>([]);
+
+  useEffect(() => {
+    async function loadSettlements() {
+      try {
+        const response = await fetch("http://localhost:5000/settlements");
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`)
+        }
+        const data = await response.json();
+        setSettlements(data.settlements);
+      } catch (error: any) {
+        console.error("Error fetching settlements:", error.message);
+      }
+    }
+    loadSettlements();
+  }, []);
 
   async function handleNext() {
     try {

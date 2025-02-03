@@ -131,6 +131,16 @@ def add_settlement():
     )
 
 
+@app.route("/settlements", methods = ["GET"])
+def get_settlements():
+    connection = get_connection_to_database()
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM settlements")
+    settlements = [dict(row) for row in cursor.fetchall()]
+    connection.close()
+    return jsonify({"settlements": settlements})
+
+
 if __name__ == '__main__':
     initialize_database()
 
