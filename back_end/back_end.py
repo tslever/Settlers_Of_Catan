@@ -133,6 +133,8 @@ def add_settlement():
 
 @app.route("/settlements", methods = ["GET"])
 def get_settlements():
+    initialize_database()
+
     connection = get_connection_to_database()
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM settlements")
@@ -142,7 +144,6 @@ def get_settlements():
 
 
 if __name__ == '__main__':
-    initialize_database()
 
     CORS(
         app,
