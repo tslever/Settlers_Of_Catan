@@ -1,4 +1,6 @@
-import React from 'react';
+'use client'
+
+import React, { useState } from 'react';
 
 const colorOf = {
   Brick: 'rgb(170, 74, 68)',
@@ -133,60 +135,81 @@ const portMapping: { [vertexLabel: string]: string } = {
 };
 
 export default function Home() {
+  const [serverMessage, setServerMessage] = useState<string>('');
+
+  async function handleNext() {
+    try {
+      const response = await fetch("http://localhost:5000");
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+      const data = await response.json();
+      setServerMessage(data.message);
+    } catch (error: any) {
+      setServerMessage(`Error: ${error.message}`);
+    }
+  }
+
   return (
-    <div className="board-container">
-      <div className="board">
-        {hexes.map(({ id, x, y }) => (
-          <HexTile
-            key={id}
-            id={id}
-            color={idToColor[id]}
-            style={{ left: `${x}vmin`, top: `${y}vmin` }}
-          />
-        ))}
-        <svg className="edge-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {edges.map((edge, index) => {
-            const midX = (edge.x1 + edge.x2) / 2;
-            const midY = (edge.y1 + edge.y2) / 2;
-            const label = `E${(index + 1).toString().padStart(2, '0')}`;
+    <div>
+      <div className="board-container">
+        <div className="board">
+          {hexes.map(({ id, x, y }) => (
+            <HexTile
+              key={id}
+              id={id}
+              color={idToColor[id]}
+              style={{ left: `${x}vmin`, top: `${y}vmin` }}
+            />
+          ))}
+          <svg className="edge-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {edges.map((edge, index) => {
+              const midX = (edge.x1 + edge.x2) / 2;
+              const midY = (edge.y1 + edge.y2) / 2;
+              const label = `E${(index + 1).toString().padStart(2, '0')}`;
+              return (
+                <g key={index}>
+                  <line
+                    x1={edge.x1}
+                    y1={edge.y1}
+                    x2={edge.x2}
+                    y2={edge.y2}
+                    stroke="blue"
+                    strokeWidth="0.5"
+                  />
+                  <text
+                    x={midX}
+                    y={midY}
+                    className="edge-label"
+                    textAnchor="middle"
+                    alignmentBaseline="middle"
+                  >
+                    {label}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+          {vertices.map((v, i) => {
+            const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
             return (
-              <g key={index}>
-                <line
-                  x1={edge.x1}
-                  y1={edge.y1}
-                  x2={edge.x2}
-                  y2={edge.y2}
-                  stroke="blue"
-                  strokeWidth="0.5"
-                />
-                <text
-                  x={midX}
-                  y={midY}
-                  className="edge-label"
-                  textAnchor="middle"
-                  alignmentBaseline="middle"
-                >
-                  {label}
-                </text>
-              </g>
+              <React.Fragment key={i}>
+                <Vertex x={v.x} y={v.y} label={vLabel} />
+                {portMapping[vLabel] && (
+                  <Port
+                    x={v.x}
+                    y={v.y}
+                    type={portMapping[vLabel]}
+                  />
+                )}
+              </React.Fragment>
             );
           })}
-        </svg>
-        {vertices.map((v, i) => {
-          const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
-          return (
-            <React.Fragment key={i}>
-              <Vertex x={v.x} y={v.y} label={vLabel} />
-              {portMapping[vLabel] && (
-                <Port
-                  x={v.x}
-                  y={v.y}
-                  type={portMapping[vLabel]}
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
+        </div>
+      </div>
+      <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+        <button onClick={handleNext}>Next</button>
+        {serverMessage && <p>{serverMessage}</p>}
       </div>
     </div>
   );
