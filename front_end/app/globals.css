@@ -55,3 +55,10 @@
   height: 100%;
   pointer-events: none;
 }
+
+/* Style for edge labels in the SVG */
+.edge-label {
+  fill: red;
+  font-size: 0.25vmin;
+  user-select: none;
+}

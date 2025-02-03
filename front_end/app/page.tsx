@@ -124,17 +124,33 @@ export default function Home() {
           />
         ))}
         <svg className="edge-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {edges.map((edge, index) => (
-            <line
-              key={index}
-              x1={edge.x1}
-              y1={edge.y1}
-              x2={edge.x2}
-              y2={edge.y2}
-              stroke="blue"
-              strokeWidth="0.5"
-            />
-          ))}
+          {edges.map((edge, index) => {
+            // Compute the midpoint of the edge for placing the label.
+            const midX = (edge.x1 + edge.x2) / 2;
+            const midY = (edge.y1 + edge.y2) / 2;
+            const label = `E${(index + 1).toString().padStart(2, '0')}`;
+            return (
+              <g key={index}>
+                <line
+                  x1={edge.x1}
+                  y1={edge.y1}
+                  x2={edge.x2}
+                  y2={edge.y2}
+                  stroke="blue"
+                  strokeWidth="0.5"
+                />
+                <text
+                  x={midX}
+                  y={midY}
+                  className="edge-label"
+                  textAnchor="middle"
+                  alignmentBaseline="middle"
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })}
         </svg>
         {vertices.map((v, i) => (
           <Vertex
