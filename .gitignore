@@ -1,3 +1,5 @@
+aggregated_contents.txt
 back_end/__pycache__
 back_end/env
+back_end/game.db
 front_end/node_modules

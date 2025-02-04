@@ -4,7 +4,7 @@ import sqlite3
 import random
 
 
-BASE_NAME_OF_DATABASE = "settlers.db"
+BASE_NAME_OF_DATABASE = "game.db"
 
 BOARD = [
     ["H01", "H02", "H03"],
