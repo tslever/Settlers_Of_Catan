@@ -325,9 +325,32 @@ function HexTile({
   color: string;
   style?: React.CSSProperties;
 }) {
+  const getTokenFontSize = (token: number): string => {
+    const baseFontSize = 4;
+    const mapping: { [key: number]: number } = {
+      2: 3/11,
+      12: 3/11,
+      3: 5/11,
+      11: 5/11,
+      4: 7/11,
+      10: 7/11,
+      5: 9/11,
+      9: 9/11,
+      6: 1,
+      8: 1
+    };
+    return `${baseFontSize * (mapping[token] || 1)}vmin`;
+  };
+
   return (
     <div className="hex-tile" style={{ ...style, backgroundColor: color }}>
-      {token !== null && <div className="hex-token">{token}</div>}
+      {token !== null && (
+        <div
+          className="hex-token"
+          style={{ fontSize: getTokenFontSize(token) }}>
+            {token}
+          </div>
+        )}
     </div>
   );
 }
