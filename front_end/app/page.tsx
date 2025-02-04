@@ -89,9 +89,18 @@ hexes.forEach(({ x, y }) => {
   });
 });
 const vertices = uniqueVertices;
-console.log("Unique vertices:", vertices.length);
 
 type Edge = { x1: number; y1: number; x2: number; y2: number };
+
+function isEdgeClose(e1: Edge, e2: Edge, epsilon: number): boolean {
+  const sameOrder =
+    isClose({ x: e1.x1, y: e1.y1 }, { x: e2.x1, y: e2.y1 }, epsilon) &&
+    isClose({ x: e1.x2, y: e1.y2 }, { x: e2.x2, y: e2.y2 }, epsilon);
+  const swappedOrder =
+    isClose({ x: e1.x1, y: e1.y1 }, { x: e2.x2, y: e2.y2 }, epsilon) &&
+    isClose({ x: e1.x2, y: e1.y2 }, { x: e2.x1, y: e2.y1 }, epsilon);
+  return sameOrder || swappedOrder;
+}
 
 function getEdgeKey(v1: VertexCoord, v2: VertexCoord): string {
   if (v1.x < v2.x || (v1.x === v2.x && v1.y <= v2.y)) {
@@ -101,7 +110,7 @@ function getEdgeKey(v1: VertexCoord, v2: VertexCoord): string {
   }
 }
 
-const edgeSet = new Map<string, Edge>();
+const edges: Edge[] = [];
 
 hexes.forEach(({ x, y }) => {
   const verts: VertexCoord[] = [
@@ -115,13 +124,12 @@ hexes.forEach(({ x, y }) => {
   for (let i = 0; i < verts.length; i++) {
     const v1 = verts[i];
     const v2 = verts[(i + 1) % verts.length];
-    const key = getEdgeKey(v1, v2);
-    if (!edgeSet.has(key)) {
-      edgeSet.set(key, { x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y });
+    const newEdge = { x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y };
+    if (!edges.some(existingEdge => isEdgeClose(existingEdge, newEdge, epsilon))) {
+      edges.push(newEdge);
     }
   }
 });
-const edges = Array.from(edgeSet.values());
 
 const portMapping: { [vertexLabel: string]: string } = {
   "V01": "3:1",
