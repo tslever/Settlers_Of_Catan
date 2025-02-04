@@ -129,3 +129,16 @@
   font-size: 4vmin;
   font-weight: bold;
 }
+
+.token-dots {
+  display: flex;
+  justify-content: center;
+}
+
+.dot {
+  width: 0.3vmin;
+  height: 0.3vmin;
+  background-color: black;
+  border-radius: 50%;
+  margin: 0 0.2vmin;
+}
