@@ -35,6 +35,30 @@ const idToColor = {
 
 export type HexID = keyof typeof idToColor;
 
+// --- NEW: Token mapping ---
+// For each hex, assign the token number (or null for no token, e.g. the desert)
+const tokenMapping: { [key in HexID]: number | null } = {
+  H01: 10,
+  H02: 2,
+  H03: 9,
+  H04: 12,
+  H05: 6,
+  H06: 4,
+  H07: 10,
+  H08: 9,
+  H09: 11,
+  H10: null,
+  H11: 3,
+  H12: 8,
+  H13: 8,
+  H14: 3,
+  H15: 4,
+  H16: 5,
+  H17: 5,
+  H18: 6,
+  H19: 11,
+} as const;
+
 const board: HexID[][] = [
   ['H01', 'H02', 'H03'],
   ['H04', 'H05', 'H06', 'H07'],
@@ -209,6 +233,7 @@ export default function Home() {
                 key={id}
                 id={id}
                 color={idToColor[id]}
+                token={tokenMapping[id]}
                 style={{ left: `${x}vmin`, top: `${y}vmin` }}
               />
             ))}
@@ -287,18 +312,22 @@ function Ocean() {
   );
 }
 
+// --- Updated HexTile component ---
+// It now accepts a "token" prop and, if not null, displays the token
 function HexTile({
   id,
+  token,
   color,
   style,
 }: {
   id: HexID;
+  token: number | null;
   color: string;
   style?: React.CSSProperties;
 }) {
   return (
     <div className="hex-tile" style={{ ...style, backgroundColor: color }}>
-      {id}
+      {token !== null && <div className="hex-token">{token}</div>}
     </div>
   );
 }
