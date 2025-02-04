@@ -130,9 +130,14 @@
   font-weight: bold;
 }
 
+.token-number {
+  transform: translateY(-5%);
+}
+
 .token-dots {
   display: flex;
   justify-content: center;
+  transform: translateY(-150%);
 }
 
 .dot {
@@ -140,5 +145,5 @@
   height: 0.3vmin;
   background-color: black;
   border-radius: 50%;
-  margin: 0 0.2vmin;
+  margin: 0 0.125vmin;
 }

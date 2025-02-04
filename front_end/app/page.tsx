@@ -329,15 +329,15 @@ function HexTile({
     const baseFontSize = 4;
     const mapping: { [key: number]: number } = {
       2: 3/11,
-      12: 3/11,
       3: 5/11,
-      11: 5/11,
       4: 7/11,
-      10: 7/11,
       5: 9/11,
-      9: 9/11,
       6: 1,
-      8: 1
+      8: 1,
+      9: 9/11,
+      10: 7/11,
+      11: 5/11,
+      12: 3/11
     };
     return `${baseFontSize * (mapping[token] || 1)}vmin`;
   };
@@ -367,8 +367,14 @@ function HexTile({
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <div className="token-number">{token}</div>
-            <div className="token-dots">
+            <div
+              className="token-number"
+            >
+              {token}
+            </div>
+            <div
+              className="token-dots"
+            >
               {Array.from({ length: tokenDotMapping[token] || 0 }, (_, i) => (
                 <span key = {i} className = "dot" />
               ))}
