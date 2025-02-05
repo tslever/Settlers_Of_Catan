@@ -20,10 +20,62 @@ def calculate_distance(v1, v2):
     return math.sqrt((v1[0] - v2[0])**2 + (v1[1] - v2[1])**2)
 
 
+def edge_already_exists(edge, edges):
+        epsilon = 0.01
+        (x1, y1, x2, y2) = edge
+        for ex in edges:
+            (ex1, ey1, ex2, ey2) = ex
+            if ((abs(x1-ex1) < epsilon and abs(y1-ey1) < epsilon and abs(x2-ex2) < epsilon and abs(y2-ey2) < epsilon) or
+                (abs(x1-ex2) < epsilon and abs(y1-ey2) < epsilon and abs(x2-ex1) < epsilon and abs(y2-ey1) < epsilon)):
+                return True
+        return False
+
+
 def get_connection_to_database():
     connection = sqlite3.connect(BASE_NAME_OF_DATABASE)
     connection.row_factory = sqlite3.Row
     return connection
+
+
+def get_edge_key(v1, v2):
+    if v1[0] < v2[0] or (v1[0] == v2[0] and v1[1] <= v2[1]):
+            return f"{v1[0]:.2f}-{v1[1]:.2f}_{v2[0]:.2f}-{v2[1]:.2f}"
+    else:
+            return f"{v2[0]:.2f}-{v2[1]:.2f}_{v1[0]:.2f}-{v1[1]:.2f}"
+
+
+def get_edges():
+    hexWidth = 100 / 6
+    hexHeight = hexWidth * 1.1547
+    hexOverlap = hexHeight * 0.25
+    verticalSpacing = hexHeight - hexOverlap
+    boardHeight = (len(BOARD) - 1) * verticalSpacing + hexHeight
+    boardYOffset = (100 - boardHeight) / 2
+    hexes = []
+    for rowIndex, row in enumerate(BOARD):
+        n = len(row)
+        baseX = (100 - n * hexWidth) / 2
+        y = boardYOffset + rowIndex * verticalSpacing
+        for colIndex, hex_id in enumerate(row):
+            x = baseX + colIndex * hexWidth
+            hexes.append((hex_id, x, y))
+    edges = []
+    for (_, x, y) in hexes:
+        verts = [
+            (x + 0.5 * hexWidth, y),
+            (x + hexWidth, y + 0.25 * hexHeight),
+            (x + hexWidth, y + 0.75 * hexHeight),
+            (x + 0.5 * hexWidth, y + hexHeight),
+            (x, y + 0.75 * hexHeight),
+            (x, y + 0.25 * hexHeight)
+        ]
+        for i in range(len(verts)):
+            v1 = verts[i]
+            v2 = verts[(i+1) % len(verts)]
+            new_edge = (v1[0], v1[1], v2[0], v2[1])
+            if not edge_already_exists(new_edge, edges):
+                edges.append(new_edge)
+    return edges
 
 
 def get_vertices_with_labels():
@@ -72,16 +124,28 @@ def initialize_database():
 
     connection.execute(
         '''
+        CREATE TABLE IF NOT EXISTS roads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            player INTEGER NOT NULL,
+            edge TEXT NOT NULL
+        )
+        '''
+    )
+
+    connection.execute(
+        '''
         CREATE TABLE IF NOT EXISTS state (
             id INTEGER PRIMARY KEY,
-            current_player INTEGER NOT NULL
+            current_player INTEGER NOT NULL,
+            phase TEXT NOT NULL,
+            last_settlement TEXT
         )
         '''
     )
     cur = connection.execute("SELECT COUNT(*) as count FROM state")
     row = cur.fetchone()
     if row["count"] == 0:
-        connection.execute("INSERT INTO state (id, current_player) VALUES (1, 1)")
+        connection.execute("INSERT INTO state (id, current_player, phase, last_settlement) VALUES (1, 1, 'settlement', NULL)")
     
     connection.commit()
     connection.close()
@@ -101,67 +165,137 @@ def vertex_key(v):
 app = Flask(__name__)
 
 
-@app.route("/settlement", methods = ["POST"])
-def add_settlement():
+@app.route("/next", methods=["POST"])
+def next_move():
     initialize_database()
     connection = get_connection_to_database()
     cursor = connection.cursor()
 
-    cursor.execute("SELECT vertex FROM settlements")
-    used_vertex_labels = {row["vertex"] for row in cursor.fetchall()}
-
-    vertices = get_vertices_with_labels()
-    vertex_coords = {label: (x, y) for label, x, y in vertices}
-    existing_coords = [vertex_coords[label] for label in used_vertex_labels if label in vertex_coords]
-
-    hexWidth = 100 / 6
-    adjacency_threshold = 0.57735 * hexWidth + 0.1
-
-    available = []
-    for label, x, y in vertices:
-        if label in used_vertex_labels:
-            continue
-        too_close = False
-        for ex in existing_coords:
-            if calculate_distance((x, y), ex) < adjacency_threshold:
-                too_close = True
-                break
-        if not too_close:
-            available.append(label)
-    if not available:
-        connection.close()
-        return jsonify({"message": "No vertices are available."}), 400
-    
-    cursor.execute("SELECT current_player FROM state WHERE id = 1")
+    # Read the current state (player, phase, and last settlement).
+    cursor.execute("SELECT current_player, phase, last_settlement FROM state WHERE id = 1")
     row = cursor.fetchone()
-    current_player = row["current_player"] if row else 1
+    if row is None:
+         current_player = 1
+         phase = "settlement"
+         last_settlement = None
+         cursor.execute("INSERT INTO state (id, current_player, phase, last_settlement) VALUES (1, 1, 'settlement', NULL)")
+         connection.commit()
+    else:
+         current_player = row["current_player"]
+         phase = row["phase"]
+         last_settlement = row["last_settlement"]
 
-    chosen_vertex = random.choice(available)
+    if phase == "settlement":
+        # Settlement placement phase
+        cursor.execute("SELECT vertex FROM settlements")
+        used_vertices = {r["vertex"] for r in cursor.fetchall()}
 
-    cursor.execute(
-        '''
-        INSERT INTO settlements (player, vertex)
-        VALUES (?, ?)
-        ''',
-        (current_player, chosen_vertex)
-    )
+        vertices = get_vertices_with_labels()
+        vertex_coords = {label: (x, y) for label, x, y in vertices}
+        existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
 
-    next_player = (current_player % 3) + 1
-    cursor.execute("UPDATE state SET current_player = ? WHERE id = 1", (next_player,))
+        hexWidth = 100 / 6
+        adjacency_threshold = 0.57735 * hexWidth + 0.1
 
-    connection.commit()
-    settlement_id = cursor.lastrowid
-    connection.close()
-    return jsonify(
-        {
-            "message": f"Settlement created for Player {current_player}",
-            "settlement": {
-                "id": settlement_id,
-                "player": current_player,
-                "vertex": chosen_vertex
+        available = []
+        for label, x, y in vertices:
+            if label in used_vertices:
+                continue
+            too_close = False
+            for ex in existing_coords:
+                if math.sqrt((x - ex[0])**2 + (y - ex[1])**2) < adjacency_threshold:
+                    too_close = True
+                    break
+            if not too_close:
+                available.append(label)
+        if not available:
+            connection.close()
+            return jsonify({"message": "No vertices are available."}), 400
+        chosen_vertex = random.choice(available)
+        cursor.execute(
+            '''
+            INSERT INTO settlements (player, vertex)
+            VALUES (?, ?)
+            ''',
+            (current_player, chosen_vertex)
+        )
+        settlement_id = cursor.lastrowid
+        cursor.execute("UPDATE state SET phase = 'road', last_settlement = ? WHERE id = 1", (chosen_vertex,))
+        connection.commit()
+        connection.close()
+        return jsonify(
+            {
+                "message": f"Settlement created for Player {current_player}",
+                "settlement": {
+                    "id": settlement_id,
+                    "player": current_player,
+                    "vertex": chosen_vertex
+                }
             }
-        }
-    )
+        )
+    elif phase == "road":
+        # Road placement phase
+        if not last_settlement:
+            connection.close()
+            return jsonify({"message": "Error: no settlement recorded for road placement."}), 400
+        vertices = get_vertices_with_labels()
+        vertex_coords = {label: (x, y) for label, x, y in vertices}
+        if last_settlement not in vertex_coords:
+            connection.close()
+            return jsonify({"message": "Invalid last settlement vertex."}), 400
+        settlement_coord = vertex_coords[last_settlement]
+        all_edges = get_edges()  # list of edges as (x1,y1,x2,y2)
+        # Find those edges that have one endpoint matching the settlement’s coordinate.
+        epsilon = 0.01
+        adjacent_edges = []
+        for edge in all_edges:
+            (x1, y1, x2, y2) = edge
+            if (abs(x1 - settlement_coord[0]) < epsilon and abs(y1 - settlement_coord[1]) < epsilon) or \
+               (abs(x2 - settlement_coord[0]) < epsilon and abs(y2 - settlement_coord[1]) < epsilon):
+                adjacent_edges.append(edge)
+        if not adjacent_edges:
+            connection.close()
+            return jsonify({"message": "No adjacent edges found for settlement."}), 400
+
+        # Check which adjacent edges do not already have a road.
+        cursor.execute("SELECT edge FROM roads")
+        used_edges = {row["edge"] for row in cursor.fetchall()}
+
+        available_edges = []
+        for edge in adjacent_edges:
+            v1 = (edge[0], edge[1])
+            v2 = (edge[2], edge[3])
+            edge_key = get_edge_key(v1, v2)
+            if edge_key not in used_edges:
+                available_edges.append((edge, edge_key))
+        if not available_edges:
+            connection.close()
+            return jsonify({"message": "No available roads adjacent to settlement."}), 400
+        chosen_edge, chosen_edge_key = random.choice(available_edges)
+        cursor.execute("INSERT INTO roads (player, edge) VALUES (?, ?)", (current_player, chosen_edge_key))
+        road_id = cursor.lastrowid
+        next_player = (current_player % 3) + 1
+        cursor.execute("UPDATE state SET current_player = ?, phase = 'settlement', last_settlement = NULL WHERE id = 1", (next_player,))
+        connection.commit()
+        connection.close()
+        return jsonify({
+            "message": f"Road created for Player {current_player}",
+            "road": {"id": road_id, "player": current_player, "edge": chosen_edge_key}
+        })
+    else:
+        connection.close()
+        return jsonify({"message": "Invalid phase in state."}), 400
+
+
+@app.route("/roads", methods = ["GET"])
+def get_roads():
+    initialize_database()
+    connection = get_connection_to_database()
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM roads")
+    roads = [dict(row) for row in cursor.fetchall()]
+    connection.close()
+    return jsonify({"roads": roads})
 
 
 @app.route("/settlements", methods = ["GET"])

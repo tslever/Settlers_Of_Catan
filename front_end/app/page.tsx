@@ -35,8 +35,6 @@ const idToColor = {
 
 export type HexID = keyof typeof idToColor;
 
-// --- NEW: Token mapping ---
-// For each hex, assign the token number (or null for no token, e.g. the desert)
 const tokenMapping: { [key in HexID]: number | null } = {
   H01: 10,
   H02: 2,
@@ -182,9 +180,16 @@ type Settlement = {
   vertex: string;
 };
 
+type Road = {
+  id: number;
+  player: number;
+  edge: string;
+}
+
 export default function Home() {
   const [serverMessage, setServerMessage] = useState<string>('');
   const [settlements, setSettlements] = useState<Settlement[]>([]);
+  const [roads, setRoads] = useState<Road[]>([]);
 
   useEffect(() => {
     async function loadSettlements() {
@@ -202,9 +207,25 @@ export default function Home() {
     loadSettlements();
   }, []);
 
+  useEffect(() => {
+    async function loadRoads() {
+      try {
+        const response = await fetch("http://localhost:5000/roads");
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        const data = await response.json();
+        setRoads(data.roads);
+      } catch (error: any) {
+        console.error("Error fetching roads:", error.message);
+      }
+    }
+    loadRoads();
+  }, []);
+
   async function handleNext() {
     try {
-      const response = await fetch("http://localhost:5000/settlement", {
+      const response = await fetch("http://localhost:5000/next", {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'
@@ -215,7 +236,11 @@ export default function Home() {
         throw new Error(`Server error: ${response.status}`);
       }
       const data = await response.json();
-      setSettlements(prev => [...prev, data.settlement]);
+      if (data.settlement) {
+        setSettlements(prev => [...prev, data.settlement]);
+      } else if (data.road) {
+        setRoads(prev => [...prev, data.road]);
+      }
       setServerMessage(data.message);
     } catch (error: any) {
       setServerMessage(`Error: ${error.message}`);
@@ -262,6 +287,26 @@ export default function Home() {
                       {label}
                     </text>
                   </g>
+                );
+              })}
+            </svg>
+            <svg className = "road-layer" viewBox = "0 0 100 100" preserveAspectRatio = "none">
+              {roads.map((road, index) => {
+                const parts = road.edge.split('_');
+                const [x1, y1] = parts[0].split('-').map(Number);
+                const [x2, y2] = parts[1].split('-').map(Number);
+                const colorMapping: { [key: number]: string } = { 1: 'red', 2: 'orange', 3: 'green' };
+                const strokeColor = colorMapping[road.player] || 'gray';
+                return (
+                  <line
+                    key = {index}
+                    x1 = {x1}
+                    y1 = {y1}
+                    x2 = {x2}
+                    y2 = {y2}
+                    stroke = {strokeColor}
+                    strokeWidth = "2"
+                  />
                 );
               })}
             </svg>
@@ -312,8 +357,6 @@ function Ocean() {
   );
 }
 
-// --- Updated HexTile component ---
-// It now accepts a "token" prop and, if not null, displays the token
 function HexTile({
   id,
   token,
