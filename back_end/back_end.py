@@ -16,6 +16,10 @@ BOARD = [
 ]
 
 
+def calculate_distance(v1, v2):
+    return math.sqrt((v1[0] - v2[0])**2 + (v1[1] - v2[1])**2)
+
+
 def get_connection_to_database():
     connection = sqlite3.connect(BASE_NAME_OF_DATABASE)
     connection.row_factory = sqlite3.Row
@@ -65,6 +69,20 @@ def initialize_database():
         )
         '''
     )
+
+    connection.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS state (
+            id INTEGER PRIMARY KEY,
+            current_player INTEGER NOT NULL
+        )
+        '''
+    )
+    cur = connection.execute("SELECT COUNT(*) as count FROM state")
+    row = cur.fetchone()
+    if row["count"] == 0:
+        connection.execute("INSERT INTO state (id, current_player) VALUES (1, 1)")
+    
     connection.commit()
     connection.close()
 
@@ -83,12 +101,9 @@ def vertex_key(v):
 app = Flask(__name__)
 
 
-def distance(v1, v2):
-    return math.sqrt((v1[0] - v2[0])**2 + (v1[1] - v2[1])**2)
-
-
 @app.route("/settlement", methods = ["POST"])
 def add_settlement():
+    initialize_database()
     connection = get_connection_to_database()
     cursor = connection.cursor()
 
@@ -97,7 +112,6 @@ def add_settlement():
 
     vertices = get_vertices_with_labels()
     vertex_coords = {label: (x, y) for label, x, y in vertices}
-
     existing_coords = [vertex_coords[label] for label in used_vertex_labels if label in vertex_coords]
 
     hexWidth = 100 / 6
@@ -109,7 +123,7 @@ def add_settlement():
             continue
         too_close = False
         for ex in existing_coords:
-            if distance((x, y), ex) < adjacency_threshold:
+            if calculate_distance((x, y), ex) < adjacency_threshold:
                 too_close = True
                 break
         if not too_close:
@@ -118,9 +132,9 @@ def add_settlement():
         connection.close()
         return jsonify({"message": "No vertices are available."}), 400
     
-    cursor.execute("SELECT COUNT(*) as count FROM settlements")
-    count = cursor.fetchone()["count"]
-    current_player = (count % 3) + 1
+    cursor.execute("SELECT current_player FROM state WHERE id = 1")
+    row = cursor.fetchone()
+    current_player = row["current_player"] if row else 1
 
     chosen_vertex = random.choice(available)
 
@@ -131,6 +145,10 @@ def add_settlement():
         ''',
         (current_player, chosen_vertex)
     )
+
+    next_player = (current_player % 3) + 1
+    cursor.execute("UPDATE state SET current_player = ? WHERE id = 1", (next_player,))
+
     connection.commit()
     settlement_id = cursor.lastrowid
     connection.close()
