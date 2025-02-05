@@ -305,7 +305,7 @@ export default function Home() {
                     x2 = {x2}
                     y2 = {y2}
                     stroke = {strokeColor}
-                    strokeWidth = "2"
+                    strokeWidth = "1"
                   />
                 );
               })}
