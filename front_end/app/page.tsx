@@ -402,9 +402,19 @@ function Port({ x, y, type }: { x: number; y: number; type: string }) {
 }
 
 function SettlementMarker({ x, y, player }: { x: number; y: number; player: number }) {
+  const colorMapping: { [key: number]: string } = {
+    1: 'red',
+    2: 'orange',
+    3: 'green'
+  };
   return (
-    <div className="settlement" style={{ left: `${x}vmin`, top: `${y}vmin` }}>
-      {player}
-    </div>
+    <div
+      className="settlement"
+      style={{
+        left: `${x}vmin`,
+        top: `${y}vmin`,
+        backgroundColor: colorMapping[player] || 'gray'
+      }}
+    />
   );
 }
