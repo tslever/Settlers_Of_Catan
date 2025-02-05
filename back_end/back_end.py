@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import sqlite3
+import math
 import random
+import sqlite3
 
 
 BASE_NAME_OF_DATABASE = "game.db"
@@ -15,14 +16,19 @@ BOARD = [
 ]
 
 
-def get_list_of_labels_of_all_vertices():
+def get_connection_to_database():
+    connection = sqlite3.connect(BASE_NAME_OF_DATABASE)
+    connection.row_factory = sqlite3.Row
+    return connection
+
+
+def get_vertices_with_labels():
     hexWidth = 100 / 6
     hexHeight = hexWidth * 1.1547
     hexOverlap = hexHeight * 0.25
     verticalSpacing = hexHeight - hexOverlap
     boardHeight = (len(BOARD) - 1) * verticalSpacing + hexHeight
     boardYOffset = (100 - boardHeight) / 2
-
     hexes = []
     for rowIndex, row in enumerate(BOARD):
         n = len(row)
@@ -31,7 +37,6 @@ def get_list_of_labels_of_all_vertices():
         for colIndex, hex_id in enumerate(row):
             x = baseX + colIndex * hexWidth
             hexes.append((hex_id, x, y))
-
     unique_vertices = []
     for (_, x, y) in hexes:
         potential_vertices = [
@@ -45,15 +50,8 @@ def get_list_of_labels_of_all_vertices():
         for v in potential_vertices:
             if not vertex_already_exists(unique_vertices, v):
                 unique_vertices.append(v)
-
-    list_of_labels_of_all_vertices = [f"V{(i+1):02d}" for i in range(len(unique_vertices))]
-    return list_of_labels_of_all_vertices
-
-
-def get_connection_to_database():
-    connection = sqlite3.connect(BASE_NAME_OF_DATABASE)
-    connection.row_factory = sqlite3.Row
-    return connection
+    vertices_with_labels = [(f"V{(i+1):02d}", v[0], v[1]) for i, v in enumerate(unique_vertices)]
+    return vertices_with_labels
 
 
 def initialize_database():
@@ -85,13 +83,8 @@ def vertex_key(v):
 app = Flask(__name__)
 
 
-@app.route("/", methods = ["GET"])
-def listen_at_root():
-    return jsonify(
-        {
-            "message": "You have requested information from endpoint '/'."
-        }
-    )
+def distance(v1, v2):
+    return math.sqrt((v1[0] - v2[0])**2 + (v1[1] - v2[1])**2)
 
 
 @app.route("/settlement", methods = ["POST"])
@@ -100,17 +93,35 @@ def add_settlement():
     cursor = connection.cursor()
 
     cursor.execute("SELECT vertex FROM settlements")
-    used_vertices = {row["vertex"] for row in cursor.fetchall()}
+    used_vertex_labels = {row["vertex"] for row in cursor.fetchall()}
 
-    cursor.execute("SELECT COUNT(*) as count FROM settlements")
-    count = cursor.fetchone()["count"]
-    current_player = (count % 3) + 1
+    vertices = get_vertices_with_labels()
+    vertex_coords = {label: (x, y) for label, x, y in vertices}
 
-    available = [vertex for vertex in get_list_of_labels_of_all_vertices() if vertex not in used_vertices]
+    existing_coords = [vertex_coords[label] for label in used_vertex_labels if label in vertex_coords]
+
+    hexWidth = 100 / 6
+    adjacency_threshold = 0.57735 * hexWidth + 0.1
+
+    available = []
+    for label, x, y in vertices:
+        if label in used_vertex_labels:
+            continue
+        too_close = False
+        for ex in existing_coords:
+            if distance((x, y), ex) < adjacency_threshold:
+                too_close = True
+                break
+        if not too_close:
+            available.append(label)
     if not available:
         connection.close()
         return jsonify({"message": "No vertices are available."}), 400
     
+    cursor.execute("SELECT COUNT(*) as count FROM settlements")
+    count = cursor.fetchone()["count"]
+    current_player = (count % 3) + 1
+
     chosen_vertex = random.choice(available)
 
     cursor.execute(
@@ -138,7 +149,6 @@ def add_settlement():
 @app.route("/settlements", methods = ["GET"])
 def get_settlements():
     initialize_database()
-
     connection = get_connection_to_database()
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM settlements")
@@ -147,8 +157,16 @@ def get_settlements():
     return jsonify({"settlements": settlements})
 
 
-if __name__ == '__main__':
+@app.route("/", methods = ["GET"])
+def listen_at_root():
+    return jsonify(
+        {
+            "message": "You have requested information from endpoint '/'."
+        }
+    )
 
+
+if __name__ == '__main__':
     CORS(
         app,
         resources = {
@@ -157,7 +175,6 @@ if __name__ == '__main__':
             }
         }
     )
-
     app.run(
         port = 5000,
         debug = True
