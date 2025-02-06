@@ -145,7 +145,7 @@ def initialize_database():
     cur = connection.execute("SELECT COUNT(*) as count FROM state")
     row = cur.fetchone()
     if row["count"] == 0:
-        connection.execute("INSERT INTO state (id, current_player, phase, last_settlement) VALUES (1, 1, 'settlement', NULL)")
+        connection.execute("INSERT INTO state (id, current_player, phase, last_settlement) VALUES (1, 1, 'phase to place first settlement', NULL)")
     
     connection.commit()
     connection.close()
@@ -167,7 +167,6 @@ app = Flask(__name__)
 
 @app.route("/next", methods=["POST"])
 def next_move():
-    initialize_database()
     connection = get_connection_to_database()
     cursor = connection.cursor()
 
@@ -176,17 +175,16 @@ def next_move():
     row = cursor.fetchone()
     if row is None:
          current_player = 1
-         phase = "settlement"
+         phase = "phase to place first settlement"
          last_settlement = None
-         cursor.execute("INSERT INTO state (id, current_player, phase, last_settlement) VALUES (1, 1, 'settlement', NULL)")
+         cursor.execute("INSERT INTO state (id, current_player, phase, last_settlement) VALUES (1, 1, 'phase to place first settlement', NULL)")
          connection.commit()
     else:
          current_player = row["current_player"]
          phase = row["phase"]
          last_settlement = row["last_settlement"]
 
-    if phase == "settlement":
-        # Settlement placement phase
+    if phase == "phase to place first settlement" or phase == "phase to place second settlement":
         cursor.execute("SELECT vertex FROM settlements")
         used_vertices = {r["vertex"] for r in cursor.fetchall()}
 
@@ -220,7 +218,10 @@ def next_move():
             (current_player, chosen_vertex)
         )
         settlement_id = cursor.lastrowid
-        cursor.execute("UPDATE state SET phase = 'road', last_settlement = ? WHERE id = 1", (chosen_vertex,))
+        if phase == 'phase to place first settlement':
+            cursor.execute("UPDATE state SET phase = 'phase to place first road', last_settlement = ? WHERE id = 1", (chosen_vertex,))
+        elif phase == 'phase to place second settlement':
+            cursor.execute("UPDATE state SET phase = 'phase to place second road', last_settlement = ? WHERE id = 1", (chosen_vertex,))
         connection.commit()
         connection.close()
         return jsonify(
@@ -233,8 +234,7 @@ def next_move():
                 }
             }
         )
-    elif phase == "road":
-        # Road placement phase
+    elif phase == "phase to place first road" or phase == "phase to place second road":
         if not last_settlement:
             connection.close()
             return jsonify({"message": "Error: no settlement recorded for road placement."}), 400
@@ -244,8 +244,7 @@ def next_move():
             connection.close()
             return jsonify({"message": "Invalid last settlement vertex."}), 400
         settlement_coord = vertex_coords[last_settlement]
-        all_edges = get_edges()  # list of edges as (x1,y1,x2,y2)
-        # Find those edges that have one endpoint matching the settlement’s coordinate.
+        all_edges = get_edges()
         epsilon = 0.01
         adjacent_edges = []
         for edge in all_edges:
@@ -257,7 +256,6 @@ def next_move():
             connection.close()
             return jsonify({"message": "No adjacent edges found for settlement."}), 400
 
-        # Check which adjacent edges do not already have a road.
         cursor.execute("SELECT edge FROM roads")
         used_edges = {row["edge"] for row in cursor.fetchall()}
 
@@ -271,12 +269,32 @@ def next_move():
         if not available_edges:
             connection.close()
             return jsonify({"message": "No available roads adjacent to settlement."}), 400
-        chosen_edge, chosen_edge_key = random.choice(available_edges)
+        _, chosen_edge_key = random.choice(available_edges)
         cursor.execute("INSERT INTO roads (player, edge) VALUES (?, ?)", (current_player, chosen_edge_key))
         road_id = cursor.lastrowid
-        next_player = (current_player % 3) + 1
-        cursor.execute("UPDATE state SET current_player = ?, phase = 'settlement', last_settlement = NULL WHERE id = 1", (next_player,))
-        connection.commit()
+        next_player = 0
+        if phase == "phase to place first road":
+            phase_for_database = "phase to place first settlement"
+            if current_player == 1:
+                next_player = 2
+            elif current_player == 2:
+                next_player = 3
+            elif current_player == 3:
+                next_player = 3
+                phase_for_database = "phase to place second settlement"
+            cursor.execute("UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = 1", (next_player, phase_for_database))
+            connection.commit()
+        elif phase == "phase to place second road":
+            phase_for_database = "phase to place second settlement"
+            if current_player == 3:
+                next_player = 2
+            elif current_player == 2:
+                next_player = 1
+            elif current_player == 1:
+                next_player = 1
+                phase_for_database = "turn"
+            cursor.execute("UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = 1", (next_player, phase_for_database))
+            connection.commit()
         connection.close()
         return jsonify({
             "message": f"Road created for Player {current_player}",
@@ -289,7 +307,6 @@ def next_move():
 
 @app.route("/roads", methods = ["GET"])
 def get_roads():
-    initialize_database()
     connection = get_connection_to_database()
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM roads")
@@ -300,7 +317,6 @@ def get_roads():
 
 @app.route("/settlements", methods = ["GET"])
 def get_settlements():
-    initialize_database()
     connection = get_connection_to_database()
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM settlements")
@@ -319,6 +335,7 @@ def listen_at_root():
 
 
 if __name__ == '__main__':
+    initialize_database()
     CORS(
         app,
         resources = {
