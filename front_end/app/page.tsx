@@ -1,6 +1,7 @@
 'use client'
 
 import HexTile from './components/HexTile';
+import Vertex from './components/Vertex';
 import { edges, hexes, idToColor, tokenMapping, vertices } from './utilities/board';
 import React, { useEffect, useState } from 'react';
 
@@ -209,14 +210,6 @@ function Ocean() {
   );
 }
 
-
-function Vertex({ x, y, label }: { x: number; y: number; label: string }) {
-  return (
-    <div className="vertex" style={{ left: `${x}vmin`, top: `${y}vmin` }}>
-      <span className="vertex-label">{label}</span>
-    </div>
-  );
-}
 
 function Port({ x, y, type }: { x: number; y: number; type: string }) {
   return (
