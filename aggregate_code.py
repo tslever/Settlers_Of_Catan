@@ -6,6 +6,12 @@ base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
     r'front_end\app\page.tsx',
     r'front_end\app\globals.css',
+    r'front_end\components\HexTile.tsx',
+    r'front_end\components\Ocean.tsx',
+    r'front_end\components\Port.tsx',
+    r'front_end\components\SettlementMarker.tsx',
+    r'front_end\components\Vertex.tsx',
+    r'front_end\utilities\board.ts',
     r'back_end\back_end.py'
 ]
 
