@@ -1,6 +1,7 @@
 'use client'
 
 import HexTile from './components/HexTile';
+import Ocean from './components/Ocean';
 import Port from './components/Port';
 import SettlementMarker from './components/SettlementMarker';
 import Vertex from './components/Vertex';
@@ -192,22 +193,5 @@ export default function Home() {
         {serverMessage && <p>{serverMessage}</p>}
       </div>
     </div>
-  );
-}
-
-function Ocean() {
-  const oceanWidth = 90; // vmin
-  const oceanHeight = oceanWidth * 1.1547;
-  return (
-    <div
-      className="ocean"
-      style={{
-        left: '50%',
-        top: '50%',
-        width: `${oceanWidth}vmin`,
-        height: `${oceanHeight}vmin`,
-        transform: 'translate(-50%, -50%) rotate(30deg)'
-      }}
-    />
   );
 }
