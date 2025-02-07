@@ -2,6 +2,7 @@
 
 import HexTile from './components/HexTile';
 import Port from './components/Port';
+import SettlementMarker from './components/SettlementMarker';
 import Vertex from './components/Vertex';
 import { edges, hexes, idToColor, tokenMapping, vertices } from './utilities/board';
 import React, { useEffect, useState } from 'react';
@@ -206,25 +207,6 @@ function Ocean() {
         width: `${oceanWidth}vmin`,
         height: `${oceanHeight}vmin`,
         transform: 'translate(-50%, -50%) rotate(30deg)'
-      }}
-    />
-  );
-}
-
-
-function SettlementMarker({ x, y, player }: { x: number; y: number; player: number }) {
-  const colorMapping: { [key: number]: string } = {
-    1: 'red',
-    2: 'orange',
-    3: 'green'
-  };
-  return (
-    <div
-      className="settlement"
-      style={{
-        left: `${x}vmin`,
-        top: `${y}vmin`,
-        backgroundColor: colorMapping[player] || 'gray'
       }}
     />
   );
