@@ -1,6 +1,7 @@
 'use client'
 
 import HexTile from './components/HexTile';
+import Port from './components/Port';
 import Vertex from './components/Vertex';
 import { edges, hexes, idToColor, tokenMapping, vertices } from './utilities/board';
 import React, { useEffect, useState } from 'react';
@@ -210,14 +211,6 @@ function Ocean() {
   );
 }
 
-
-function Port({ x, y, type }: { x: number; y: number; type: string }) {
-  return (
-    <div className="port" style={{ left: `${x}vmin`, top: `${y}vmin` }}>
-      <span className="port-label">{type}</span>
-    </div>
-  );
-}
 
 function SettlementMarker({ x, y, player }: { x: number; y: number; player: number }) {
   const colorMapping: { [key: number]: string } = {
