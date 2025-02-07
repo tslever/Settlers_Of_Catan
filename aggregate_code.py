@@ -4,15 +4,22 @@ import re
 
 base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
+    r'back_end\back_end.py',
+    r'back_end\db\database.py',
+    r'back_end\routes\next.py',
+    r'back_end\routes\roads.py',
+    r'back_end\routes\root.py',
+    r'back_end\routes\settlements.py',
+    r'back_end\routes\__init__.py',
+    r'back_end\utilities\board.py',
     r'front_end\app\page.tsx',
     r'front_end\app\globals.css',
-    r'front_end\components\HexTile.tsx',
-    r'front_end\components\Ocean.tsx',
-    r'front_end\components\Port.tsx',
-    r'front_end\components\SettlementMarker.tsx',
-    r'front_end\components\Vertex.tsx',
-    r'front_end\utilities\board.ts',
-    r'back_end\back_end.py'
+    r'front_end\app\components\HexTile.tsx',
+    r'front_end\app\components\Ocean.tsx',
+    r'front_end\app\components\Port.tsx',
+    r'front_end\app\components\SettlementMarker.tsx',
+    r'front_end\app\components\Vertex.tsx',
+    r'front_end\app\utilities\board.ts'
 ]
 
 
