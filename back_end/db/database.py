@@ -1,6 +1,7 @@
 import sqlite3
 
 BASE_NAME_OF_DATABASE = "game.db"
+ID_OF_STATE = 1
 
 def get_connection_to_database():
     connection = sqlite3.connect(BASE_NAME_OF_DATABASE)
@@ -43,7 +44,8 @@ def initialize_database():
     row = cur.fetchone()
     if row["count"] == 0:
         connection.execute(
-            "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (1, 1, 'phase to place first settlement', NULL)"
+            "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, 'phase to place first settlement', NULL)",
+            (ID_OF_STATE,)
         )
     
     connection.commit()

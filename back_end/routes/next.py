@@ -2,24 +2,31 @@ from db.database import get_connection_to_database
 from flask import Blueprint, jsonify
 import math
 import random
-from utilities.board import get_edges, get_edge_key, get_vertices_with_labels
+from utilities.board import get_all_edges_of_all_hexes, get_edge_key, get_vertices_with_labels
 
 
 blueprint_for_route_next = Blueprint("next", __name__)
 
 
+ID_OF_STATE = 1
+RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON = math.tan(math.pi / 6)
+WIDTH_OF_HEX = 100 / 6 # vmin
+MARGIN_OF_ERROR = 0.01
+THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON * WIDTH_OF_HEX + MARGIN_OF_ERROR
+
 @blueprint_for_route_next.route("/next", methods = ["POST"])
 def next_move():
     connection = get_connection_to_database()
     cursor = connection.cursor()
-    cursor.execute("SELECT current_player, phase, last_settlement FROM state WHERE id = 1")
+    cursor.execute("SELECT current_player, phase, last_settlement FROM state WHERE id = ?", (ID_OF_STATE,))
     row = cursor.fetchone()
     if row is None:
         current_player = 1
         phase = "phase to place first settlement"
         last_settlement = None
         cursor.execute(
-            "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (1, 1, 'phase to place first settlement', NULL)"
+            "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, 'phase to place first settlement', NULL)",
+            (ID_OF_STATE,)
         )
         connection.commit()
     else:
@@ -33,15 +40,13 @@ def next_move():
         vertices = get_vertices_with_labels()
         vertex_coords = {label: (x, y) for label, x, y in vertices}
         existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
-        hexWidth = 100 / 6
-        adjacency_threshold = 0.57735 * hexWidth + 0.1
         available = []
         for label, x, y in vertices:
             if label in used_vertices:
                 continue
             too_close = False
             for ex in existing_coords:
-                if math.sqrt((x - ex[0])**2 + (y - ex[1])**2) < adjacency_threshold:
+                if math.sqrt((x - ex[0])**2 + (y - ex[1])**2) < THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT:
                     too_close = True
                     break
             if not too_close:
@@ -60,7 +65,7 @@ def next_move():
             phase_for_database = 'phase to place first road'
         elif phase == 'phase to place second settlement':
             phase_for_database = 'phase to place second road'
-        cursor.execute("UPDATE state SET phase = ?, last_settlement = ? WHERE id = 1", (phase_for_database, chosen_vertex))
+        cursor.execute("UPDATE state SET phase = ?, last_settlement = ? WHERE id = ?", (phase_for_database, chosen_vertex, ID_OF_STATE))
         connection.commit()
         connection.close()
         return jsonify(
@@ -83,13 +88,12 @@ def next_move():
             connection.close()
             return jsonify({"message": "Invalid last settlement vertex."}), 400
         settlement_coord = vertex_coords[last_settlement]
-        all_edges = get_edges()
-        epsilon = 0.01
+        all_edges = get_all_edges_of_all_hexes()
         adjacent_edges = []
         for edge in all_edges:
             (x1, y1, x2, y2) = edge
-            if (abs(x1 - settlement_coord[0]) < epsilon and abs(y1 - settlement_coord[1]) < epsilon) or \
-               (abs(x2 - settlement_coord[0]) < epsilon and abs(y2 - settlement_coord[1]) < epsilon):
+            if (abs(x1 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y1 - settlement_coord[1]) < MARGIN_OF_ERROR) or \
+               (abs(x2 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y2 - settlement_coord[1]) < MARGIN_OF_ERROR):
                 adjacent_edges.append(edge)
         if not adjacent_edges:
             connection.close()
@@ -121,7 +125,7 @@ def next_move():
             elif current_player == 3:
                 next_player = 3
                 phase_for_database = "phase to place second settlement"
-            cursor.execute("UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = 1", (next_player, phase_for_database))
+            cursor.execute("UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = ?", (next_player, phase_for_database, ID_OF_STATE))
             connection.commit()
         elif phase == "phase to place second road":
             phase_for_database = "phase to place second settlement"
@@ -132,7 +136,7 @@ def next_move():
             elif current_player == 1:
                 next_player = 1
                 phase_for_database = "turn"
-            cursor.execute("UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = 1", (next_player, phase_for_database))
+            cursor.execute("UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = ?", (next_player, phase_for_database, ID_OF_STATE))
             connection.commit()
         connection.close()
         return jsonify({
