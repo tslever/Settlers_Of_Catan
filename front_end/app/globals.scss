@@ -1,3 +1,7 @@
+@use "sass:math";
+
+$RATIO-OF-HEIGHT-OF-HEX-AND-WIDTH-OF-HEX: 2 / math.sqrt(3);
+
 .board {
   position: relative;
   width: 100%;
@@ -37,7 +41,7 @@
 .hex-tile {
   position: absolute;
   width: calc(100vmin / 6);
-  height: calc((100vmin / 6) * 1.1547);
+  height: calc((100vmin / 6) * #{$RATIO-OF-HEIGHT-OF-HEX-AND-WIDTH-OF-HEX});
   clip-path: polygon(
     50% 0%,
     100% 25%,
