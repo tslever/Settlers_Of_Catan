@@ -31,10 +31,13 @@ class Phase(Enum):
 def create_settlement(cursor, current_player, phase: Phase):
     cursor.execute("SELECT vertex FROM settlements")
     used_vertices = {r["vertex"] for r in cursor.fetchall()}
-    vertex_coords = {label: (x, y) for label, x, y in vertices_with_labels}
+    vertex_coords = {v["label"]: (v["x"], v["y"]) for v in vertices_with_labels}
     existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
     available = []
-    for label, x, y in vertices_with_labels:
+    for v in vertices_with_labels:
+        label = v["label"]
+        x = v["x"]
+        y = v["y"]
         if label in used_vertices:
             continue
         too_close = False
@@ -65,13 +68,16 @@ def create_settlement(cursor, current_player, phase: Phase):
 def create_road(cursor, current_player, phase: Phase, last_settlement):
     if not last_settlement:
         return None, None, None, None, "No settlement recorded for road placement."
-    vertex_coords = {label: (x, y) for label, x, y in vertices_with_labels}
+    vertex_coords = {v["label"]: (v["x"], v["y"]) for v in vertices_with_labels}
     if last_settlement not in vertex_coords:
         return None, None, None, None, "Invalid last settlement vertex."
     settlement_coord = vertex_coords[last_settlement]
     adjacent_edges = []
     for edge in all_edges_of_all_hexes:
-        (x1, y1, x2, y2) = edge
+        x1 = edge["x1"]
+        y1 = edge["y1"]
+        x2 = edge["x2"]
+        y2 = edge["y2"]
         if (
             (abs(x1 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y1 - settlement_coord[1]) < MARGIN_OF_ERROR) or
             (abs(x2 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y2 - settlement_coord[1]) < MARGIN_OF_ERROR)
@@ -83,8 +89,8 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
     used_edges = {row["edge"] for row in cursor.fetchall()}
     available_edges = []
     for edge in adjacent_edges:
-        v1 = (edge[0], edge[1])
-        v2 = (edge[2], edge[3])
+        v1 = (edge["x1"], edge["y1"])
+        v2 = (edge["x2"], edge["y2"])
         edge_key = get_edge_key(v1, v2)
         if edge_key not in used_edges:
             available_edges.append((edge, edge_key))

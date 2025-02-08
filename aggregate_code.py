@@ -4,6 +4,8 @@ import re
 
 base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
+    r'generate_board_geometry.py',
+    r'board_geometry.json',
     r'back_end\back_end.py',
     r'back_end\config.py',
     r'back_end\db\database.py',
