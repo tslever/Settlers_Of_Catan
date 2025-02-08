@@ -2,7 +2,7 @@ from flask import Blueprint
 from enum import Enum
 from flask import abort
 from utilities.board import all_edges_of_all_hexes
-from db.database import get_connection_to_database
+from db.database import get_db_connection
 from utilities.board import get_edge_key
 from utilities.board import vertices_with_labels
 from flask import jsonify
@@ -120,75 +120,65 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
         return None, None, None, None, "Invalid phase for road placement."
     return chosen_edge_key, road_id, next_phase, next_player, None
 
-
 @blueprint_for_route_next.route("/next", methods = ["POST"])
 def next_move():
-    connection = get_connection_to_database()
-    cursor = connection.cursor()
-    cursor.execute("SELECT current_player, phase, last_settlement FROM state WHERE id = ?", (ID_OF_STATE,))
-    row = cursor.fetchone()
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT current_player, phase, last_settlement FROM state WHERE id = ?", (ID_OF_STATE,))
+        row = cursor.fetchone()
 
-    if row is None:
-        current_player = 1
-        phase = Phase.TO_PLACE_FIRST_SETTLEMENT
-        last_settlement = None
-        cursor.execute(
-            "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, ?, NULL)",
-            (ID_OF_STATE, Phase.TO_PLACE_FIRST_SETTLEMENT)
-        )
-        connection.commit()
-    else:
-        current_player = row["current_player"]
-        try:
-            phase = Phase(row["phase"])
-        except ValueError:
-            connection.close()
-            abort(500, description = "Invalid phase in state.")
-        last_settlement = row["last_settlement"]
-    if phase in (Phase.TO_PLACE_FIRST_SETTLEMENT, Phase.TO_PLACE_SECOND_SETTLEMENT):
-        chosen_vertex, settlement_id, next_phase, error = create_settlement(cursor, current_player, phase)
-        if error:
-            connection.close()
-            abort(400, description = error)
-        cursor.execute(
-            "UPDATE state SET phase = ?, last_settlement = ? WHERE id = ?",
-            (next_phase.value, chosen_vertex, ID_OF_STATE)
-        )
-        connection.commit()
-        connection.close()
-        return jsonify(
-            {
-                "message": f"Settlement created for Player {current_player}",
-                "moveType": "settlement",
-                "settlement": {
-                    "id": settlement_id,
-                    "player": current_player,
-                    "vertex": chosen_vertex
+        if row is None:
+            current_player = 1
+            phase = Phase.TO_PLACE_FIRST_SETTLEMENT
+            last_settlement = None
+            cursor.execute(
+                "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, ?, NULL)",
+                (ID_OF_STATE, Phase.TO_PLACE_FIRST_SETTLEMENT)
+            )
+        else:
+            current_player = row["current_player"]
+            try:
+                phase = Phase(row["phase"])
+            except ValueError:
+                abort(500, description = "Invalid phase in state.")
+            last_settlement = row["last_settlement"]
+        if phase in (Phase.TO_PLACE_FIRST_SETTLEMENT, Phase.TO_PLACE_SECOND_SETTLEMENT):
+            chosen_vertex, settlement_id, next_phase, error = create_settlement(cursor, current_player, phase)
+            if error:
+                abort(400, description = error)
+            cursor.execute(
+                "UPDATE state SET phase = ?, last_settlement = ? WHERE id = ?",
+                (next_phase.value, chosen_vertex, ID_OF_STATE)
+            )
+            return jsonify(
+                {
+                    "message": f"Settlement created for Player {current_player}",
+                    "moveType": "settlement",
+                    "settlement": {
+                        "id": settlement_id,
+                        "player": current_player,
+                        "vertex": chosen_vertex
+                    }
                 }
-            }
-        )
-    elif phase in (Phase.TO_PLACE_FIRST_ROAD, Phase.TO_PLACE_SECOND_ROAD):
-        chosen_edge_key, road_id, next_phase, next_player, error = create_road(cursor, current_player, phase, last_settlement)
-        if error:
-            connection.close()
-            abort(400, description = error)
-        cursor.execute(
-            "UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = ?",
-            (next_player, next_phase.value, ID_OF_STATE)
-        )
-        connection.commit()
-        connection.close()
-        return jsonify(
-            {
-                "message": f"Road created for Player {current_player}",
-                "moveType": "road",
-                "road": {
-                    "id": road_id,
-                    "player": current_player,
-                    "edge": chosen_edge_key
+            )
+        elif phase in (Phase.TO_PLACE_FIRST_ROAD, Phase.TO_PLACE_SECOND_ROAD):
+            chosen_edge_key, road_id, next_phase, next_player, error = create_road(cursor, current_player, phase, last_settlement)
+            if error:
+                abort(400, description = error)
+            cursor.execute(
+                "UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = ?",
+                (next_player, next_phase.value, ID_OF_STATE)
+            )
+            return jsonify(
+                {
+                    "message": f"Road created for Player {current_player}",
+                    "moveType": "road",
+                    "road": {
+                        "id": road_id,
+                        "player": current_player,
+                        "edge": chosen_edge_key
+                    }
                 }
-            }
-        )
-    else:
-        connection.close()
-        abort(400, "Invalid phase in state.")
+            )
+        else:
+            abort(400, "Invalid phase in state.")
