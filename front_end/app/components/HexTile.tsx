@@ -1,7 +1,7 @@
-import { HexID } from '../utilities/board';
+import { ID_Of_Hex } from '../utilities/board';
 
 type HexTileProps = {
-    id: HexID;
+    id: ID_Of_Hex;
     token: number | null;
     color: string;
     style?: React.CSSProperties;

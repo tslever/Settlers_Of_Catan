@@ -29,9 +29,9 @@ export const idToColor = {
     H19: colorOf.Wool,
 } as const;
 
-export type HexID = keyof typeof idToColor;
+export type ID_Of_Hex = keyof typeof idToColor;
 
-export const tokenMapping: { [key in HexID]: number | null } = {
+export const tokenMapping: { [key in ID_Of_Hex]: number | null } = {
     H01: 10,
     H02: 2,
     H03: 9,
@@ -53,7 +53,7 @@ export const tokenMapping: { [key in HexID]: number | null } = {
     H19: 11,
 } as const;
 
-const board: HexID[][] = [
+const BOARD: ID_Of_Hex[][] = [
     ['H01', 'H02', 'H03'],
     ['H04', 'H05', 'H06', 'H07'],
     ['H08', 'H09', 'H10', 'H11', 'H12'],
@@ -61,47 +61,51 @@ const board: HexID[][] = [
     ['H17', 'H18', 'H19']
 ];
 
-const hexWidth = 100 / 6;
-const hexHeight = hexWidth * 1.1547;
-const hexOverlap = hexHeight * 0.25;
-const verticalSpacing = hexHeight - hexOverlap;
-const boardHeight = (board.length - 1) * verticalSpacing + hexHeight;
-const boardYOffset = (100 - boardHeight) / 2;
+const WIDTH_OF_BOARD_IN_VMIN = 100; // vmin
+const NUMBER_OF_HEXES_THAT_SPAN_BOARD = 6;
+const WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD;
+const RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON = Math.tan(Math.PI / 6);
+const RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX = 2 * RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON;
+const HEIGHT_OF_HEX = WIDTH_OF_HEX * RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX;
+const DISTANCE_BETWEEN_BOTTOM_OF_HEX_IN_FIRST_ROW_AND_TOP_OF_HEX_IN_SECOND_ROW = HEIGHT_OF_HEX / 4;
+const DISTANCE_BETWEEN_TOP_OF_HEX_IN_ONE_ROW_AND_TOP_OF_HEX_IN_NEXT_ROW = HEIGHT_OF_HEX - DISTANCE_BETWEEN_BOTTOM_OF_HEX_IN_FIRST_ROW_AND_TOP_OF_HEX_IN_SECOND_ROW;
+const NUMBER_OF_ROWS_OF_HEXES_AFTER_FIRST = BOARD.length - 1;
+const HEIGHT_OF_BOARD = HEIGHT_OF_HEX + DISTANCE_BETWEEN_TOP_OF_HEX_IN_ONE_ROW_AND_TOP_OF_HEX_IN_NEXT_ROW * NUMBER_OF_ROWS_OF_HEXES_AFTER_FIRST;
+const VERTICAL_POSITION_OF_FIRST_ROW_OF_HEXES = (100 - HEIGHT_OF_BOARD) / 2; // vmin
+const MARGIN_OF_ERROR = 0.01;
 
-type HexPosition = { id: HexID; x: number; y: number };
+type Hex = { id: ID_Of_Hex; x: number; y: number };
 
-export const hexes: HexPosition[] = board.flatMap((row, rowIndex) => {
-    const n = row.length;
-    const baseX = (100 - n * hexWidth) / 2;
-    const y = boardYOffset + rowIndex * verticalSpacing;
-    return row.map((id, colIndex) => ({
-        id,
-        x: baseX + colIndex * hexWidth,
-        y
+export const hexes: Hex[] = BOARD.flatMap((row, index_of_row) => {
+    const vertical_position_of_hex = VERTICAL_POSITION_OF_FIRST_ROW_OF_HEXES + index_of_row * DISTANCE_BETWEEN_TOP_OF_HEX_IN_ONE_ROW_AND_TOP_OF_HEX_IN_NEXT_ROW;
+    const number_of_hexes_in_row = row.length;
+    const horizontal_position_of_first_hex_in_row = (WIDTH_OF_BOARD_IN_VMIN - number_of_hexes_in_row * WIDTH_OF_HEX) / 2;
+    return row.map((id_of_hex, index_of_hex) => ({
+        id: id_of_hex,
+        x: horizontal_position_of_first_hex_in_row + index_of_hex * WIDTH_OF_HEX,
+        y: vertical_position_of_hex
     }));
 });
 
 type VertexCoord = { x: number; y: number };
 
-function isClose(v1: VertexCoord, v2: VertexCoord, epsilon: number): boolean {
-    return Math.abs(v1.x - v2.x) < epsilon && Math.abs(v1.y - v2.y) < epsilon;
+function isClose(v1: VertexCoord, v2: VertexCoord, margin_of_error: number): boolean {
+    return Math.abs(v1.x - v2.x) < margin_of_error && Math.abs(v1.y - v2.y) < margin_of_error;
 }
-
-const epsilon = 0.01;
 
 export const vertices: VertexCoord[] = (() => {
     const uniqueVertices: VertexCoord[] = [];
     hexes.forEach(({ x, y }) => {
         const potentialVertices: VertexCoord[] = [
-            { x: x + 0.5 * hexWidth, y },
-            { x: x + hexWidth, y: y + 0.25 * hexHeight },
-            { x: x + hexWidth, y: y + 0.75 * hexHeight },
-            { x: x + 0.5 * hexWidth, y: y + hexHeight },
-            { x, y: y + 0.75 * hexHeight },
-            { x, y: y + 0.25 * hexHeight }
+            { x: x + 0.5 * WIDTH_OF_HEX, y },
+            { x: x + WIDTH_OF_HEX, y: y + 0.25 * HEIGHT_OF_HEX },
+            { x: x + WIDTH_OF_HEX, y: y + 0.75 * HEIGHT_OF_HEX },
+            { x: x + 0.5 * WIDTH_OF_HEX, y: y + HEIGHT_OF_HEX },
+            { x, y: y + 0.75 * HEIGHT_OF_HEX },
+            { x, y: y + 0.25 * HEIGHT_OF_HEX }
         ];
         potentialVertices.forEach(v => {
-            if (!uniqueVertices.some(existing => isClose(existing, v, epsilon))) {
+            if (!uniqueVertices.some(existing => isClose(existing, v, MARGIN_OF_ERROR))) {
                 uniqueVertices.push(v);
             }
         })
@@ -111,32 +115,32 @@ export const vertices: VertexCoord[] = (() => {
 
 type Edge = { x1: number; y1: number; x2: number; y2: number };
 
-function isEdgeClose(e1: Edge, e2: Edge, epsilon: number): boolean {
+function isEdgeClose(e1: Edge, e2: Edge, margin_of_error: number): boolean {
     const sameOrder =
-        isClose({ x: e1.x1, y: e1.y1 }, { x: e2.x1, y: e2.y1 }, epsilon) &&
-        isClose({ x: e1.x2, y: e1.y2 }, { x: e2.x2, y: e2.y2 }, epsilon);
+        isClose({ x: e1.x1, y: e1.y1 }, { x: e2.x1, y: e2.y1 }, margin_of_error) &&
+        isClose({ x: e1.x2, y: e1.y2 }, { x: e2.x2, y: e2.y2 }, margin_of_error);
     const swappedOrder =
-        isClose({ x: e1.x1, y: e1.y1 }, { x: e2.x2, y: e2.y2 }, epsilon) &&
-        isClose({ x: e1.x2, y: e1.y2 }, { x: e2.x1, y: e2.y1 }, epsilon);
+        isClose({ x: e1.x1, y: e1.y1 }, { x: e2.x2, y: e2.y2 }, margin_of_error) &&
+        isClose({ x: e1.x2, y: e1.y2 }, { x: e2.x1, y: e2.y1 }, margin_of_error);
     return sameOrder || swappedOrder;
 }
 
 export const edges: Edge[] = (() => {
     const edgesArray: Edge[] = [];
     hexes.forEach(({ x, y }) => {
-        const verts: VertexCoord[] = [
-            { x: x + 0.5 * hexWidth, y },
-            { x: x + hexWidth, y: y + 0.25 * hexHeight },
-            { x: x + hexWidth, y: y + 0.75 * hexHeight },
-            { x: x + 0.5 * hexWidth, y: y + hexHeight },
-            { x, y: y + 0.75 * hexHeight },
-            { x, y: y + 0.25 * hexHeight }
+        const vertices: VertexCoord[] = [
+            { x: x + 0.5 * WIDTH_OF_HEX, y },
+            { x: x + WIDTH_OF_HEX, y: y + 0.25 * HEIGHT_OF_HEX },
+            { x: x + WIDTH_OF_HEX, y: y + 0.75 * HEIGHT_OF_HEX },
+            { x: x + 0.5 * WIDTH_OF_HEX, y: y + HEIGHT_OF_HEX },
+            { x, y: y + 0.75 * HEIGHT_OF_HEX },
+            { x, y: y + 0.25 * HEIGHT_OF_HEX }
         ];
-        for (let i = 0; i < verts.length; i++) {
-            const v1 = verts[i];
-            const v2 = verts[(i + 1) % verts.length];
+        for (let i = 0; i < vertices.length; i++) {
+            const v1 = vertices[i];
+            const v2 = vertices[(i + 1) % vertices.length];
             const newEdge: Edge = { x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y };
-            if (!edgesArray.some(existing => isEdgeClose(existing, newEdge, epsilon))) {
+            if (!edgesArray.some(existing => isEdgeClose(existing, newEdge, MARGIN_OF_ERROR))) {
                 edgesArray.push(newEdge);
             }
         }

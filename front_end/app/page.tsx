@@ -172,9 +172,7 @@ export default function Home() {
                             return (
                                 <React.Fragment key = {i}>
                                     <Vertex x = {v.x} y = {v.y} label = {vLabel} />
-                                    {portMapping[vLabel] && (
-                                        <Port x={v.x} y={v.y} type={portMapping[vLabel]} />
-                                    )}
+                                    {portMapping[vLabel] && <Port x={v.x} y={v.y} type={portMapping[vLabel]} />}
                                 </React.Fragment>
                             );
                         })}
