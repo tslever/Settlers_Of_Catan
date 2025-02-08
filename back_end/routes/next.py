@@ -1,8 +1,12 @@
+from flask import Blueprint
+from flask import abort
+from utilities.board import get_all_edges_of_all_hexes
 from db.database import get_connection_to_database
-from flask import Blueprint, jsonify
+from utilities.board import get_edge_key
+from utilities.board import get_vertices_with_labels
+from flask import jsonify
 import math
 import random
-from utilities.board import get_all_edges_of_all_hexes, get_edge_key, get_vertices_with_labels
 
 
 blueprint_for_route_next = Blueprint("next", __name__)
@@ -55,7 +59,7 @@ def next_move():
                 available.append(label)
         if not available:
             connection.close()
-            return jsonify({"message": "No vertices are available."}), 400
+            abort(400, description = "No vertices are available.")
         chosen_vertex = random.choice(available)
         cursor.execute(
             "INSERT INTO settlements (player, vertex) VALUES (?, ?)",
@@ -83,12 +87,12 @@ def next_move():
     elif phase in ["phase to place first road", "phase to place second road"]:
         if not last_settlement:
             connection.close()
-            return jsonify({"message": "Error: no settlement recorded for road placement."}), 400
+            abort(400, description = "Error: no settlement recorded for road placement.")
         vertices = get_vertices_with_labels()
         vertex_coords = {label: (x, y) for label, x, y in vertices}
         if last_settlement not in vertex_coords:
             connection.close()
-            return jsonify({"message": "Invalid last settlement vertex."}), 400
+            abort(400, description = "Invalid last settlement vertex.")
         settlement_coord = vertex_coords[last_settlement]
         all_edges = get_all_edges_of_all_hexes()
         adjacent_edges = []
@@ -99,7 +103,7 @@ def next_move():
                 adjacent_edges.append(edge)
         if not adjacent_edges:
             connection.close()
-            return jsonify({"message": "No adjacent edges found for settlement."}), 400
+            abort(400, description = "No adjacent edges found for settlement.")
 
         cursor.execute("SELECT edge FROM roads")
         used_edges = {row["edge"] for row in cursor.fetchall()}
@@ -113,7 +117,7 @@ def next_move():
                 available_edges.append((edge, edge_key))
         if not available_edges:
             connection.close()
-            return jsonify({"message": "No available roads adjacent to settlement."}), 400
+            abort(400, description = "No available roads adjacent to settlement.")
         _, chosen_edge_key = random.choice(available_edges)
         cursor.execute("INSERT INTO roads (player, edge) VALUES (?, ?)", (current_player, chosen_edge_key))
         road_id = cursor.lastrowid
@@ -147,4 +151,4 @@ def next_move():
         })
     else:
         connection.close()
-        return jsonify({"message": "Invalid phase in state."}), 400
+        abort(400, description = "Invalid phase in state.")

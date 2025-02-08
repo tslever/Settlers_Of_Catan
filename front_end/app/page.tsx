@@ -12,6 +12,7 @@ import { idToColor } from './utilities/board';
 import { tokenMapping } from './utilities/board';
 import { vertices } from './utilities/board';
 import { URL_OF_BACK_END } from './config';
+import { useApi } from './hooks/useApi';
 import { useEffect } from 'react';
 import { useState } from 'react';
 
@@ -50,48 +51,23 @@ const portMapping: { [vertexLabel: string]: string } = {
 
 export default function Home() {
     const [serverMessage, setServerMessage] = useState<string>('');
-    const [settlements, setSettlements] = useState<Settlement[]>([]);
-    const [roads, setRoads] = useState<Road[]>([]);
 
-    useEffect(() => {
-        async function loadSettlements() {
-            try {
-                const response = await fetch(`${URL_OF_BACK_END}/settlements`);
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`)
-                }
-                const data = await response.json();
-                setSettlements(data.settlements);
-            } catch (error: unknown) {
-                if (error instanceof Error) {
-                    console.error("Error fetching settlements:", error.message);
-                } else {
-                    console.error("Eror fetching settlements:", error);
-                }
-            }
-        }
-        loadSettlements();
-    }, []);
+    const {
+        data: settlementsData,
+        error: settlementsError,
+        loading: settlementsLoading,
+        refetch: refetchSettlements
+    } = useApi<{ settlements: Settlement[] }>(`${URL_OF_BACK_END}/settlements`);
 
-    useEffect(() => {
-        async function loadRoads() {
-            try {
-                const response = await fetch(`${URL_OF_BACK_END}/roads`);
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-                const data = await response.json();
-                setRoads(data.roads);
-            } catch (error: unknown) {
-                if (error instanceof Error) {
-                    console.error("Error fetching roads:", error.message);
-                } else {
-                    console.error("Error fetching roads:", error);
-                }
-            }
-        }
-        loadRoads();
-    }, []);
+    const {
+        data: roadsData,
+        error: roadsError,
+        loading: roadsLoading,
+        refetch: refetchRoads
+    } = useApi<{ roads: Road[] }>(`${URL_OF_BACK_END}/roads`);
+
+    const settlements = settlementsData ? settlementsData.settlements : [];
+    const roads = roadsData ? roadsData.roads : [];
 
     async function handleNext() {
         try {
@@ -102,16 +78,13 @@ export default function Home() {
                 },
                 body: JSON.stringify({})
             });
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
             const data = await response.json();
-            if (data.settlement) {
-                setSettlements(prev => [...prev, data.settlement]);
-            } else if (data.road) {
-                setRoads(prev => [...prev, data.road]);
+            if (!response.ok) {
+                throw new Error(data.message || `Server error: ${response.status}`);
             }
             setServerMessage(data.message);
+            refetchSettlements();
+            refetchRoads();
         } catch (error: unknown) {
             if (error instanceof Error) {
                 setServerMessage(`Error: ${error.message}`);
@@ -205,6 +178,11 @@ export default function Home() {
             <div style = {{ textAlign: 'center', marginTop: '1rem' }}>
                 <button onClick = {handleNext}>Next</button>
                 {serverMessage && <p>{serverMessage}</p>}
+                {(settlementsError || roadsError) && (
+                    <p style = {{ color: "red "}}>
+                        {settlementsError || roadsError}
+                    </p>
+                )}
             </div>
         </div>
     );
