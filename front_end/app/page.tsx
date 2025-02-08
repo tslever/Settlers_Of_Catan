@@ -28,6 +28,18 @@ type Settlement = {
     vertex: string;
 };
 
+type MoveType = "settlement" | "road";
+
+type NextResponse =
+    | { moveType: "settlement"; message: string; settlement: Settlement }
+    | { moveType: "road"; message: string; road: Road };
+
+function isErrorResponse(
+    data: NextResponse | { error: string }
+): data is { error: string } {
+    return 'error' in data;
+}
+
 const portMapping: { [vertexLabel: string]: string } = {
   "V01": "3:1",
   "V06": "3:1",
@@ -88,14 +100,14 @@ export default function Home() {
                 },
                 body: JSON.stringify({})
             });
-            const data = await response.json();
-            if (!response.ok) {
-                setServerMessage(data.error || `Server error: ${response.status}`);
+            const jsonData: NextResponse | { error: string } = await response.json();
+            if (isErrorResponse(jsonData)) {
+                setServerMessage(jsonData.error || `Server error: ${response.status}`);
             } else {
-                if (data.moveType === "settlement") {
-                    await handleSettlementCreated(data.settlement, data.message);
-                } else if (data.moveType === "road") {
-                    await handleRoadCreated(data.road, data.message);
+                if (jsonData.moveType === "settlement") {
+                    await handleSettlementCreated(jsonData.settlement, jsonData.message);
+                } else if (jsonData.moveType === "road") {
+                    await handleRoadCreated(jsonData.road, jsonData.message);
                 } else {
                     setServerMessage("Unknown move type.");
                 }
