@@ -41,6 +41,8 @@ const portMapping: { [vertexLabel: string]: string } = {
   "V18": "Wood",
 };
 
+const URL_OF_BACK_END = 'http://localhost:5000';
+
 export default function Home() {
     const [serverMessage, setServerMessage] = useState<string>('');
     const [settlements, setSettlements] = useState<Settlement[]>([]);
@@ -49,7 +51,7 @@ export default function Home() {
     useEffect(() => {
         async function loadSettlements() {
             try {
-                const response = await fetch("http://localhost:5000/settlements");
+                const response = await fetch(`${URL_OF_BACK_END}/settlements`);
                 if (!response.ok) {
                     throw new Error(`Server error: ${response.status}`)
                 }
@@ -65,7 +67,7 @@ export default function Home() {
     useEffect(() => {
         async function loadRoads() {
             try {
-                const response = await fetch("http://localhost:5000/roads");
+                const response = await fetch(`${URL_OF_BACK_END}/roads`);
                 if (!response.ok) {
                     throw new Error(`Server error: ${response.status}`);
                 }
@@ -80,7 +82,7 @@ export default function Home() {
 
     async function handleNext() {
         try {
-            const response = await fetch("http://localhost:5000/next", {
+            const response = await fetch(`${URL_OF_BACK_END}/next`, {
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/json'
@@ -106,85 +108,85 @@ export default function Home() {
         <div>
             <div className = "outer-container">
                 <Ocean />
-                    <div className = "board-container">
-                        <div className="board">
-                            {hexes.map(({ id, x, y }) => (
-                                <HexTile
-                                    key = {id}
-                                    id = {id}
-                                    color = {idToColor[id]}
-                                    token = {tokenMapping[id]}
-                                    style = {{ left: `${x}vmin`, top: `${y}vmin` }}
-                                />
-                            ))}
-                            <svg className = "edge-layer" viewBox="0 0 100 100" preserveAspectRatio = "none">
-                                {edges.map((edge, index) => {
-                                    const midX = (edge.x1 + edge.x2) / 2;
-                                    const midY = (edge.y1 + edge.y2) / 2;
-                                    const label = `E${(index + 1).toString().padStart(2, '0')}`;
-                                    return (
-                                        <g key = {index}>
-                                            <line
-                                                x1 = {edge.x1}
-                                                y1 = {edge.y1}
-                                                x2 = {edge.x2}
-                                                y2 = {edge.y2}
-                                                stroke = "blue"
-                                                strokeWidth = "0.5"
-                                            />
-                                            <text
-                                                x = {midX}
-                                                y = {midY}
-                                                className = "edge-label"
-                                                textAnchor = "middle"
-                                                alignmentBaseline = "middle"
-                                            >
-                                                {label}
-                                            </text>
-                                        </g>
-                                    );
-                                })}
-                            </svg>
-                            <svg className = "road-layer" viewBox = "0 0 100 100" preserveAspectRatio = "none">
-                                {roads.map((road, index) => {
-                                    const parts = road.edge.split('_');
-                                    const [x1, y1] = parts[0].split('-').map(Number);
-                                    const [x2, y2] = parts[1].split('-').map(Number);
-                                    const colorMapping: { [key: number]: string } = { 1: 'red', 2: 'orange', 3: 'green' };
-                                    const strokeColor = colorMapping[road.player] || 'gray';
-                                    return (
-                                        <line
-                                            key = {index}
-                                            x1 = {x1}
-                                            y1 = {y1}
-                                            x2 = {x2}
-                                            y2 = {y2}
-                                            stroke = {strokeColor}
-                                            strokeWidth = "1"
-                                        />
-                                    );
-                                })}
-                            </svg>
-                            {vertices.map((v, i) => {
-                                const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
+                <div className = "board-container">
+                    <div className = "board">
+                        {hexes.map(({ id, x, y }) => (
+                            <HexTile
+                                key = {id}
+                                id = {id}
+                                color = {idToColor[id]}
+                                token = {tokenMapping[id]}
+                                style = {{ left: `${x}vmin`, top: `${y}vmin` }}
+                            />
+                        ))}
+                        <svg className = "edge-layer" viewBox="0 0 100 100" preserveAspectRatio = "none">
+                            {edges.map((edge, index) => {
+                                const midX = (edge.x1 + edge.x2) / 2;
+                                const midY = (edge.y1 + edge.y2) / 2;
+                                const label = `E${(index + 1).toString().padStart(2, '0')}`;
                                 return (
-                                    <React.Fragment key={i}>
-                                        <Vertex x = {v.x} y = {v.y} label = {vLabel} />
-                                        {portMapping[vLabel] && (
-                                            <Port x={v.x} y={v.y} type={portMapping[vLabel]} />
-                                        )}
-                                    </React.Fragment>
+                                    <g key = {index}>
+                                        <line
+                                            x1 = {edge.x1}
+                                            y1 = {edge.y1}
+                                            x2 = {edge.x2}
+                                            y2 = {edge.y2}
+                                            stroke = "blue"
+                                            strokeWidth = "0.5"
+                                        />
+                                        <text
+                                            x = {midX}
+                                            y = {midY}
+                                            className = "edge-label"
+                                            textAnchor = "middle"
+                                            alignmentBaseline = "middle"
+                                        >
+                                            {label}
+                                        </text>
+                                    </g>
                                 );
                             })}
-                            {settlements.map(s => {
-                                const vertexIndex = parseInt(s.vertex.substring(1)) - 1;
-                                const v = vertices[vertexIndex];
-                                if (!v) return null;
-                                return <SettlementMarker key = {s.id} x = {v.x} y = {v.y} player = {s.player} />
+                        </svg>
+                        <svg className = "road-layer" viewBox = "0 0 100 100" preserveAspectRatio = "none">
+                            {roads.map((road, index) => {
+                                const [firstPart, secondPart] = road.edge.split('_');
+                                const [x1, y1] = firstPart.split('-').map(Number);
+                                const [x2, y2] = secondPart.split('-').map(Number);
+                                const colorMapping: { [key: number]: string } = { 1: 'red', 2: 'orange', 3: 'green' };
+                                const strokeColor = colorMapping[road.player] || 'gray';
+                                return (
+                                    <line
+                                        key = {index}
+                                        x1 = {x1}
+                                        y1 = {y1}
+                                        x2 = {x2}
+                                        y2 = {y2}
+                                        stroke = {strokeColor}
+                                        strokeWidth = "1"
+                                    />
+                                );
                             })}
-                        </div>
+                        </svg>
+                        {vertices.map((v, i) => {
+                            const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
+                            return (
+                                <React.Fragment key = {i}>
+                                    <Vertex x = {v.x} y = {v.y} label = {vLabel} />
+                                    {portMapping[vLabel] && (
+                                        <Port x={v.x} y={v.y} type={portMapping[vLabel]} />
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
+                        {settlements.map(s => {
+                            const vertexIndex = parseInt(s.vertex.substring(1)) - 1;
+                            const v = vertices[vertexIndex];
+                            if (!v) return null;
+                            return <SettlementMarker key = {s.id} x = {v.x} y = {v.y} player = {s.player} />
+                        })}
                     </div>
                 </div>
+            </div>
             <div style = {{ textAlign: 'center', marginTop: '1rem' }}>
                 <button onClick = {handleNext}>Next</button>
                 {serverMessage && <p>{serverMessage}</p>}

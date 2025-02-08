@@ -14,12 +14,14 @@ WIDTH_OF_HEX = 100 / 6 # vmin
 MARGIN_OF_ERROR = 0.01
 THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON * WIDTH_OF_HEX + MARGIN_OF_ERROR
 
+
 @blueprint_for_route_next.route("/next", methods = ["POST"])
 def next_move():
     connection = get_connection_to_database()
     cursor = connection.cursor()
     cursor.execute("SELECT current_player, phase, last_settlement FROM state WHERE id = ?", (ID_OF_STATE,))
     row = cursor.fetchone()
+
     if row is None:
         current_player = 1
         phase = "phase to place first settlement"
