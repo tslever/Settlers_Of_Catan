@@ -1,4 +1,5 @@
 from flask import Blueprint
+from enum import Enum
 from flask import abort
 from utilities.board import all_edges_of_all_hexes
 from db.database import get_connection_to_database
@@ -19,7 +20,15 @@ MARGIN_OF_ERROR = 0.01
 THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON * WIDTH_OF_HEX + MARGIN_OF_ERROR
 
 
-def create_settlement(cursor, current_player, phase):
+class Phase(Enum):
+    TO_PLACE_FIRST_SETTLEMENT = "phase to place first settlement"
+    TO_PLACE_FIRST_ROAD = "phase to place first road"
+    TO_PLACE_SECOND_SETTLEMENT = "phase to place second settlement"
+    TO_PLACE_SECOND_ROAD = "phase to place second road"
+    TURN = "turn"
+
+
+def create_settlement(cursor, current_player, phase: Phase):
     cursor.execute("SELECT vertex FROM settlements")
     used_vertices = {r["vertex"] for r in cursor.fetchall()}
     vertex_coords = {label: (x, y) for label, x, y in vertices_with_labels}
@@ -44,16 +53,16 @@ def create_settlement(cursor, current_player, phase):
     )
     settlement_id = cursor.lastrowid
     next_phase = ""
-    if phase == 'phase to place first settlement':
-        next_phase = 'phase to place first road'
-    elif phase == 'phase to place second settlement':
-        next_phase = 'phase to place second road'
+    if phase == Phase.TO_PLACE_FIRST_SETTLEMENT:
+        next_phase = Phase.TO_PLACE_FIRST_ROAD
+    elif phase == Phase.TO_PLACE_SECOND_SETTLEMENT:
+        next_phase = Phase.TO_PLACE_SECOND_ROAD
     else:
         return None, None, None, "Invalid phase for settlement placement."
     return chosen_vertex, settlement_id, next_phase, None
     
 
-def create_road(cursor, current_player, phase, last_settlement):
+def create_road(cursor, current_player, phase: Phase, last_settlement):
     if not last_settlement:
         return None, None, None, None, "No settlement recorded for road placement."
     vertex_coords = {label: (x, y) for label, x, y in vertices_with_labels}
@@ -66,7 +75,7 @@ def create_road(cursor, current_player, phase, last_settlement):
         if (
             (abs(x1 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y1 - settlement_coord[1]) < MARGIN_OF_ERROR) or
             (abs(x2 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y2 - settlement_coord[1]) < MARGIN_OF_ERROR)
-           ):
+        ):
             adjacent_edges.append(edge)
     if not adjacent_edges:
         return None, None, None, None, "No adjacent edges found for settlement."
@@ -85,28 +94,28 @@ def create_road(cursor, current_player, phase, last_settlement):
     cursor.execute("INSERT INTO roads (player, edge) VALUES (?, ?)", (current_player, chosen_edge_key))
     road_id = cursor.lastrowid
     next_player = 0
-    if phase == "phase to place first road":
-        next_phase = "phase to place first settlement"
+    if phase == Phase.TO_PLACE_FIRST_ROAD:
+        next_phase = Phase.TO_PLACE_FIRST_SETTLEMENT
         if current_player == 1:
             next_player = 2
         elif current_player == 2:
             next_player = 3
         elif current_player == 3:
             next_player = 3
-            next_phase = "phase to place second settlement"
+            next_phase = Phase.TO_PLACE_SECOND_SETTLEMENT
         else:
             abort(500, description = "Current player does not exist.")
-    elif phase == "phase to place second road":
-        next_phase = "phase to place second settlement"
+    elif phase == Phase.TO_PLACE_SECOND_ROAD:
+        next_phase = Phase.TO_PLACE_SECOND_SETTLEMENT
         if current_player == 3:
             next_player = 2
         elif current_player == 2:
             next_player = 1
         elif current_player == 1:
             next_player = 1
-            next_phase = "turn"
+            next_phase = Phase.TURN
         else:
-            abort(500, "Current player does not exist.")
+            abort(500, description = "Current player does not exist.")
     else:
         return None, None, None, None, "Invalid phase for road placement."
     return chosen_edge_key, road_id, next_phase, next_player, None
@@ -121,25 +130,29 @@ def next_move():
 
     if row is None:
         current_player = 1
-        phase = "phase to place first settlement"
+        phase = Phase.TO_PLACE_FIRST_SETTLEMENT
         last_settlement = None
         cursor.execute(
-            "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, 'phase to place first settlement', NULL)",
-            (ID_OF_STATE,)
+            "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, ?, NULL)",
+            (ID_OF_STATE, Phase.TO_PLACE_FIRST_SETTLEMENT)
         )
         connection.commit()
     else:
         current_player = row["current_player"]
-        phase = row["phase"]
+        try:
+            phase = Phase(row["phase"])
+        except ValueError:
+            connection.close()
+            abort(500, description = "Invalid phase in state.")
         last_settlement = row["last_settlement"]
-    if phase in ["phase to place first settlement", "phase to place second settlement"]:
+    if phase in (Phase.TO_PLACE_FIRST_SETTLEMENT, Phase.TO_PLACE_SECOND_SETTLEMENT):
         chosen_vertex, settlement_id, next_phase, error = create_settlement(cursor, current_player, phase)
         if error:
             connection.close()
             abort(400, description = error)
         cursor.execute(
             "UPDATE state SET phase = ?, last_settlement = ? WHERE id = ?",
-            (next_phase, chosen_vertex, ID_OF_STATE)
+            (next_phase.value, chosen_vertex, ID_OF_STATE)
         )
         connection.commit()
         connection.close()
@@ -154,14 +167,14 @@ def next_move():
                 }
             }
         )
-    elif phase in ["phase to place first road", "phase to place second road"]:
+    elif phase in (Phase.TO_PLACE_FIRST_ROAD, Phase.TO_PLACE_SECOND_ROAD):
         chosen_edge_key, road_id, next_phase, next_player, error = create_road(cursor, current_player, phase, last_settlement)
         if error:
             connection.close()
             abort(400, description = error)
         cursor.execute(
             "UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = ?",
-            (next_player, next_phase, ID_OF_STATE)
+            (next_player, next_phase.value, ID_OF_STATE)
         )
         connection.commit()
         connection.close()
