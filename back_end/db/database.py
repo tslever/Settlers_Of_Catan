@@ -1,13 +1,20 @@
-import sqlite3
 from contextlib import contextmanager
+import logging
+import sqlite3
+
 
 BASE_NAME_OF_DATABASE = "game.db"
 ID_OF_STATE = 1
+
+
+logger = logging.getLogger(__name__)
+
 
 def get_connection_to_database():
     connection = sqlite3.connect(BASE_NAME_OF_DATABASE)
     connection.row_factory = sqlite3.Row
     return connection
+
 
 @contextmanager
 def get_db_connection():
@@ -21,6 +28,7 @@ def get_db_connection():
     finally:
         connection.close()
 
+
 def initialize_database():
     with get_db_connection() as connection:
         connection.execute(
@@ -32,6 +40,7 @@ def initialize_database():
             )
             '''
         )
+        logger.info("Ensured table 'settlements' exists.")
         connection.execute(
             '''
             CREATE TABLE IF NOT EXISTS roads (
@@ -41,6 +50,7 @@ def initialize_database():
             )
             '''
         )
+        logger.info("Ensured table 'roads' exists.")
         connection.execute(
             '''
             CREATE TABLE IF NOT EXISTS state (
@@ -51,6 +61,7 @@ def initialize_database():
             )
             '''
         )
+        logger.info("Ensured table 'state' exists.")
         cur = connection.execute("SELECT COUNT(*) as count FROM state")
         row = cur.fetchone()
         if row["count"] == 0:
@@ -58,3 +69,6 @@ def initialize_database():
                 "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, 'phase to place first settlement', NULL)",
                 (ID_OF_STATE,)
             )
+            logger.info("Initialized 'state' table with initial state: player 1, phase 'phase to place first settlement'.")
+        else:
+            logger.info(f"State table already initialized with {row["count"]} record(s).")

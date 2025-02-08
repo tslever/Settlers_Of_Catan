@@ -6,11 +6,13 @@ from db.database import get_db_connection
 from utilities.board import get_edge_key
 from utilities.board import vertices_with_labels
 from flask import jsonify
+import logging
 import math
 import random
 
 
 blueprint_for_route_next = Blueprint("next", __name__)
+logger = logging.getLogger(__name__)
 
 
 ID_OF_STATE = 1
@@ -48,6 +50,7 @@ def create_settlement(cursor, current_player, phase: Phase):
         if not too_close:
             available.append(label)
     if not available:
+        logger.error(f"No vertices available for settlement placement (current_player={current_player}, phase={phase.value}).")
         return None, None, None, "No vertices are available."
     chosen_vertex = random.choice(available)
     cursor.execute(
@@ -61,15 +64,18 @@ def create_settlement(cursor, current_player, phase: Phase):
     elif phase == Phase.TO_PLACE_SECOND_SETTLEMENT:
         next_phase = Phase.TO_PLACE_SECOND_ROAD
     else:
+        logger.error(f"Invalid phase for settlement placement: {phase.value}")
         return None, None, None, "Invalid phase for settlement placement."
     return chosen_vertex, settlement_id, next_phase, None
     
 
 def create_road(cursor, current_player, phase: Phase, last_settlement):
     if not last_settlement:
+        logger.error(f"No settlement recorded for road placement (current_player={current_player}, phase={phase.value})")
         return None, None, None, None, "No settlement recorded for road placement."
     vertex_coords = {v["label"]: (v["x"], v["y"]) for v in vertices_with_labels}
     if last_settlement not in vertex_coords:
+        logger.error(f"Invalid last settlement vertex: {last_settlement}")
         return None, None, None, None, "Invalid last settlement vertex."
     settlement_coord = vertex_coords[last_settlement]
     adjacent_edges = []
@@ -84,6 +90,7 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
         ):
             adjacent_edges.append(edge)
     if not adjacent_edges:
+        logger.error(f"No adjacent edges found for settlement at {settlement_coord}")
         return None, None, None, None, "No adjacent edges found for settlement."
     cursor.execute("SELECT edge FROM roads")
     used_edges = {row["edge"] for row in cursor.fetchall()}
@@ -95,6 +102,7 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
         if edge_key not in used_edges:
             available_edges.append((edge, edge_key))
     if not available_edges:
+        logger.error(f"No available roads adjacent to settlement {last_settlement}.")
         return None, None, None, None, "No available roads adjacent to settlement."
     _, chosen_edge_key = random.choice(available_edges)
     cursor.execute("INSERT INTO roads (player, edge) VALUES (?, ?)", (current_player, chosen_edge_key))
@@ -110,6 +118,7 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
             next_player = 3
             next_phase = Phase.TO_PLACE_SECOND_SETTLEMENT
         else:
+            logger.error(f"Current player does not exist: {current_player}")
             abort(500, description = "Current player does not exist.")
     elif phase == Phase.TO_PLACE_SECOND_ROAD:
         next_phase = Phase.TO_PLACE_SECOND_SETTLEMENT
@@ -121,8 +130,10 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
             next_player = 1
             next_phase = Phase.TURN
         else:
+            logger.error(f"Current player does not exist: {current_player}")
             abort(500, description = "Current player does not exist.")
     else:
+        logger.error(f"Invalid phase for road placement: {phase.value}")
         return None, None, None, None, "Invalid phase for road placement."
     return chosen_edge_key, road_id, next_phase, next_player, None
 
@@ -141,21 +152,26 @@ def next_move():
                 "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, ?, NULL)",
                 (ID_OF_STATE, Phase.TO_PLACE_FIRST_SETTLEMENT)
             )
+            logger.info(f"Initialized state: player=1, phase={Phase.TO_PLACE_FIRST_SETTLEMENT.value}")
         else:
             current_player = row["current_player"]
             try:
                 phase = Phase(row["phase"])
             except ValueError:
+                logger.error(f"Invalid phase in state: {row["phase"]}")
                 abort(500, description = "Invalid phase in state.")
             last_settlement = row["last_settlement"]
+            logger.info(f"Current state: player={current_player}, phase={phase.value}, last_settlement={last_settlement}")
         if phase in (Phase.TO_PLACE_FIRST_SETTLEMENT, Phase.TO_PLACE_SECOND_SETTLEMENT):
             chosen_vertex, settlement_id, next_phase, error = create_settlement(cursor, current_player, phase)
             if error:
+                logger.error(f"Settlement creation error: {error}")
                 abort(400, description = error)
             cursor.execute(
                 "UPDATE state SET phase = ?, last_settlement = ? WHERE id = ?",
                 (next_phase.value, chosen_vertex, ID_OF_STATE)
             )
+            logger.info(f"Settlement created for Player {current_player} at vertex {chosen_vertex} (settlement_id={settlement_id}). State updated to phase={next_phase.value}.")
             return jsonify(
                 {
                     "message": f"Settlement created for Player {current_player}",
@@ -170,11 +186,13 @@ def next_move():
         elif phase in (Phase.TO_PLACE_FIRST_ROAD, Phase.TO_PLACE_SECOND_ROAD):
             chosen_edge_key, road_id, next_phase, next_player, error = create_road(cursor, current_player, phase, last_settlement)
             if error:
+                logger.error(f"Road creation error: {error}")
                 abort(400, description = error)
             cursor.execute(
                 "UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = ?",
                 (next_player, next_phase.value, ID_OF_STATE)
             )
+            logger.info(f"Road created for Player {current_player} on edge {chosen_edge_key} (road_id={road_id}). State updated to player={next_player}, phase={next_phase.value}.")
             return jsonify(
                 {
                     "message": f"Road created for Player {current_player}",
@@ -187,4 +205,5 @@ def next_move():
                 }
             )
         else:
+            logger.error(f"Invalid phase encountered: {phase.value}")
             abort(400, "Invalid phase in state.")

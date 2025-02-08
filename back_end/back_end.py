@@ -12,6 +12,10 @@ from db.database import initialize_database
 import logging
 
 
+logging.basicConfig(level = logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -25,13 +29,16 @@ def create_app():
     )
 
     app.register_blueprint(blueprint_for_route_next)
+    logger.info("Registered blueprint for '/next'")
     app.register_blueprint(blueprint_for_route_roads)
+    logger.info("Registered blueprint for '/roads'")
     app.register_blueprint(blueprint_for_route_root)
+    logger.info("Registered blueprint for '/'")
     app.register_blueprint(blueprint_for_route_settlements)
+    logger.info("Registered blueprint for '/settlements'")
 
     initialize_database()
-
-    logging.basicConfig(level = logging.INFO)
+    logger.info("Database initialized.")
 
     @app.errorhandler(400)
     def handle_bad_request(e):
@@ -101,6 +108,7 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
+    logger.info(f"Created back end on port {PORT_ON_WHICH_BACK_END_LISTENS}")
     app.run(
         port = PORT_ON_WHICH_BACK_END_LISTENS,
         debug = INDICATOR_OF_WHETHER_DEBUG_MODE_SHOULD_BE_ENABLED
