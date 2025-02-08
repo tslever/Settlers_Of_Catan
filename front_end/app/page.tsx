@@ -51,6 +51,7 @@ const portMapping: { [vertexLabel: string]: string } = {
 
 export default function Home() {
     const [serverMessage, setServerMessage] = useState<string>('');
+    const [nextLoading, setNextLoading] = useState<boolean>(false);
 
     const {
         data: settlementsData,
@@ -69,7 +70,16 @@ export default function Home() {
     const settlements = settlementsData ? settlementsData.settlements : [];
     const roads = roadsData ? roadsData.roads : [];
 
+    async function handleSettlementCreated(settlement: Settlement, message: string) {
+        setServerMessage(message);
+    }
+
+    async function handleRoadCreated(road: Road, message: string) {
+        setServerMessage(message);
+    }
+
     async function handleNext() {
+        setNextLoading(true);
         try {
             const response = await fetch(`${URL_OF_BACK_END}/next`, {
                 method: "POST",
@@ -80,17 +90,26 @@ export default function Home() {
             });
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.message || `Server error: ${response.status}`);
+                setServerMessage(data.error || `Server error: ${response.status}`);
+            } else {
+                if (data.moveType === "settlement") {
+                    await handleSettlementCreated(data.settlement, data.message);
+                } else if (data.moveType === "road") {
+                    await handleRoadCreated(data.road, data.message);
+                } else {
+                    setServerMessage("Unknown move type.");
+                }
+                refetchSettlements();
+                refetchRoads();
             }
-            setServerMessage(data.message);
-            refetchSettlements();
-            refetchRoads();
         } catch (error: unknown) {
             if (error instanceof Error) {
                 setServerMessage(`Error: ${error.message}`);
             } else {
                 setServerMessage(`Error: ${error}`);
             }
+        } finally {
+            setNextLoading(false);
         }
     }
 
@@ -176,7 +195,9 @@ export default function Home() {
                 </div>
             </div>
             <div style = {{ textAlign: 'center', marginTop: '1rem' }}>
-                <button onClick = {handleNext}>Next</button>
+                <button onClick = {handleNext} disabled = {nextLoading}>
+                    {nextLoading ? "Loading..." : "Next"}
+                </button>
                 {serverMessage && <p>{serverMessage}</p>}
                 {(settlementsError || roadsError) && (
                     <p style = {{ color: "red "}}>
