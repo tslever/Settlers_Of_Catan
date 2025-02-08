@@ -1,16 +1,13 @@
-from db.database import initialize_database
-from flask import Flask
+from routes import blueprint_for_route_next
+from routes import blueprint_for_route_roads
+from routes import blueprint_for_route_root
+from routes import blueprint_for_route_settlements
 from flask_cors import CORS
-from routes import (
-    blueprint_for_route_next,
-    blueprint_for_route_roads,
-    blueprint_for_route_root,
-    blueprint_for_route_settlements
-)
-
-ORIGIN_OF_FRONT_END = "http://localhost:3000"
-PORT_ON_WHICH_BACK_END_LISTENS = 5000
-INDICATOR_OF_WHETHER_DEBUG_MODE_SHOULD_BE_ENABLED = True
+from flask import Flask
+from config import INDICATOR_OF_WHETHER_DEBUG_MODE_SHOULD_BE_ENABLED
+from db.database import initialize_database
+from config import PORT_ON_WHICH_BACK_END_LISTENS
+from config import URL_OF_FRONT_END
 
 if __name__ == '__main__':
     app = Flask(__name__)
@@ -18,7 +15,7 @@ if __name__ == '__main__':
         app,
         resources = {
             r"/*": {
-                "origins": ORIGIN_OF_FRONT_END
+                "origins": URL_OF_FRONT_END
             }
         }
     )

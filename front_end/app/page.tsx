@@ -3,10 +3,17 @@
 import HexTile from './components/HexTile';
 import Ocean from './components/Ocean';
 import Port from './components/Port';
+import React from 'react';
 import SettlementMarker from './components/SettlementMarker';
 import Vertex from './components/Vertex';
-import { edges, hexes, idToColor, tokenMapping, vertices } from './utilities/board';
-import React, { useEffect, useState } from 'react';
+import { edges } from './utilities/board';
+import { hexes, } from './utilities/board';
+import { idToColor } from './utilities/board';
+import { tokenMapping } from './utilities/board';
+import { vertices } from './utilities/board';
+import { URL_OF_BACK_END } from './config';
+import { useEffect } from 'react';
+import { useState } from 'react';
 
 type Road = {
     id: number;
@@ -40,8 +47,6 @@ const portMapping: { [vertexLabel: string]: string } = {
   "V17": "Wood",
   "V18": "Wood",
 };
-
-const URL_OF_BACK_END = 'http://localhost:5000';
 
 export default function Home() {
     const [serverMessage, setServerMessage] = useState<string>('');
