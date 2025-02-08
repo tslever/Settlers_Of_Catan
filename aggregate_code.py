@@ -5,6 +5,7 @@ import re
 base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
     r'back_end\back_end.py',
+    r'back_end\config.py',
     r'back_end\db\database.py',
     r'back_end\routes\next.py',
     r'back_end\routes\roads.py',
@@ -12,13 +13,15 @@ file_paths = [
     r'back_end\routes\settlements.py',
     r'back_end\routes\__init__.py',
     r'back_end\utilities\board.py',
+    r'front_end\app\config.ts',
+    r'front_end\app\globals.scss',
     r'front_end\app\page.tsx',
-    r'front_end\app\globals.css',
     r'front_end\app\components\HexTile.tsx',
     r'front_end\app\components\Ocean.tsx',
     r'front_end\app\components\Port.tsx',
     r'front_end\app\components\SettlementMarker.tsx',
     r'front_end\app\components\Vertex.tsx',
+    r'front_end\app\hooks\useApi.ts',
     r'front_end\app\utilities\board.ts'
 ]
 
@@ -33,9 +36,9 @@ def aggregate_files(base_path, relative_paths):
                 content = file.read()
                 aggregated_content += content + "\n\n"
         except FileNotFoundError:
-            aggregated_content += f"Error: File not found: {full_path}\n\n"
+            raise Exception(f"Error: File not found: {full_path}\n\n")
         except Exception as e:
-            aggregated_content += f"Error reading {full_path}: {e}\n\n"
+            raise Exception(f"Error reading {full_path}: {e}\n\n")
     return aggregated_content
 
 
@@ -54,7 +57,7 @@ def main():
             output_file.write(aggregated_string)
         print(f"Aggregated content successfully saved to {output_path}")
     except Exception as e:
-        print(f"Failed to write aggregated content to file: {e}")
+        raise Exception(f"Failed to write aggregated content to file: {e}")
 
 
 if __name__ == "__main__":

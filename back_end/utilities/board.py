@@ -1,5 +1,6 @@
 import math
 
+
 BOARD = [
     ["H01", "H02", "H03"],
     ["H04", "H05", "H06", "H07"],
@@ -79,6 +80,8 @@ def get_list_of_hexes():
             hexes.append((id_of_hex, horizontal_position_of_hex, vertical_position_of_hex))
     return hexes
 
+list_of_hexes = get_list_of_hexes()
+
 
 def get_list_of_vertices(hex):
     (_, horizontal_position_of_hex, vertical_position_of_hex) = hex
@@ -94,7 +97,7 @@ def get_list_of_vertices(hex):
 
 
 def get_all_edges_of_all_hexes():
-    hexes = get_list_of_hexes()
+    hexes = list_of_hexes
     edges = []
     for hex in hexes:
         vertices = get_list_of_vertices(hex)
@@ -108,9 +111,11 @@ def get_all_edges_of_all_hexes():
                 edges.append(edge)
     return edges
 
+all_edges_of_all_hexes = get_all_edges_of_all_hexes()
+
 
 def get_vertices_with_labels():
-    hexes = get_list_of_hexes()
+    hexes = list_of_hexes
     unique_vertices = []
     for hex in hexes:
         potential_vertices = get_list_of_vertices(hex)
@@ -119,3 +124,5 @@ def get_vertices_with_labels():
                 unique_vertices.append(v)
     vertices_with_labels = [(f"V{(i+1):02d}", v[0], v[1]) for i, v in enumerate(unique_vertices)]
     return vertices_with_labels
+
+vertices_with_labels = get_vertices_with_labels()

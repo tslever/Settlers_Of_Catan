@@ -1,9 +1,9 @@
 from flask import Blueprint
 from flask import abort
-from utilities.board import get_all_edges_of_all_hexes
+from utilities.board import all_edges_of_all_hexes
 from db.database import get_connection_to_database
 from utilities.board import get_edge_key
-from utilities.board import get_vertices_with_labels
+from utilities.board import vertices_with_labels
 from flask import jsonify
 import math
 import random
@@ -43,11 +43,10 @@ def next_move():
     if phase in ["phase to place first settlement", "phase to place second settlement"]:
         cursor.execute("SELECT vertex FROM settlements")
         used_vertices = {r["vertex"] for r in cursor.fetchall()}
-        vertices = get_vertices_with_labels()
-        vertex_coords = {label: (x, y) for label, x, y in vertices}
+        vertex_coords = {label: (x, y) for label, x, y in vertices_with_labels}
         existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
         available = []
-        for label, x, y in vertices:
+        for label, x, y in vertices_with_labels:
             if label in used_vertices:
                 continue
             too_close = False
@@ -88,15 +87,13 @@ def next_move():
         if not last_settlement:
             connection.close()
             abort(400, description = "Error: no settlement recorded for road placement.")
-        vertices = get_vertices_with_labels()
-        vertex_coords = {label: (x, y) for label, x, y in vertices}
+        vertex_coords = {label: (x, y) for label, x, y in vertices_with_labels}
         if last_settlement not in vertex_coords:
             connection.close()
             abort(400, description = "Invalid last settlement vertex.")
         settlement_coord = vertex_coords[last_settlement]
-        all_edges = get_all_edges_of_all_hexes()
         adjacent_edges = []
-        for edge in all_edges:
+        for edge in all_edges_of_all_hexes:
             (x1, y1, x2, y2) = edge
             if (abs(x1 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y1 - settlement_coord[1]) < MARGIN_OF_ERROR) or \
                (abs(x2 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y2 - settlement_coord[1]) < MARGIN_OF_ERROR):
