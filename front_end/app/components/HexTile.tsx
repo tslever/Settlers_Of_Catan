@@ -7,7 +7,7 @@ type HexTileProps = {
     style?: React.CSSProperties;
 };
 
-const HexTile: React.FC<HexTileProps> = ({ id, token, color, style }) => {
+const HexTile: React.FC<HexTileProps> = ({ token, color, style }) => {
     const getTokenFontSize = (token: number): string => {
         const baseFontSize = 4;
         const mapping: { [key: number]: number } = {

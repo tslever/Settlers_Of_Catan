@@ -57,8 +57,12 @@ export default function Home() {
                 }
                 const data = await response.json();
                 setSettlements(data.settlements);
-            } catch (error: any) {
-                console.error("Error fetching settlements:", error.message);
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    console.error("Error fetching settlements:", error.message);
+                } else {
+                    console.error("Eror fetching settlements:", error);
+                }
             }
         }
         loadSettlements();
@@ -73,8 +77,12 @@ export default function Home() {
                 }
                 const data = await response.json();
                 setRoads(data.roads);
-            } catch (error: any) {
-                console.error("Error fetching roads:", error.message);
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    console.error("Error fetching roads:", error.message);
+                } else {
+                    console.error("Error fetching roads:", error);
+                }
             }
         }
         loadRoads();
@@ -99,8 +107,12 @@ export default function Home() {
                 setRoads(prev => [...prev, data.road]);
             }
             setServerMessage(data.message);
-        } catch (error: any) {
-            setServerMessage(`Error: ${error.message}`);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                setServerMessage(`Error: ${error.message}`);
+            } else {
+                setServerMessage(`Error: ${error}`);
+            }
         }
     }
 
