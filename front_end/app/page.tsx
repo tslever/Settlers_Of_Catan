@@ -40,6 +40,13 @@ function isErrorResponse(
     return 'error' in data;
 }
 
+const vertexMapping: { [label: string]: { x: number; y: number } } =
+    vertices.reduce((acc, v, i) => {
+        const label = `V${(i + 1).toString().padStart(2, "0")}`;
+        acc[label] = v;
+        return acc;
+    }, {} as { [label: string]: { x: number; y: number } });
+
 const portMapping: { [vertexLabel: string]: string } = {
   "V01": "3:1",
   "V06": "3:1",
@@ -78,6 +85,11 @@ export default function Home() {
         loading: roadsLoading,
         refetch: refetchRoads
     } = useApi<{ roads: Road[] }>(`${URL_OF_BACK_END}/roads`);
+
+    useEffect(() => {
+        refetchSettlements();
+        refetchRoads();
+    }, [refetchSettlements, refetchRoads]);
 
     const settlements = settlementsData ? settlementsData.settlements : [];
     const roads = roadsData ? roadsData.roads : [];
@@ -173,7 +185,11 @@ export default function Home() {
                                 const [firstPart, secondPart] = road.edge.split('_');
                                 const [x1, y1] = firstPart.split('-').map(Number);
                                 const [x2, y2] = secondPart.split('-').map(Number);
-                                const colorMapping: { [key: number]: string } = { 1: 'red', 2: 'orange', 3: 'green' };
+                                const colorMapping: { [key: number]: string } = {
+                                    1: 'red',
+                                    2: 'orange',
+                                    3: 'green'
+                                };
                                 const strokeColor = colorMapping[road.player] || 'gray';
                                 return (
                                     <line
@@ -197,9 +213,8 @@ export default function Home() {
                                 </React.Fragment>
                             );
                         })}
-                        {settlements.map(s => {
-                            const vertexIndex = parseInt(s.vertex.substring(1)) - 1;
-                            const v = vertices[vertexIndex];
+                        {settlements.map((s) => {
+                            const v = vertexMapping[s.vertex];
                             if (!v) return null;
                             return <SettlementMarker key = {s.id} x = {v.x} y = {v.y} player = {s.player} />
                         })}

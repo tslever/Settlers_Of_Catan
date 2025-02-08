@@ -1,1 +1,1 @@
-export const URL_OF_BACK_END = "http://localhost:5000";
+export const URL_OF_BACK_END = "http://localhost:5000" as const;
