@@ -48,28 +48,69 @@ def evaluate_road(edge, edge_key, vertex_coords, last_settlement, game_state):
     return evaluate_settlement(other_label, vertex_coords, game_state)
 
 
-def predict_best_settlement(available_vertices, vertex_coords, game_state):
-    best_score = -float('inf')
-    best_vertex = None
+'''
+TODO: Ensure as in AlphaGo Zero that
+a neural network guides Monte Carlo rollout Searches and returns a value and a policy
+instead of the following functions implementing a simple Monte Carlo rollout Search that
+simulates many random rollout by using evaluation functions and averaging the results.
+'''
+def simulate_settlement_rollout(vertex, vertex_coords, game_state):
+    '''
+    Simulate a rollout starting from placing a settlement at vertex.
+    TODO: Ensure that a complete game from this move is simulated instead of simply calling function `evaluate_settlement`.
+    '''
+    return evaluate_settlement(vertex, vertex_coords, game_state)
+
+
+def monte_carlo_tree_search_for_settlement(game_state, available_vertices, vertex_coords, num_simulations = 50):
+    rollout_results = {}
     for vertex in available_vertices:
-        score = evaluate_settlement(vertex, vertex_coords, game_state)
-        if score > best_score:
-            best_score = score
-            best_vertex = vertex
+        total_value = 0
+        for _ in range(num_simulations):
+            total_value += simulate_settlement_rollout(vertex, vertex_coords, game_state)
+        avg_value = total_value / num_simulations
+        rollout_results[vertex] = avg_value
+    best_vertex = max(rollout_results, key = rollout_results.get)
+    return best_vertex
+
+
+def simulate_road_rollout(edge, edge_key, vertex_coords, last_settlement, game_state):
+    '''
+    Simulate a rollout starting from placing a road on the given edge.
+    TODO: Ensure that a complete game from this move is simulated instead of simply calling function `evaluate_road`.
+    '''
+    return evaluate_road(edge, edge_key, vertex_coords, last_settlement, game_state)
+
+
+def monte_carlo_tree_search_for_road(game_state, available_edges, vertex_coords, num_simulations = 50):
+    last_settlement = game_state.get("last_settlement")
+    if last_settlement is None:
+        return None, None
+    rollout_results = {}
+    for edge, edge_key in available_edges:
+        total_value = 0
+        for _ in range(num_simulations):
+            total_value += simulate_road_rollout(edge, edge_key, vertex_coords, last_settlement, game_state)
+        avg_value = total_value / num_simulations
+        rollout_results[edge_key] = (edge, avg_value)
+    best_edge_key = max(rollout_results, key = lambda k: rollout_results[k][1])
+    best_edge, _ = rollout_results[best_edge_key]
+    return best_edge, best_edge_key
+
+
+def predict_best_settlement(available_vertices, vertex_coords, game_state):
+    '''
+    TODO: Implement the search process used in AlphaGo Zero instead of
+    running multiple rollout simulations for each available vertex and choosing the one with the best average outcome.
+    '''
+    best_vertex = monte_carlo_tree_search_for_settlement(game_state, available_vertices, vertex_coords)
     return best_vertex
 
 
 def predict_best_road(available_edges, vertex_coords, game_state):
-    best_score = -float('inf')
-    best_edge = None
-    best_edge_key = None
-    last_settlement = game_state.get("last_settlement")
-    if last_settlement is None:
-        return None, None
-    for edge, edge_key in available_edges:
-        score = evaluate_road(edge, edge_key, vertex_coords, last_settlement, game_state)
-        if score > best_score:
-            best_score = score
-            best_edge = edge
-            best_edge_key = edge_key
+    '''
+    TODO: Implement the search process used in AlphaGo Zero instead of
+    running multiple rollout simulations for each available edge and choosing the one with the best average outcome.
+    '''
+    best_edge, best_edge_key = monte_carlo_tree_search_for_road(game_state, available_edges, vertex_coords)
     return best_edge, best_edge_key
