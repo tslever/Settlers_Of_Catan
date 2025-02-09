@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
+from back_end.utilities.board import HEIGHT_OF_HEX
+from back_end.utilities.board import MARGIN_OF_ERROR
+from back_end.utilities.board import WIDTH_OF_BOARD_IN_VMIN
+from back_end.utilities.board import WIDTH_OF_HEX
+from back_end.utilities.board import get_hex_vertices
 import json
 import logging
-import math
 import os
 
-# ----------------------------
-# Board Layout and Constants
-# ----------------------------
 
-# Define the board as rows of hex tile IDs.
 BOARD = [
     ["H01", "H02", "H03"],
     ["H04", "H05", "H06", "H07"],
@@ -17,18 +17,12 @@ BOARD = [
     ["H17", "H18", "H19"]
 ]
 
-WIDTH_OF_BOARD_IN_VMIN = 100  # vmin
-NUMBER_OF_HEXES_THAT_SPAN_BOARD = 6
-WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD
-RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEX = math.tan(math.pi / 6)
-RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX = 2 * RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEX
-HEIGHT_OF_HEX = WIDTH_OF_HEX * RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX
+
 DISTANCE_BETWEEN_BOTTOM_OF_HEX_IN_FIRST_ROW_AND_TOP_OF_HEX_IN_SECOND_ROW = HEIGHT_OF_HEX / 4
 DISTANCE_BETWEEN_TOP_OF_HEX_IN_ONE_ROW_AND_TOP_OF_HEX_IN_NEXT_ROW = HEIGHT_OF_HEX - DISTANCE_BETWEEN_BOTTOM_OF_HEX_IN_FIRST_ROW_AND_TOP_OF_HEX_IN_SECOND_ROW
 NUMBER_OF_ROWS_OF_HEXES_AFTER_FIRST = len(BOARD) - 1
 HEIGHT_OF_BOARD = HEIGHT_OF_HEX + DISTANCE_BETWEEN_TOP_OF_HEX_IN_ONE_ROW_AND_TOP_OF_HEX_IN_NEXT_ROW * NUMBER_OF_ROWS_OF_HEXES_AFTER_FIRST
 VERTICAL_POSITION_OF_FIRST_ROW_OF_HEXES = (100 - HEIGHT_OF_BOARD) / 2
-MARGIN_OF_ERROR = 0.01
 
 
 logging.basicConfig(level = logging.INFO)
@@ -46,17 +40,6 @@ def get_list_of_hexes():
             hexes.append((hex_id, horizontal_position, vertical_position))
     return hexes
 
-def get_list_of_vertices(hex_tuple):
-    _, hex_x, hex_y = hex_tuple
-    vertices = [
-        (hex_x + 0.5 * WIDTH_OF_HEX, hex_y),
-        (hex_x + WIDTH_OF_HEX, hex_y + 0.25 * HEIGHT_OF_HEX),
-        (hex_x + WIDTH_OF_HEX, hex_y + 0.75 * HEIGHT_OF_HEX),
-        (hex_x + 0.5 * WIDTH_OF_HEX, hex_y + HEIGHT_OF_HEX),
-        (hex_x, hex_y + 0.75 * HEIGHT_OF_HEX),
-        (hex_x, hex_y + 0.25 * HEIGHT_OF_HEX)
-    ]
-    return vertices
 
 def edge_already_exists(edge, edge_list, margin):
     (x1, y1, x2, y2) = edge
@@ -68,10 +51,11 @@ def edge_already_exists(edge, edge_list, margin):
             return True
     return False
 
+
 def get_all_edges(hexes):
     edges = []
     for hex_tile in hexes:
-        vertices = get_list_of_vertices(hex_tile)
+        vertices = get_hex_vertices(hex_tile)
         num_vertices = len(vertices)
         for i in range(num_vertices):
             v1 = vertices[i]
@@ -81,6 +65,7 @@ def get_all_edges(hexes):
                 edges.append(edge)
     return edges
 
+
 def vertex_already_exists(vertex, vertices, margin):
     (x, y) = vertex
     for (vx, vy) in vertices:
@@ -88,13 +73,15 @@ def vertex_already_exists(vertex, vertices, margin):
             return True
     return False
 
+
 def get_unique_vertices(hexes):
     unique_vertices = []
     for hex_tile in hexes:
-        for vertex in get_list_of_vertices(hex_tile):
+        for vertex in get_hex_vertices(hex_tile):
             if not vertex_already_exists(vertex, unique_vertices, MARGIN_OF_ERROR):
                 unique_vertices.append(vertex)
     return unique_vertices
+
 
 def get_vertices_with_labels(hexes):
     unique_vertices = get_unique_vertices(hexes)
@@ -108,11 +95,12 @@ def get_vertices_with_labels(hexes):
         })
     return vertices_with_labels
 
+
 def generate_board_geometry():
     hexes_raw = get_list_of_hexes()
     hexes_data = [{"id": hex_id, "x": x, "y": y} for (hex_id, x, y) in hexes_raw]
-    vertices_data = get_vertices_with_labels(hexes_raw)
-    edges_raw = get_all_edges(hexes_raw)
+    vertices_data = get_vertices_with_labels(hexes_data)
+    edges_raw = get_all_edges(hexes_data)
     edges_data = [{"x1": x1, "y1": y1, "x2": x2, "y2": y2} for (x1, y1, x2, y2) in edges_raw]
     geometry = {
         "hexes": hexes_data,
@@ -134,6 +122,7 @@ def main():
     with open(output_file, "w") as f:
         json.dump(geometry, f, indent = 4)
     logger.info(f"Board geometry generated and written to {output_file}")
+
 
 if __name__ == "__main__":
     main()
