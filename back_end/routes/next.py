@@ -35,6 +35,19 @@ class Phase(Enum):
     TURN = "turn"
 
 
+def evaluate_vertex(vertex_coords, vertex_label: str) -> int:
+    coord = vertex_coords[vertex_label]
+    score = 0
+    for hex in hexes:
+        for v in get_hex_vertices(hex):
+            if math.isclose(v[0], coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v[1], coord[1], abs_tol = MARGIN_OF_ERROR):
+                token = TOKEN_MAPPING.get(hex["id"])
+                if token is not None:
+                    score += TOKEN_DOT_MAPPING.get(token, 0)
+                break
+    return score
+
+
 def create_settlement(cursor, current_player, phase: Phase):
     cursor.execute("SELECT vertex FROM settlements")
     used_vertices = {r["vertex"] for r in cursor.fetchall()}
@@ -57,7 +70,22 @@ def create_settlement(cursor, current_player, phase: Phase):
     if not available:
         logger.error(f"No vertices available for settlement placement (current_player={current_player}, phase={phase.value}).")
         return None, None, None, "No vertices are available."
-    chosen_vertex = random.choice(available)
+    
+
+
+    best_score = -1
+    best_candidates = []
+    for label in available:
+        score = evaluate_vertex(vertex_coords, label)
+        if score > best_score:
+            best_score = score
+            best_candidates = [label]
+        elif score == best_score:
+            best_candidates.append(label)
+    chosen_vertex = random.choice(best_candidates)
+    
+
+
     cursor.execute(
         "INSERT INTO settlements (player, vertex) VALUES (?, ?)",
         (current_player, chosen_vertex)
@@ -90,8 +118,8 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
         x2 = edge["x2"]
         y2 = edge["y2"]
         if (
-            (abs(x1 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y1 - settlement_coord[1]) < MARGIN_OF_ERROR) or
-            (abs(x2 - settlement_coord[0]) < MARGIN_OF_ERROR and abs(y2 - settlement_coord[1]) < MARGIN_OF_ERROR)
+            (math.isclose(x1, settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(y1, settlement_coord[1], abs_tol = MARGIN_OF_ERROR)) or
+            (math.isclose(x2, settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(y2, settlement_coord[1], abs_tol = MARGIN_OF_ERROR))
         ):
             adjacent_edges.append(edge)
     if not adjacent_edges:
@@ -109,8 +137,42 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
     if not available_edges:
         logger.error(f"No available roads adjacent to settlement {last_settlement}.")
         return None, None, None, None, "No available roads adjacent to settlement."
-    _, chosen_edge_key = random.choice(available_edges)
-    cursor.execute("INSERT INTO roads (player, edge) VALUES (?, ?)", (current_player, chosen_edge_key))
+    
+
+
+    def get_vertex_label_from_coord(coord):
+        for label, v in vertex_coords.items():
+            if math.isclose(coord[0], v[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(coord[1], v[1], abs_tol = MARGIN_OF_ERROR):
+                return label
+        return None
+    best_score = -1
+    best_edge = None
+    best_edge_key = None
+    for edge, edge_key in available_edges:
+        v1 = (edge["x1"], edge["y1"])
+        v2 = (edge["x2"], edge["y2"])
+        candidate = None
+        if math.isclose(v1[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v1[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR):
+            candidate = v2
+        else:
+            candidate = v1
+        candidate_label = get_vertex_label_from_coord(candidate)
+        score = evaluate_vertex(vertex_coords, candidate_label) if candidate_label else 0
+        if score > best_score:
+            best_score = score
+            best_edge = edge
+            best_edge_key = edge_key
+        elif score == best_score:
+            if random.choice([True, False]):
+                best_edge = edge
+                best_edge_key = edge_key
+    if best_edge is None:
+        logger.error("No valid edge found after evaluation.")
+        return None, None, None, None, "No valid edge found for road placement."
+
+
+
+    cursor.execute("INSERT INTO roads (player, edge) VALUES (?, ?)", (current_player, best_edge_key))
     road_id = cursor.lastrowid
     next_player = 0
     if phase == Phase.TO_PLACE_FIRST_ROAD:
@@ -140,7 +202,7 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
     else:
         logger.error(f"Invalid phase for road placement: {phase.value}")
         return None, None, None, None, "Invalid phase for road placement."
-    return chosen_edge_key, road_id, next_phase, next_player, None
+    return best_edge_key, road_id, next_phase, next_player, None
 
 
 def compute_strengths():
