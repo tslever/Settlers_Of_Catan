@@ -4,11 +4,13 @@ from flask import abort
 from utilities.board import all_edges_of_all_hexes
 from db.database import get_db_connection
 from utilities.board import get_edge_key
-from utilities.board import vertices_with_labels
+from utilities.board import hexes
+import json
 from flask import jsonify
 import logging
 import math
 import random
+from utilities.board import vertices_with_labels
 
 
 blueprint_for_route_next = Blueprint("next", __name__)
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 ID_OF_STATE = 1
 RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON = math.tan(math.pi / 6)
 WIDTH_OF_HEX = 100 / 6 # vmin
+HEIGHT_OF_HEX = WIDTH_OF_HEX * RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON * 2
 MARGIN_OF_ERROR = 0.01
 THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON * WIDTH_OF_HEX + MARGIN_OF_ERROR
 
@@ -137,6 +140,77 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
         return None, None, None, None, "Invalid phase for road placement."
     return chosen_edge_key, road_id, next_phase, next_player, None
 
+
+def get_hex_vertices(hex_dict):
+    hex_x = hex_dict["x"]
+    hex_y = hex_dict["y"]
+    return [
+        (hex_x + 0.5 * WIDTH_OF_HEX, hex_y),
+        (hex_x + WIDTH_OF_HEX, hex_y + 0.25 * HEIGHT_OF_HEX),
+        (hex_x + WIDTH_OF_HEX, hex_y + 0.75 * HEIGHT_OF_HEX),
+        (hex_x + 0.5 * WIDTH_OF_HEX, hex_y + HEIGHT_OF_HEX),
+        (hex_x, hex_y + 0.75 * HEIGHT_OF_HEX),
+        (hex_x, hex_y + 0.25 * HEIGHT_OF_HEX)
+    ]
+
+
+def compute_strengths():
+    token_mapping = {
+        "H01": 10,
+        "H02": 2,
+        "H03": 9,
+        "H04": 12,
+        "H05": 6,
+        "H06": 4,
+        "H07": 10,
+        "H08": 9,
+        "H09": 11,
+        "H10": None,
+        "H11": 3,
+        "H12": 8,
+        "H13": 8,
+        "H14": 3,
+        "H15": 4,
+        "H16": 5,
+        "H17": 5,
+        "H18": 6,
+        "H19": 11
+    }
+    token_dot_mapping = {
+        2: 1,
+        3: 2,
+        4: 3,
+        5: 4,
+        6: 5,
+        8: 5,
+        9: 4,
+        10: 3,
+        11: 2,
+        12: 1
+    }
+    vertex_coord = {v["label"]: (v["x"], v["y"]) for v in vertices_with_labels}
+    strengths = {1: 0, 2: 0, 3: 0}
+    with get_db_connection() as connection:
+        cursor = connection.execute("SELECT player, vertex FROM settlements")
+        settlements = cursor.fetchall()
+    for settlement in settlements:
+        player = settlement["player"]
+        vertex_label = settlement["vertex"]
+        if vertex_label not in vertex_coord:
+            continue
+        settlement_coord = vertex_coord[vertex_label]
+        for hex_dict in hexes:
+            for hv in get_hex_vertices(hex_dict):
+                if abs(hv[0] - settlement_coord[0]) < MARGIN_OF_ERROR and abs(hv[1] - settlement_coord[1]) < MARGIN_OF_ERROR:
+                    hex_id = hex_dict["id"]
+                    token = token_mapping.get(hex_id)
+                    if token is not None:
+                        dot_count = token_dot_mapping.get(token, 0)
+                        strengths[player] += dot_count
+                    break
+    return strengths
+
+
 @blueprint_for_route_next.route("/next", methods = ["POST"])
 def next_move():
     with get_db_connection() as connection:
@@ -193,17 +267,20 @@ def next_move():
                 (next_player, next_phase.value, ID_OF_STATE)
             )
             logger.info(f"Road created for Player {current_player} on edge {chosen_edge_key} (road_id={road_id}). State updated to player={next_player}, phase={next_phase.value}.")
-            return jsonify(
-                {
-                    "message": f"Road created for Player {current_player}",
-                    "moveType": "road",
-                    "road": {
-                        "id": road_id,
-                        "player": current_player,
-                        "edge": chosen_edge_key
-                    }
+            response = {
+                "message": f"Road created for Player {current_player}",
+                "moveType": "road",
+                "road": {
+                    "id": road_id,
+                    "player": current_player,
+                    "edge": chosen_edge_key
                 }
-            )
+            }
+            if (next_phase == Phase.TURN):
+                strengths = compute_strengths()
+                response["strengths"] = strengths
+                response["message"] += "\nGame setup complete. Strengths computed:\n" + json.dumps(strengths, indent = 4, sort_keys = True)
+            return jsonify(response)
         else:
             logger.error(f"Invalid phase encountered: {phase.value}")
             abort(400, "Invalid phase in state.")
