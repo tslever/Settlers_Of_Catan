@@ -1,7 +1,7 @@
-from .next import blueprint_for_route_next
-from .roads import blueprint_for_route_roads
-from .settlements import blueprint_for_route_settlements
-from .root import blueprint_for_route_root
+from routes.next import blueprint_for_route_next
+from routes.roads import blueprint_for_route_roads
+from routes.settlements import blueprint_for_route_settlements
+from routes.root import blueprint_for_route_root
 
 
 __all__ = [

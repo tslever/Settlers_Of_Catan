@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-from back_end.utilities.board import HEIGHT_OF_HEX
-from back_end.utilities.board import MARGIN_OF_ERROR
-from back_end.utilities.board import WIDTH_OF_BOARD_IN_VMIN
-from back_end.utilities.board import WIDTH_OF_HEX
-from back_end.utilities.board import get_hex_vertices
+from utilities.board import HEIGHT_OF_HEX
+from utilities.board import MARGIN_OF_ERROR
+from utilities.board import WIDTH_OF_BOARD_IN_VMIN
+from utilities.board import WIDTH_OF_HEX
+from utilities.board import get_hex_vertices
 import json
 import logging
 import os

@@ -15,7 +15,8 @@ import json
 from flask import jsonify
 import logging
 import math
-import random
+from ai_strategy import predict_best_settlement
+from ai_strategy import predict_best_road
 from utilities.board import vertices_with_labels
 
 
@@ -33,19 +34,6 @@ class Phase(Enum):
     TO_PLACE_SECOND_SETTLEMENT = "phase to place second settlement"
     TO_PLACE_SECOND_ROAD = "phase to place second road"
     TURN = "turn"
-
-
-def evaluate_vertex(vertex_coords, vertex_label: str) -> int:
-    coord = vertex_coords[vertex_label]
-    score = 0
-    for hex in hexes:
-        for v in get_hex_vertices(hex):
-            if math.isclose(v[0], coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v[1], coord[1], abs_tol = MARGIN_OF_ERROR):
-                token = TOKEN_MAPPING.get(hex["id"])
-                if token is not None:
-                    score += TOKEN_DOT_MAPPING.get(token, 0)
-                break
-    return score
 
 
 def create_settlement(cursor, current_player, phase: Phase):
@@ -73,17 +61,21 @@ def create_settlement(cursor, current_player, phase: Phase):
     
 
 
-    best_score = -1
-    best_candidates = []
-    for label in available:
-        score = evaluate_vertex(vertex_coords, label)
-        if score > best_score:
-            best_score = score
-            best_candidates = [label]
-        elif score == best_score:
-            best_candidates.append(label)
-    chosen_vertex = random.choice(best_candidates)
-    
+    '''
+    TODO: Include details such as
+    the names of all players,
+    the positions of each player's settlements,
+    the positions of each player's roads,
+    and other details.
+    '''
+    game_state = {
+        
+    }
+    chosen_vertex = predict_best_settlement(available, vertex_coords, game_state)
+    if not chosen_vertex:
+        logger.error("AI failed to choose a vertex for settlement placement.")
+        return None, None, None, "AI decision error."
+
 
 
     cursor.execute(
@@ -140,34 +132,19 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
     
 
 
-    def get_vertex_label_from_coord(coord):
-        for label, v in vertex_coords.items():
-            if math.isclose(coord[0], v[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(coord[1], v[1], abs_tol = MARGIN_OF_ERROR):
-                return label
-        return None
-    best_score = -1
-    best_edge = None
-    best_edge_key = None
-    for edge, edge_key in available_edges:
-        v1 = (edge["x1"], edge["y1"])
-        v2 = (edge["x2"], edge["y2"])
-        candidate = None
-        if math.isclose(v1[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v1[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR):
-            candidate = v2
-        else:
-            candidate = v1
-        candidate_label = get_vertex_label_from_coord(candidate)
-        score = evaluate_vertex(vertex_coords, candidate_label) if candidate_label else 0
-        if score > best_score:
-            best_score = score
-            best_edge = edge
-            best_edge_key = edge_key
-        elif score == best_score:
-            if random.choice([True, False]):
-                best_edge = edge
-                best_edge_key = edge_key
+    '''
+    TODO: Include details such as
+    the names of all players,
+    the positions of each player's settlements,
+    the positions of each player's roads,
+    and other details.
+    '''
+    game_state = {
+        "last_settlement": last_settlement
+    }
+    best_edge, best_edge_key = predict_best_road(available_edges, vertex_coords, game_state)
     if best_edge is None:
-        logger.error("No valid edge found after evaluation.")
+        logger.error("AI failed to choose an edge for road placement.")
         return None, None, None, None, "No valid edge found for road placement."
 
 
