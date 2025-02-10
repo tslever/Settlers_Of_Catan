@@ -1,3 +1,17 @@
+#!/usr/bin/env python3
+"""
+ai_strategy.py
+
+This module implements move selection for settlements and roads using a simple one‐step Monte Carlo
+Tree Search (MCTS) guided by a “neural network” in an AlphaGo Zero–style approach.
+TODO: Build a full search tree.
+In a production system the NeuralNetwork class below would be replaced with code that loads a trained model and 
+performs inference. For demonstration purposes the network here simply uses a heuristic (summing the 
+pips on adjacent hexes) with a small amount of added noise.
+TODO: Develop code that loads a trained model and performs inference.
+"""
+
+
 from utilities.board import MARGIN_OF_ERROR
 from utilities.board import TOKEN_MAPPING
 from utilities.board import TOKEN_DOT_MAPPING
@@ -5,71 +19,21 @@ from utilities.board import get_hex_vertices
 from utilities.board import hexes
 import math
 import numpy as np
+from neural_network import neural_network
 
 
-def evaluate_settlement(vertex, vertex_coords, game_state):
-    """
-    Evaluate the settlement move at the given vertex by summing the pip (dot) counts
-    on all adjacent hexes. (No random noise is added so that the highest pip total wins.)
-    """
-    x, y = vertex_coords[vertex]
-    total_pips = 0
-    for hex_tile in hexes:
-        # Get the vertices of this hex.
-        vertices = get_hex_vertices(hex_tile)
-        for vx, vy in vertices:
-            # If this vertex is one of the hex's vertices, add its pip count.
-            if math.isclose(vx, x, abs_tol=MARGIN_OF_ERROR) and math.isclose(vy, y, abs_tol=MARGIN_OF_ERROR):
-                hex_id = hex_tile["id"]
-                token = TOKEN_MAPPING.get(hex_id)
-                if token is not None:
-                    total_pips += TOKEN_DOT_MAPPING.get(token, 0)
-                break
-    return total_pips
-
-
-def evaluate_road(edge, edge_key, vertex_coords, last_settlement, game_state):
-    settlement_coord = vertex_coords[last_settlement]
-    v1 = (edge["x1"], edge["y1"])
-    v2 = (edge["x2"], edge["y2"])
-    if (
-        math.isclose(v1[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and
-        math.isclose(v1[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR)
-    ):
-        other = v2
-    else:
-        other = v1
-    other_label = None
-    for label, coords in vertex_coords.items():
-        if (
-            math.isclose(coords[0], other[0], abs_tol = MARGIN_OF_ERROR) and
-            math.isclose(coords[1], other[1], abs_tol = MARGIN_OF_ERROR)
-        ):
-            other_label = label
-            break
-    if other_label is None:
-        return -float('inf')
-    return evaluate_settlement(other_label, vertex_coords, game_state)
-
-
-'''
-TODO: Call a trained neural network that, given a game state and a move (settlement at vertex),
-returns a tuple (value, probability), instead of using an evaluation function and a dummy probability of choosing this vertex.
-'''
 def neural_network_predict_settlement(game_state, vertex, vertex_coords):
-    value = evaluate_settlement(vertex, vertex_coords, game_state)
-    probability_of_choosing_this_vertex = 1.0
-    return value, probability_of_choosing_this_vertex
+    '''
+    Predict the value and move probability for placing a settlement at a given vertex.
+    '''
+    return neural_network.predict_settlement(game_state, vertex, vertex_coords)
 
 
-'''
-TODO: Call a trained neural network that, given a game state and a candidate road,
-returns a tuple (value, probability), instead of using an evaluation function and a dummy probability of choosing this road.
-'''
 def neural_network_predict_road(game_state, edge, edge_key, vertex_coords, last_settlement):
-    value = evaluate_road(edge, edge_key, vertex_coords, last_settlement, game_state)
-    probability_of_choosing_this_road = 1.0
-    return value, probability_of_choosing_this_road
+    '''
+    Predict the value and move probability for placing a road along a given edge.
+    '''
+    return neural_network.predict_road(game_state, edge, edge_key, vertex_coords, last_settlement)
 
 
 def alphago_zero_mcts_for_settlement(game_state, available_vertices, vertex_coords, num_simulations = 100, c_puct = 1.0):
@@ -109,7 +73,7 @@ def alphago_zero_mcts_for_settlement(game_state, available_vertices, vertex_coor
                 best_vertex = vertex
         rollout_value, _ = neural_network_predict_settlement(game_state, best_vertex, vertex_coords)
         # Backpropagation
-        # TODO: Deepen tree and update all appropriate moves.
+        # TODO: Deepen tree and perform recursive backup.
         node = stats[best_vertex]
         node["N"] += 1
         node["W"] += rollout_value
@@ -119,7 +83,7 @@ def alphago_zero_mcts_for_settlement(game_state, available_vertices, vertex_coor
     return best_vertex
 
 
-def alphago_zero_mcts_for_road(game_state, available_edges, vertex_coords, last_settlement, num_simulations = 50, c_puct = 1.0):
+def alphago_zero_mcts_for_road(game_state, available_edges, vertex_coords, last_settlement, num_simulations = 100, c_puct = 1.0):
     '''
     Run a simple one step MCTS for road moves.
     TODO: Build a full search tree.
@@ -165,7 +129,6 @@ def predict_best_settlement(available_vertices, vertex_coords, game_state):
     '''
     Given the available settlement moves, return the vertex chosen by the MCTS.
     TODO: Include more of the game state and pass the game state to an actual neural network.
-    TODO: To choose the best vertex run a short MCTS guided by predictions of an actual neural network instead of a simulated neural network.
     '''
     best_vertex = alphago_zero_mcts_for_settlement(game_state, available_vertices, vertex_coords)
     return best_vertex
