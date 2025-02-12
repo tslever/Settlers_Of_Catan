@@ -6,7 +6,7 @@ This script loads self–play training examples from
 `back_end/ai/self_play_training_data.npy`, constructs the appropriate 5–element
 input feature vectors (as used by the SettlersPolicyValueNet in neural_network.py),
 trains the network to predict both a value (in [-1,1]) and a policy (a probability in [0,1]),
-and then saves the trained model weights to `model.pt`.
+and then saves the trained model weights to `back_end/ai/neural_network.pt`.
 """
 
 import os
@@ -168,7 +168,7 @@ def train_model(npy_file, model_save_path, num_epochs=100, batch_size=32, learni
 # ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    # Adjust these paths as necessary.
-    npy_file = os.path.join("back_end", "ai", "self_play_training_data.npy")
-    model_save_path = "model.pt"
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    npy_file = os.path.join(current_dir, "self_play_training_data.npy")
+    model_save_path = os.path.join(current_dir, "neural_network.pt")
     train_model(npy_file, model_save_path, num_epochs=100, batch_size=32, learning_rate=1e-3)

@@ -30,6 +30,7 @@ from ..utilities.board import get_hex_vertices
 from ..utilities.board import hexes
 import math
 import numpy as np
+import os
 import random
 from .strategy import simulate_rollout
 from ..utilities.board import vertices_with_labels
@@ -276,7 +277,9 @@ def generate_training_data(num_games = 10, num_simulations = 100, c_puct = 1.0):
     for _ in range(num_games):
         examples = simulate_self_play_game(num_simulations = num_simulations, c_puct = c_puct)
         all_examples.extend(examples)
-    np.save("self_play_training_data.npy", all_examples)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    npy_file = os.path.join(current_dir, "self_play_training_data.npy")
+    np.save(npy_file, all_examples)
     print(f"Generated {len(all_examples)} training examples.")
     return all_examples
 

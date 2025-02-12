@@ -20,7 +20,7 @@ a value estimate in [-1, 1] and a move prior probability in [0, 1].
 
 # TODO: Implement a self play system to generate training data / pairs of game state and move evaluations when determining best settlements and roads.
 # TODO: Train via self play a neural network with an architecture matching the below input feature definition and architecture.
-# TODO: Save a trained model to `back_end/ai/model.pt`.
+# TODO: Save a trained model to `back_end/ai/neural_network.pt`.
 # TODO: Improve the input representation by including more detailed information aobut the game state.
 # TODO: Use a deep residual network with a board state "tower" and a dual head for value and policy.
 class SettlersPolicyValueNet(nn.Module):
@@ -61,7 +61,7 @@ class NeuralNetwork:
     TODO: Load and use a trained model instead of using heuristic evaluations.
     '''
 
-    def __init__(self, model_path = "back_end/ai/model.pt", device = "cpu"):
+    def __init__(self, model_path = "back_end/ai/neural_network.pt", device = "cpu"):
         '''
         model_path: Path to the saved PyTorch model weights
         device: "cpu" or "cuda" for inference
