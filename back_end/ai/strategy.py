@@ -8,7 +8,6 @@ Module strategy implements move selection using an AlphaGo Zero style Monte Carl
 and a neural network that provides both a value estimate and a policy / prior for candidate moves.
 This mododule supports both settlement and road moves.
 TODO: Simulate multiple moves / deeper rollouts.
-TODO: Train a model from self play.
 """
 
 from .mcts_node import MCTS_Node

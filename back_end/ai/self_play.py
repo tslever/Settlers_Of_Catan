@@ -13,7 +13,6 @@ For every move the system records:
 After the game simulation, a simple outcome is computed (using a heuristic based on settlement "strength"),
 and attached to every training example.
 Finally, all training examples are saved (here as a NumPy file) so they can later be used to train our neural network.
-TODO: Replace heuristically determined outcomes with the results of self play.
 '''
 
 
