@@ -1,0 +1,23 @@
+{
+    "explorer.confirmDelete": false,
+    "python.defaultInterpreterPath": "c:\\Users\\thoma\\Documents\\Settlers_Of_Catan\\back_end\\env\\Scripts\\python.exe",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell"
+        },
+        "Command Prompt": {
+            "path": [
+                "${env:windir}\\Sysnative\\cmd.exe",
+                "${env:windir}\\System32\\cmd.exe"
+            ],
+            "args": [],
+            "icon": "terminal-cmd"
+        },
+        "Git Bash": {
+            "source": "Git Bash",
+            "args": ["--cd=."]
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "Git Bash"
+}
