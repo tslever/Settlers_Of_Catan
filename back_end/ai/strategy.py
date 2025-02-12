@@ -4,6 +4,7 @@ strategy.py
 
 Module strategy implements move selection using an AlphaGo Zero style Monte Carlo Tree Search (MCTS)
 and a neural network to predict value and policy / prior.
+It supports both settlement and road moves.
 TODO: Implement deeper tree expansion.
 """
 
@@ -15,12 +16,13 @@ import numpy as np
 
 def select_child(node, c_puct):
     '''
-    Select a child of node that maximizes the UCB score.
+    Select a child of the given node that maximizes the UCB (PUCT) score.
     '''
     best_score = -float('inf')
     best_child = None
     for child in node.children.values():
-        score = child.Q + c_puct * child.P * math.sqrt(node.N) / (1 + child.N)
+        u = c_puct * child.P * math.sqrt(node.N) / (1 + child.N)
+        score = child.Q + u # mean value Q + exploration bonus U
         if score > best_score:
             best_score = score
             best_child = child
@@ -34,6 +36,8 @@ def expand_node(node, available_moves, vertex_coords):
     For roads, `available_moves` is a list of tuples (edge, edge_key).
     '''
     for move in available_moves:
+        # For settlements, use the vertex label.
+        # For roads, use move[1] as key.
         key = move[1] if node.move_type == "road" else move
         if key in node.children:
             continue
@@ -57,6 +61,7 @@ def expand_node(node, available_moves, vertex_coords):
 def simulate_rollout(node, vertex_coords):
     '''
     When a leaf node is reached, use the neural network to estimate the value.
+    TODO: Implement a deeper implemention that simulates further moves.
     '''
     if node.move_type == "settlement":
         value, _ = neural_network.predict_settlement(node.game_state, node.move, vertex_coords)
@@ -79,20 +84,30 @@ def backpropagate(node, value):
         node = node.parent
 
 
-def monte_carlo_tree_search(root, available_moves, vertex_coords, num_simulations, c_puct, add_dirichlet_noise = True, epsilon = 0.25, alpha = 0.03):
+def monte_carlo_tree_search(
+    root,
+    available_moves,
+    vertex_coords,
+    num_simulations,
+    c_puct,
+    add_dirichlet_noise = True,
+    epsilon = 0.25,
+    alpha = 0.03
+):
     '''
     Run MCTS simulations starting at the root node.
-    If add_dirichlet_noise is True, add Dirichlet noise at the root to encourage exploration.
+    If add_dirichlet_noise is True and we are at the root,
+    then add Dirichlet noise to the prior probabilities to encourage exploration.
     First, expand the root with all available moves. Then, for each simulation:
-    1. Complete selection by choosing the child with highest UCB until a leaf is reached.
-    2. Complete expansion by expanding the leaf if the leaf is not already expanded.
-    3. Complete evaluation by rolling out the leaf node using the neural network.
+    1. Complete selection by descending the tree using the PUCT formula /
+       choosing the child with highest UCB until a leaf is reached.
+    2. Complete expansion by expanding the leaf if the leaf is visited but not already expanded.
+    3. Complete evaluation by using the neural network to evaluate the leaf.
     4. Complete backpropagation by propagating the evaluation value back up the tree.
     Finally, return the move from the root with the highest visit count. 
     '''
     if root.is_leaf():
         expand_node(root, available_moves, vertex_coords)
-        # Inject Dirichlet noise at the root (AlphaGo Zero does this to improve exploration)
         if add_dirichlet_noise and root.parent is None:
             moves = list(root.children.keys())
             noise = np.random.dirichlet([alpha] * len(moves))
@@ -101,16 +116,17 @@ def monte_carlo_tree_search(root, available_moves, vertex_coords, num_simulation
                 child.P = (1 - epsilon) * child.P + epsilon * noise[i]
     for _ in range(0, num_simulations):
         node = root
-        # Complete selection by descending the tree until a leaf is reached.
+        # Complete selection by descending / traversing the tree until a leaf is reached.
         while not node.is_leaf():
             node = select_child(node, c_puct)
-        # Complex expansion by expanding any non-terminal node.
+        # Complete expansion by expanding any non-terminal node that has been visited before.
         if node.N > 0:
             expand_node(node, available_moves, vertex_coords)
+        # Complete evaluation by getting the value estimate.
         value = simulate_rollout(node, vertex_coords)
-        # Backpropagate.
+        # Complete backpropagation by updating node statistics.
         backpropagate(node, value)
-    # Choose the move with the highest visit count.
+    # Return the move from the root with the highest visit count / that was most visited.
     _, best_child = max(root.children.items(), key = lambda item: item[1].N)
     return best_child.move
 
@@ -120,10 +136,17 @@ def predict_best_settlement(game_state, available_vertices, vertex_coords, num_s
     Run a full MCTS for settlement moves.
     game_state: dictionary containing details of the current state
     available_vertices: list of vertex labels (e.g., "V01", "V02", ...) available for settlement
-    vertex_coords: dictionary mapping vertex label to (x, y) positions
+    vertex_coords: dictionary mapping vertex label to (x, y) coordinates / positions
     '''
     root = MCTS_Node(game_state = game_state, move_type = "settlement")
-    best_vertex = monte_carlo_tree_search(root, available_vertices, vertex_coords, num_simulations, c_puct, add_dirichlet_noise = True)
+    best_vertex = monte_carlo_tree_search(
+        root,
+        available_vertices,
+        vertex_coords,
+        num_simulations,
+        c_puct,
+        add_dirichlet_noise = True
+    )
     return best_vertex
 
 
@@ -137,6 +160,13 @@ def predict_best_road(game_state, available_edges, vertex_coords, num_simulation
     if last_settlement is None:
         return None, None
     root = MCTS_Node(game_state, move_type = "road")
-    best_move = monte_carlo_tree_search(root, available_edges, vertex_coords, num_simulations, c_puct, add_dirichlet_noise = True)
+    best_move = monte_carlo_tree_search(
+        root,
+        available_edges,
+        vertex_coords,
+        num_simulations,
+        c_puct,
+        add_dirichlet_noise = True
+    )
     best_edge, best_edge_key = best_move
     return best_edge, best_edge_key
