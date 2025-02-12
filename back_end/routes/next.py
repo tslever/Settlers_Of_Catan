@@ -1,23 +1,23 @@
 from flask import Blueprint
 from enum import Enum
-from utilities.board import MARGIN_OF_ERROR
-from utilities.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON
-from utilities.board import TOKEN_DOT_MAPPING
-from utilities.board import TOKEN_MAPPING
-from utilities.board import WIDTH_OF_HEX
+from ..utilities.board import MARGIN_OF_ERROR
+from ..utilities.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON
+from ..utilities.board import TOKEN_DOT_MAPPING
+from ..utilities.board import TOKEN_MAPPING
+from ..utilities.board import WIDTH_OF_HEX
 from flask import abort
-from utilities.board import all_edges_of_all_hexes
-from db.database import get_db_connection
-from utilities.board import get_edge_key
-from utilities.board import get_hex_vertices
-from utilities.board import hexes
+from ..utilities.board import all_edges_of_all_hexes
+from ..db.database import get_db_connection
+from ..utilities.board import get_edge_key
+from ..utilities.board import get_hex_vertices
+from ..utilities.board import hexes
 import json
 from flask import jsonify
 import logging
 import math
-from ai.strategy import predict_best_settlement
-from ai.strategy import predict_best_road
-from utilities.board import vertices_with_labels
+from ..ai.strategy import predict_best_settlement
+from ..ai.strategy import predict_best_road
+from ..utilities.board import vertices_with_labels
 
 
 blueprint_for_route_next = Blueprint("next", __name__)

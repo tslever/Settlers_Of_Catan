@@ -2,21 +2,24 @@
 """
 strategy.py
 
+A prior probability is an assumed probability of a visit count in a policy distribution of visit counts.
+
 Module strategy implements move selection using an AlphaGo Zero style Monte Carlo Tree Search (MCTS)
-and a neural network to predict value and policy / prior.
-It supports both settlement and road moves.
-TODO: Implement deeper tree expansion.
+and a neural network that provides both a value estimate and a policy / prior for candidate moves.
+This mododule supports both settlement and road moves.
+TODO: Simulate multiple moves / deeper rollouts.
+TODO: Train a model from self play.
 """
 
-from ai.mcts_node import MCTS_Node
+from .mcts_node import MCTS_Node
 import math
-from ai.neural_network import neural_network
+from .neural_network import neural_network
 import numpy as np
 
 
 def select_child(node, c_puct):
     '''
-    Select a child of the given node that maximizes the UCB (PUCT) score.
+    Select a child node with the maximum PUCT score.
     '''
     best_score = -float('inf')
     best_child = None
@@ -36,8 +39,8 @@ def expand_node(node, available_moves, vertex_coords):
     For roads, `available_moves` is a list of tuples (edge, edge_key).
     '''
     for move in available_moves:
-        # For settlements, use the vertex label.
-        # For roads, use move[1] as key.
+        # For settlements, use the vertex label as the move.
+        # For roads, use move[1] as the unique key.
         key = move[1] if node.move_type == "road" else move
         if key in node.children:
             continue
@@ -61,6 +64,7 @@ def expand_node(node, available_moves, vertex_coords):
 def simulate_rollout(node, vertex_coords):
     '''
     When a leaf node is reached, use the neural network to estimate the value.
+    For now, we use a one step evaluation.
     TODO: Implement a deeper implemention that simulates further moves.
     '''
     if node.move_type == "settlement":
@@ -96,7 +100,7 @@ def monte_carlo_tree_search(
 ):
     '''
     Run MCTS simulations starting at the root node.
-    If add_dirichlet_noise is True and we are at the root,
+    If add_dirichlet_noise is True and we are at the root with no parent node,
     then add Dirichlet noise to the prior probabilities to encourage exploration.
     First, expand the root with all available moves. Then, for each simulation:
     1. Complete selection by descending the tree using the PUCT formula /
@@ -122,18 +126,18 @@ def monte_carlo_tree_search(
         # Complete expansion by expanding any non-terminal node that has been visited before.
         if node.N > 0:
             expand_node(node, available_moves, vertex_coords)
-        # Complete evaluation by getting the value estimate.
+        # Complete evaluation by using the neural network to get the value estimate.
         value = simulate_rollout(node, vertex_coords)
         # Complete backpropagation by updating node statistics.
         backpropagate(node, value)
-    # Return the move from the root with the highest visit count / that was most visited.
-    _, best_child = max(root.children.items(), key = lambda item: item[1].N)
+    # Choose the move from the root with the highest visit count / that was most visited.
+    best_key, best_child = max(root.children.items(), key = lambda item: item[1].N)
     return best_child.move
 
 
 def predict_best_settlement(game_state, available_vertices, vertex_coords, num_simulations = 100, c_puct = 1.0):
     '''
-    Run a full MCTS for settlement moves.
+    Run a full MCTS for settlement moves and return the best vertex.
     game_state: dictionary containing details of the current state
     available_vertices: list of vertex labels (e.g., "V01", "V02", ...) available for settlement
     vertex_coords: dictionary mapping vertex label to (x, y) coordinates / positions
@@ -152,7 +156,7 @@ def predict_best_settlement(game_state, available_vertices, vertex_coords, num_s
 
 def predict_best_road(game_state, available_edges, vertex_coords, num_simulations = 100, c_puct = 1.0):
     '''
-    Run a full MCTS for road moves.
+    Run a full MCTS for road moves and return the best edge and its key.
     available_edges: list of tuples (edge, edge_key) available for road placement
     game_state: dictionary that must include `last_settlement` for road evaluation
     '''

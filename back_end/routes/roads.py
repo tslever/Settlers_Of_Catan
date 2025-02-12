@@ -1,4 +1,4 @@
-from db.database import get_db_connection
+from ..db.database import get_db_connection
 from flask import Blueprint, jsonify
 
 

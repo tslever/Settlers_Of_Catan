@@ -1,14 +1,21 @@
+'''
+app.py
+
+Run from directory `Settlers_Of_Catan` with `python -m backend.app`.
+'''
+
+
 from flask_cors import CORS
 from flask import Flask
-from config import INDICATOR_OF_WHETHER_DEBUG_MODE_SHOULD_BE_ENABLED
-from config import PORT_ON_WHICH_BACK_END_LISTENS
-from config import URL_OF_FRONT_END
-from routes import blueprint_for_route_next
-from routes import blueprint_for_route_roads
-from routes import blueprint_for_route_root
-from routes import blueprint_for_route_settlements
+from .config import INDICATOR_OF_WHETHER_DEBUG_MODE_SHOULD_BE_ENABLED
+from .config import PORT_ON_WHICH_BACK_END_LISTENS
+from .config import URL_OF_FRONT_END
+from .routes import blueprint_for_route_next
+from .routes import blueprint_for_route_roads
+from .routes import blueprint_for_route_root
+from .routes import blueprint_for_route_settlements
 from flask import jsonify
-from db.database import initialize_database
+from .db.database import initialize_database
 import logging
 
 
