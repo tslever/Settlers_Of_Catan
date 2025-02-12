@@ -3,7 +3,7 @@ import logging
 import sqlite3
 
 
-BASE_NAME_OF_DATABASE = "back_end/game.db"
+BASE_NAME_OF_DATABASE = "back_end/db/game.db"
 ID_OF_STATE = 1
 
 

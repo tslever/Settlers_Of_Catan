@@ -6,6 +6,9 @@ from ..utilities.board import get_hex_vertices
 from ..utilities.board import hexes
 import math
 import numpy as np
+import os
+import threading
+import time
 # To install PyTorch on a computer with only a CPU, run `pip3 install torch torchvision torchaudio` per https://pytorch.org/get-started/locally/ .
 import torch
 import torch.nn as nn
@@ -66,6 +69,7 @@ class NeuralNetwork:
         model_path: Path to the saved PyTorch model weights
         device: "cpu" or "cuda" for inference
         '''
+        self.model_path = model_path
         self.device = device
         '''
         In this example we define the 5 input features of
@@ -78,12 +82,50 @@ class NeuralNetwork:
         input_dim = 5
         self.model = SettlersPolicyValueNet(input_dim)
         self.model.to(self.device)
+        self.last_model_mod_time = None
+        self.load_model_weights()
+        threading.Thread(target = self._watch_model_update, daemon = True).start()
         try:
             self.model.load_state_dict(torch.load(model_path, map_location = device))
             print(f"Loaded model weights from {model_path}")
         except Exception as e:
             print(f"Warning: Failed to load model weights from {model_path}: {e}")
         self.model.eval()
+
+
+    def load_model_weights(self):
+        try:
+            if os.path.exists(self.model_path):
+                self.model.load_state_dict(
+                    torch.load(self.model_path, map_location = self.device)
+                )
+                self.last_model_mod_time = os.path.getmtime(self.model_path)
+                print(f"[NEURAL NETWORK] Weights for our neural network were loaded from {self.model_path}.")
+            else:
+                print(f"[NEURAL NETWORK] A file of weights was not found. An untrained model will be used.")
+        except Exception as e:
+            print(f"[NEURAL NETWORK] Loading model weights failed with the following exception. {e}")
+        self.model.eval()
+
+
+    def _watch_model_update(self):
+        '''
+        Periodically check if the file of weights has been updated. Reload if so.
+        '''
+        while True:
+            try:
+                if os.path.exists(self.model_path):
+                    mod_time = os.path.getmtime(self.model_path)
+                    if self.last_model_mod_time is None or mod_time > self.last_model_mod_time:
+                        print("[NEURAL NETWORK] A file of weights was updated. Reloading weights....")
+                        self.model.load_state_dict(
+                            torch.load(self.model_path, map_location = self.device)
+                        )
+                        self.last_model_mod_time = mod_time
+                        print("[NEURAL NETWORK] Model weights were reloaded.")
+            except Exception as e:
+                print(f"[NEURAL NETWORK] The following exception was raised while checking for model updates. {e}")
+            time.sleep(10) # Check every 10 seconds.
 
 
     def predict_settlement(self, game_state, vertex, vertex_coords):

@@ -1,9 +1,11 @@
 from .neural_network import NeuralNetwork
 import os
 from .self_play import generate_training_data
+from .continuous_training import start_continuous_training_in_background
 from .train import train_model
 
 
+'''
 current_dir = os.path.dirname(os.path.abspath(__file__))
 training_data_path = os.path.join(current_dir, "self_play_training_data.npy")
 model_path = os.path.join(current_dir, "neural_network.pt")
@@ -27,6 +29,12 @@ if not os.path.exists(model_path):
     )
 else:
     print("Neural network model found.")
+'''
 
 
-neural_network = NeuralNetwork(model_path = model_path)
+# Start the continuous self play and training loop.
+start_continuous_training_in_background()
+
+
+#neural_network = NeuralNetwork(model_path = model_path)
+neural_network = NeuralNetwork()
