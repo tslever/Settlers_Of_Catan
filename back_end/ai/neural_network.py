@@ -7,44 +7,45 @@ import math
 import numpy as np
 
 
-# Neural network simulation
-# TODO: Replace with a real model
 class NeuralNetwork:
     '''
-    A placeholder neural network that simulates that predictions of an AlphaGo Zero-style model.
-    TODO: Load a trained model and perform inference.
+    A simulated neural network that mimics an AlphaGo Zero style model.
+    For each candidate move (settlement or road) it returns:
+    - a value estimate (roughly in the range -1 to 1)
+    - a prior probability (a number in [0, 1])
+    TODO: Create code to train a model.
+    TODO: Load a trained model.
     '''
 
     def __init__(self):
-        # TODO: Load trained model.
+        # TODO: Load a trained model.
         pass
 
 
     def predict_settlement(self, game_state, vertex, vertex_coords):
         '''
-        Given the current game state and a candidate settlement vertex, return tuple (predicted value, move probability).
-        Here we simulate prediction using a simple heuristic plus noise.
-        TODO: Fully implement prediction.
+        Returns (value, prior) for a candidate settlement at the given vertex.
         '''
-        value = self.evaluate_settlement(vertex, vertex_coords, game_state)
-        policy_probability = 1.0
-        return value, policy_probability
+        value, prior = self.evaluate_settlement(vertex, vertex_coords, game_state)
+        return value, prior
     
 
     def predict_road(self, game_state, edge, edge_key, vertex_coords, last_settlement):
         '''
-        Given the current game state and a candidate road (edge), return tuple (predicted value, move probability).
+        Returns (value, prior) for a candidate road move.
         '''
-        value = self.evaluate_road(edge, edge_key, vertex_coords, last_settlement, game_state)
-        policy_probability = 1.0
-        return value, policy_probability
+        value, prior = self.evaluate_road(edge, edge_key, vertex_coords, last_settlement, game_state)
+        return value, prior
     
 
     def evaluate_settlement(self, vertex, vertex_coords, game_state):
         '''
-        A simple heuristic: sum the pip (dot) counts on all adjacent hexes.
-        Noise is added to simulate uncertainty.
-        TODO: Fully implement evaluating a settlement.
+        Heuristic evaluation: sum the pip counts on all adjacent hexes.
+        Then normalize (assuming a maximum total pip count of 11), pass through tanh,
+        and add a little noise.
+        The normalized pip sum is also used as the move's prior.
+        TODO: Calculate the maximum total pip count given the board with its hexes and tokens.
+        TODO: Consider non-heuristic evaluation.
         '''
         x, y = vertex_coords[vertex]
         total_pips = 0
@@ -56,8 +57,14 @@ class NeuralNetwork:
                     token = TOKEN_MAPPING.get(hex_id)
                     if token is not None:
                         total_pips += TOKEN_DOT_MAPPING.get(token, 0)
-                    break
-        return total_pips + np.random.normal(0, 0.1)
+                    break # Move on to the next hex once a match is found.
+        # Normalize assuming a maximum of 11 pips (for example, when a settlement touches three top-value hexes)
+        normalized = min(total_pips / 11.0, 1.0)
+        # Use tanh to bring the value into (roughly) [-1, 1] and add a little Gaussian noise.
+        value = np.tanh(normalized) + np.random.normal(0, 0.05)
+        # Use the normalized score as the prior probability for this move.
+        prior = normalized
+        return value, prior
     
 
     def evaluate_road(self, edge, edge_key, vertex_coords, last_settlement, game_state):
@@ -68,7 +75,10 @@ class NeuralNetwork:
         settlement_coord = vertex_coords[last_settlement]
         v1 = (edge["x1"], edge["y1"])
         v2 = (edge["x2"], edge["y2"])
-        if math.isclose(v1[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v1[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR):
+        if (
+            math.isclose(v1[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and
+            math.isclose(v1[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR)
+        ):
             other = v2
         else:
             other = v1
@@ -78,7 +88,8 @@ class NeuralNetwork:
                 other_label = label
                 break
         if other_label is None:
-            return -float("inf")
+            return -1.0, 0.0 # If the other vertex is not found, return a very poor value and zero probability.
+        # Reuse the settlement evaluation on the other vertex.
         return self.evaluate_settlement(other_label, vertex_coords, game_state)
 
 

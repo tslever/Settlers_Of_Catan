@@ -1,4 +1,5 @@
 class MCTS_Node:
+
     def __init__(self, game_state: dict, move = None, parent = None, move_type = None):
         '''
         Parameters:
@@ -11,7 +12,7 @@ class MCTS_Node:
         self.move = move
         self.parent = parent
         self.move_type = move_type
-        self.children = {} # mapping from move to child node
+        self.children = {} # mapping from move (or edge_key for roads) to child node
         self.N = 0 # visit count
         self.W = 0.0 # total value
         self.Q = 0.0 # mean value (W / N)
