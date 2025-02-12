@@ -9,6 +9,7 @@ file_paths = [
     r'back_end\ai_strategy.py',
     r'back_end\app.py',
     r'back_end\config.py',
+    r'back_end\neural_network.py',
     r'back_end\db\database.py',
     r'back_end\routes\next.py',
     r'back_end\routes\roads.py',

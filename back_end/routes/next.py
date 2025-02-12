@@ -15,8 +15,8 @@ import json
 from flask import jsonify
 import logging
 import math
-from ai_strategy import predict_best_settlement
-from ai_strategy import predict_best_road
+from ai.strategy import predict_best_settlement
+from ai.strategy import predict_best_road
 from utilities.board import vertices_with_labels
 
 

@@ -2,13 +2,14 @@
 """
 ai_strategy.py
 
-This module implements move selection for settlements and roads using a simple one‐step Monte Carlo
-Tree Search (MCTS) guided by a “neural network” in an AlphaGo Zero–style approach.
-TODO: Build a full search tree.
-In a production system the NeuralNetwork class below would be replaced with code that loads a trained model and 
-performs inference. For demonstration purposes the network here simply uses a heuristic (summing the 
-pips on adjacent hexes) with a small amount of added noise.
-TODO: Develop code that loads a trained model and performs inference.
+This module implements move selection for settlements and roads using an
+AlphaGo Zero style Monte Carlo Tree Search (MCTS) that builds a simple tree.
+TODO: Implement deeper tree expansion.
+In a full implementation the neural network would
+be trained and used to evaluate nonterminal states. Here we use a
+network that simply uses a heuristic
+(summing the pips on adjacent hexes) with a small amount of added noise.
+TODO: Develop code that trains and uses a neural network.
 """
 
 
@@ -19,7 +20,7 @@ from utilities.board import get_hex_vertices
 from utilities.board import hexes
 import math
 import numpy as np
-from neural_network import neural_network
+from ai.neural_network import neural_network
 
 
 def neural_network_predict_settlement(game_state, vertex, vertex_coords):
