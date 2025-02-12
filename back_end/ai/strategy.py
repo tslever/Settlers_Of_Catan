@@ -13,134 +13,128 @@ TODO: Develop code that trains and uses a neural network.
 """
 
 
-from utilities.board import MARGIN_OF_ERROR
-from utilities.board import TOKEN_MAPPING
-from utilities.board import TOKEN_DOT_MAPPING
-from utilities.board import get_hex_vertices
-from utilities.board import hexes
 import math
-import numpy as np
+from ai.mcts_node import MCTS_Node
 from ai.neural_network import neural_network
 
 
-def neural_network_predict_settlement(game_state, vertex, vertex_coords):
+def select_child(node, c_puct):
     '''
-    Predict the value and move probability for placing a settlement at a given vertex.
+    Select a child of node that maximizes the UCB value.
     '''
-    return neural_network.predict_settlement(game_state, vertex, vertex_coords)
+    best_score = -float('inf')
+    best_child = None
+    for child in node.children.values():
+        score = child.Q + c_puct * child.P * math.sqrt(node.N) / (1 + child.N)
+        if score > best_score:
+            best_score = score
+            best_child = child
+    return best_child
 
 
-def neural_network_predict_road(game_state, edge, edge_key, vertex_coords, last_settlement):
+def expand_node(node, available_moves, vertex_coords):
     '''
-    Predict the value and move probability for placing a road along a given edge.
+    Expand the node by adding one child for every available move.
+    For settlements, `available_moves` is a list of vertex labels.
+    For roads, `available_moves` is a list of tuples (edge, edge_key).
+    The key used in node.children is the move itself for settlements,
+    but for roads we use the `edge_key` (a string) so that it's hashable.
+    The prior probability for each move is obtained from the neural network.
     '''
-    return neural_network.predict_road(game_state, edge, edge_key, vertex_coords, last_settlement)
+    for move in available_moves:
+        if node.move_type == "road":
+            key = move[1]
+        else:
+            key = move
+        if key in node.children:
+            continue
+        if node.move_type == "settlement":
+            value, prior = neural_network.predict_settlement(node.game_state, move, vertex_coords)
+        elif node.move_type == "road":
+            last_settlement = node.game_state.get("last_settlement")
+            value, prior = neural_network.predict_road(node.game_state, move[0], move[1], vertex_coords, last_settlement)
+        else:
+            prior = 1.0
+        child = MCTS_Node(
+            game_state = node.game_state,
+            move = move, # Store the full move (for roads, the (edge, edge_key) tuple)
+            parent = node,
+            move_type = node.move_type
+        )
+        child.P = prior
+        node.children[key] = child
 
 
-def alphago_zero_mcts_for_settlement(game_state, available_vertices, vertex_coords, num_simulations = 100, c_puct = 1.0):
+def simulate_rollout(node, vertex_coords):
     '''
-    Run a simple one step MCTS on the available settlement moves.
-    TODO: Build a full search tree.
-    For each available vertex we initialize:
-    - N: visit count
-    - W: total value
-    - Q: average value (W / N)
-    - P: probability of choosing this vertex
-    Dirichlet noise is added at the root for exploration.
+    When a leaf node is reached, simulate a rollout by evaluating the move
+    using the neural network's value prediction.
     '''
-    stats = {}
-    for vertex in available_vertices:
-        value, probability_of_choosing_this_vertex = neural_network_predict_settlement(game_state, vertex, vertex_coords)
-        stats[vertex] = {"N": 0, "W": 0.0, "Q": 0.0, "P": probability_of_choosing_this_vertex}
-    # Inject Dirichlet noise into the priors at the root
-    epsilon = 0.25
-    alpha = 0.3
-    noise = np.random.dirichlet([alpha] * len(available_vertices))
-    for i, vertex in enumerate(available_vertices):
-        stats[vertex]["P"] = (1 - epsilon) * stats[vertex]["P"] + epsilon * noise[i]
-    # Run MCTS simulations
+    if node.move_type == "settlement":
+        value, _ = neural_network.predict_settlement(node.game_state, node.move, vertex_coords)
+    elif node.move_type == "road":
+        last_settlement = node.game_state.get("last_settlement")
+        value, _ = neural_network.predict_road(node.game_state, node.move[0], node.move[1], vertex_coords, last_settlement)
+    else:
+        value = 0.0
+    return value
+
+
+def backpropagate(node, value):
+    '''
+    Backpropagate the rollout value up the tree.
+    '''
+    while node is not None:
+        node.N += 1
+        node.W += value
+        node.Q = node.W / node.N
+        node = node.parent
+
+
+def monte_carlo_tree_search(root, available_moves, vertex_coords, num_simulations, c_puct):
+    '''
+    Run MCTS simulations starting at the root node.
+    First, expand the root with all available moves. Then, for each simulation:
+    1. Complete selection by choosing the child with highest UCB until a leaf is reached.
+    2. Complete expansion by expanding the leaf if the leaf is not already expanded.
+    3. Complete evaluation by rolling out the leaf node using the neural network.
+    4. Complete backpropagation by propagating the evaluation value back up the tree.
+    Finally, return the move from the root with the highest visit count. 
+    '''
+    if root.is_leaf():
+        expand_node(root, available_moves, vertex_coords)
     for _ in range(0, num_simulations):
-        total_N = sum(stats[v]["N"] for v in available_vertices)
-        best_score = -float('inf')
-        best_vertex = None
-        for vertex in available_vertices:
-            node = stats[vertex]
-            N = node["N"]
-            Q = node["Q"]
-            P = node["P"]
-            ucb = Q + c_puct * P * math.sqrt(total_N) / (1 + N)
-            if ucb > best_score:
-                best_score = ucb
-                best_vertex = vertex
-        rollout_value, _ = neural_network_predict_settlement(game_state, best_vertex, vertex_coords)
-        # Backpropagation
-        # TODO: Deepen tree and perform recursive backup.
-        node = stats[best_vertex]
-        node["N"] += 1
-        node["W"] += rollout_value
-        node["Q"] = node["W"] / node["N"]
-    # Chose the move with the highest visit count.
-    best_vertex = max(available_vertices, key = lambda v: stats[v]["N"])
+        node = root
+        while not node.is_leaf():
+            node = select_child(node, c_puct)
+        value = simulate_rollout(node, vertex_coords)
+        backpropagate(node, value)
+    _, best_child = max(root.children.items(), key = lambda item: item[1].N)
+    return best_child.move
+
+
+def predict_best_settlement(game_state, available_vertices, vertex_coords, num_simulations = 100, c_puct = 1.0):
+    '''
+    Run a full MCTS for settlement moves.
+    game_state: dictionary containing details of the current state
+    available_vertices: list of vertex labels (e.g., "V01", "V02", ...) available for settlement
+    vertex_coords: dictionary mapping vertex label to (x, y) positions
+    '''
+    root = MCTS_Node(game_state = game_state, move_type = "settlement")
+    best_vertex = monte_carlo_tree_search(root, available_vertices, vertex_coords, num_simulations, c_puct)
     return best_vertex
 
 
-def alphago_zero_mcts_for_road(game_state, available_edges, vertex_coords, last_settlement, num_simulations = 100, c_puct = 1.0):
+def predict_best_road(game_state, available_edges, vertex_coords, num_simulations = 100, c_puct = 1.0):
     '''
-    Run a simple one step MCTS for road moves.
-    TODO: Build a full search tree.
-    available_edges is a list of tuples (edge, edge_key).
-    For each edge we initialize statistics and add Dirichlet noise at the root.
-    Finally, we return the best edge and is key.
-    '''
-    stats = {}
-    for edge, edge_key in available_edges:
-        value, probability_of_choosing_this_road = neural_network_predict_road(game_state, edge, edge_key, vertex_coords, last_settlement)
-        stats[edge_key] = {"edge": edge, "N": 0, "W": 0.0, "Q": 0.0, "P": probability_of_choosing_this_road}
-    # Add Dirichlet noise for exploration at the root.
-    epsilon = 0.25
-    alpha = 0.3
-    edge_keys = list(stats.keys())
-    noise = np.random.dirichlet([alpha] * len(edge_keys))
-    for i, ek in enumerate(edge_keys):
-        stats[ek]["P"] = (1 - epsilon) * stats[ek]["P"] + epsilon * noise[i]
-    # Run MCTS simulations.
-    for _ in range(0, num_simulations):
-        total_N = sum(node["N"] for node in stats.values())
-        best_score = -float('inf')
-        best_edge_key = None
-        for ek, node in stats.items():
-            N = node["N"]
-            Q = node["Q"]
-            P = node["P"]
-            ucb = Q + c_puct * P * math.sqrt(total_N) / (1 + N)
-            if ucb > best_score:
-                best_score = ucb
-                best_edge_key = ek
-        rollout_value, _ = neural_network_predict_road(game_state, stats[best_edge_key]["edge"], best_edge_key, vertex_coords, last_settlement)
-        node = stats[best_edge_key]
-        node["N"] += 1
-        node["W"] += rollout_value
-        node["Q"] = node["W"] / node["N"]
-    best_edge_key = max(stats.keys(), key = lambda ek: stats[ek]["N"])
-    best_edge = stats[best_edge_key]["edge"]
-    return best_edge, best_edge_key
-
-
-def predict_best_settlement(available_vertices, vertex_coords, game_state):
-    '''
-    Given the available settlement moves, return the vertex chosen by the MCTS.
-    TODO: Include more of the game state and pass the game state to an actual neural network.
-    '''
-    best_vertex = alphago_zero_mcts_for_settlement(game_state, available_vertices, vertex_coords)
-    return best_vertex
-
-
-def predict_best_road(available_edges, vertex_coords, game_state):
-    '''
-    Given the available road moves, return the best edge.
+    Run a full MCTS for road moves.
+    available_edges: list of tuples (edge, edge_key) available for road placement
+    game_state: dictionary that must include `last_settlement` for road evaluation
     '''
     last_settlement = game_state.get("last_settlement")
     if last_settlement is None:
         return None, None
-    best_edge, best_edge_key = alphago_zero_mcts_for_road(game_state, available_edges, vertex_coords, last_settlement)
+    root = MCTS_Node(game_state, move_type = "road")
+    best_move = monte_carlo_tree_search(root, available_edges, vertex_coords, num_simulations, c_puct)
+    best_edge, best_edge_key = best_move
     return best_edge, best_edge_key

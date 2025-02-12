@@ -6,10 +6,11 @@ base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
     r'generate_board_geometry.py',
     r'board_geometry.json',
-    r'back_end\ai_strategy.py',
+    r'back_end\ai\mcts_node.py',
+    r'back_end\ai\neural_network.py',
+    r'back_end\ai\strategy.py',
     r'back_end\app.py',
     r'back_end\config.py',
-    r'back_end\neural_network.py',
     r'back_end\db\database.py',
     r'back_end\routes\next.py',
     r'back_end\routes\roads.py',

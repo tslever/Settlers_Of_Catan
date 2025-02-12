@@ -71,7 +71,7 @@ def create_settlement(cursor, current_player, phase: Phase):
     game_state = {
         
     }
-    chosen_vertex = predict_best_settlement(available, vertex_coords, game_state)
+    chosen_vertex = predict_best_settlement(game_state, available, vertex_coords)
     if not chosen_vertex:
         logger.error("AI failed to choose a vertex for settlement placement.")
         return None, None, None, "AI decision error."
@@ -142,7 +142,7 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
     game_state = {
         "last_settlement": last_settlement
     }
-    best_edge, best_edge_key = predict_best_road(available_edges, vertex_coords, game_state)
+    best_edge, best_edge_key = predict_best_road(game_state, available_edges, vertex_coords)
     if best_edge is None:
         logger.error("AI failed to choose an edge for road placement.")
         return None, None, None, None, "No valid edge found for road placement."
