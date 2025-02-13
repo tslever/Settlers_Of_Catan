@@ -8,7 +8,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class SettlersPolicyValueNet(nn.Module):
+
     def __init__(self, input_dim, hidden_dim=128):
         super(SettlersPolicyValueNet, self).__init__()
         self.fc1 = nn.Linear(input_dim, hidden_dim)
@@ -18,12 +20,14 @@ class SettlersPolicyValueNet(nn.Module):
         # Value head: scalar output squashed via tanh
         self.fc_value = nn.Linear(hidden_dim, 1)
 
+
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         policy = torch.sigmoid(self.fc_policy(x))
         value = torch.tanh(self.fc_value(x))
         return value, policy
+
 
 class NeuralNetwork:
     """
@@ -32,6 +36,7 @@ class NeuralNetwork:
       - a value estimate in [-1, 1]
       - a prior probability in [0, 1]
     """
+
     def __init__(self, model_path="back_end/ai/neural_network.pt", device="cpu"):
         self.model_path = model_path
         self.device = device
@@ -43,24 +48,21 @@ class NeuralNetwork:
         # Create an instance of the Board for geometry and pip calculations.
         self.board = Board()
         threading.Thread(target=self._watch_model_update, daemon=True).start()
-        try:
-            self.model.load_state_dict(torch.load(model_path, map_location=device))
-            print(f"Loaded model weights from {model_path}")
-        except Exception as e:
-            print(f"Warning: Failed to load model weights from {model_path}: {e}")
         self.model.eval()
 
+
     def load_model_weights(self):
-        try:
-            if os.path.exists(self.model_path):
+        if os.path.exists(self.model_path):
+            try:
                 self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
                 self.last_model_mod_time = os.path.getmtime(self.model_path)
                 print(f"[NEURAL NETWORK] Weights loaded from {self.model_path}.")
-            else:
-                print(f"[NEURAL NETWORK] Weights file not found. Using untrained model.")
-        except Exception as e:
-            print(f"[NEURAL NETWORK] Loading weights failed: {e}")
+            except Exception as e:
+                print(f"[NEURAL NETWORK] Error loading weights from {self.model_path}: {e}")
+        else:
+            print(f"[NEURAL NETWORK] Weights file not found. Using untrained model.")
         self.model.eval()
+
 
     def _watch_model_update(self):
         while True:

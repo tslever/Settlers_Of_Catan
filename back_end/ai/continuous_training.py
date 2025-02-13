@@ -62,7 +62,7 @@ def continuous_self_play_loop():
                 learning_rate = 1e-3
             )
             print("[TRAINING] Training is complete. A new model has been saved.")
-            # TODO: Consider clearing or downsampling training data after update.
+            np.save(TRAINING_DATA_PATH, [])
         time.sleep(GAME_INTERVAL)
 
 

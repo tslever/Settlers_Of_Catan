@@ -17,6 +17,7 @@ from .routes import blueprint_for_route_settlements
 from flask import jsonify
 from .db.database import initialize_database
 import logging
+from .ai.continuous_training import start_continuous_training_in_background
 
 
 logging.basicConfig(level = logging.INFO)
@@ -114,9 +115,11 @@ def create_app():
 
 
 if __name__ == '__main__':
+    start_continuous_training_in_background()
     app = create_app()
     logger.info(f"Created back end on port {PORT_ON_WHICH_BACK_END_LISTENS}")
     app.run(
         port = PORT_ON_WHICH_BACK_END_LISTENS,
-        debug = INDICATOR_OF_WHETHER_DEBUG_MODE_SHOULD_BE_ENABLED
+        debug = INDICATOR_OF_WHETHER_DEBUG_MODE_SHOULD_BE_ENABLED,
+        use_reloader = False
     )
