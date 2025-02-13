@@ -12,6 +12,7 @@ file_paths = [
     r'back_end\config.py',
 
     r'back_end\ai\__init__.py',
+    r'back_end\ai\continuous_training.py',
     r'back_end\ai\mcts_node.py',
     r'back_end\ai\neural_network.py',
     r'back_end\ai\self_play.py',

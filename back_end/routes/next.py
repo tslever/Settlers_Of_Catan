@@ -1,6 +1,6 @@
 from flask import Blueprint
-from enum import Enum
 from ..utilities.board import MARGIN_OF_ERROR
+from ..utilities.phase import Phase
 from ..utilities.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON
 from ..utilities.board import TOKEN_DOT_MAPPING
 from ..utilities.board import TOKEN_MAPPING
@@ -26,14 +26,6 @@ logger = logging.getLogger(__name__)
 
 ID_OF_STATE = 1
 THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON * WIDTH_OF_HEX + MARGIN_OF_ERROR
-
-
-class Phase(Enum):
-    TO_PLACE_FIRST_SETTLEMENT = "phase to place first settlement"
-    TO_PLACE_FIRST_ROAD = "phase to place first road"
-    TO_PLACE_SECOND_SETTLEMENT = "phase to place second settlement"
-    TO_PLACE_SECOND_ROAD = "phase to place second road"
-    TURN = "turn"
 
 
 def create_settlement(cursor, current_player, phase: Phase):
