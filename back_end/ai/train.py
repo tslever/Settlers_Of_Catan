@@ -20,9 +20,7 @@ from torch.utils.data import Dataset, DataLoader
 # Import the board–related constants and helper functions.
 # (Adjust the import paths as needed for your project structure.)
 from ..utilities.board import (
-    vertices_with_labels,
-    hexes,
-    get_hex_vertices,
+    Board,
     MARGIN_OF_ERROR,
     WIDTH_OF_BOARD_IN_VMIN,
     TOKEN_MAPPING,
@@ -63,7 +61,8 @@ class SelfPlayDataset(Dataset):
         self.data = np.load(npy_file, allow_pickle=True)
         # Precompute the vertex coordinates dictionary from vertices_with_labels.
         # (Each vertex is a dict with keys "label", "x", and "y".)
-        self.vertex_coords = {v["label"]: (v["x"], v["y"]) for v in vertices_with_labels}
+        board = Board()
+        self.vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
         
         # We will build a list of samples as tuples: (feature_vector, target_value, target_policy)
         self.samples = []
@@ -85,8 +84,8 @@ class SelfPlayDataset(Dataset):
             # Compute the pip sum and count the number of adjacent hexes.
             total_pips = 0
             hex_count = 0
-            for hex_tile in hexes:
-                vertices = get_hex_vertices(hex_tile)
+            for hex_tile in board.hexes:
+                vertices = board.get_hex_vertices(hex_tile)
                 # If any vertex of the hex matches (within tolerance) the candidate vertex
                 # then add its pip value.
                 for vx, vy in vertices:

@@ -1,40 +1,37 @@
 from flask import Blueprint
+from ..utilities.board import Board
 from ..utilities.board import MARGIN_OF_ERROR
 from ..utilities.phase import Phase
-from ..utilities.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON
+from ..utilities.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
 from ..utilities.board import TOKEN_DOT_MAPPING
 from ..utilities.board import TOKEN_MAPPING
 from ..utilities.board import WIDTH_OF_HEX
 from flask import abort
-from ..utilities.board import all_edges_of_all_hexes
 from ..db.database import get_db_connection
-from ..utilities.board import get_edge_key
-from ..utilities.board import get_hex_vertices
-from ..utilities.board import hexes
 import json
 from flask import jsonify
 import logging
 import math
 from ..ai.strategy import predict_best_settlement
 from ..ai.strategy import predict_best_road
-from ..utilities.board import vertices_with_labels
-
-
-blueprint_for_route_next = Blueprint("next", __name__)
-logger = logging.getLogger(__name__)
 
 
 ID_OF_STATE = 1
-THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEXAGON_AND_WIDTH_OF_HEXAGON * WIDTH_OF_HEX + MARGIN_OF_ERROR
+THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX * WIDTH_OF_HEX + MARGIN_OF_ERROR
+
+
+blueprint_for_route_next = Blueprint("next", __name__)
+board = Board()
+logger = logging.getLogger(__name__)
 
 
 def create_settlement(cursor, current_player, phase: Phase):
     cursor.execute("SELECT vertex FROM settlements")
     used_vertices = {r["vertex"] for r in cursor.fetchall()}
-    vertex_coords = {v["label"]: (v["x"], v["y"]) for v in vertices_with_labels}
+    vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
     existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
     available = []
-    for v in vertices_with_labels:
+    for v in board.vertices:
         label = v["label"]
         x = v["x"]
         y = v["y"]
@@ -90,13 +87,13 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
     if not last_settlement:
         logger.error(f"No settlement recorded for road placement (current_player={current_player}, phase={phase.value})")
         return None, None, None, None, "No settlement recorded for road placement."
-    vertex_coords = {v["label"]: (v["x"], v["y"]) for v in vertices_with_labels}
+    vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
     if last_settlement not in vertex_coords:
         logger.error(f"Invalid last settlement vertex: {last_settlement}")
         return None, None, None, None, "Invalid last settlement vertex."
     settlement_coord = vertex_coords[last_settlement]
     adjacent_edges = []
-    for edge in all_edges_of_all_hexes:
+    for edge in board.edges:
         x1 = edge["x1"]
         y1 = edge["y1"]
         x2 = edge["x2"]
@@ -115,7 +112,7 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
     for edge in adjacent_edges:
         v1 = (edge["x1"], edge["y1"])
         v2 = (edge["x2"], edge["y2"])
-        edge_key = get_edge_key(v1, v2)
+        edge_key = board.get_edge_key(v1, v2)
         if edge_key not in used_edges:
             available_edges.append((edge, edge_key))
     if not available_edges:
@@ -175,7 +172,7 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
 
 
 def compute_strengths():
-    vertex_coord = {v["label"]: (v["x"], v["y"]) for v in vertices_with_labels}
+    vertex_coord = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
     strengths = {1: 0, 2: 0, 3: 0}
     with get_db_connection() as connection:
         cursor = connection.execute("SELECT player, vertex FROM settlements")
@@ -186,8 +183,8 @@ def compute_strengths():
         if vertex_label not in vertex_coord:
             continue
         settlement_coord = vertex_coord[vertex_label]
-        for hex in hexes:
-            for hv in get_hex_vertices(hex):
+        for hex in board.hexes:
+            for hv in board.get_hex_vertices(hex):
                 if abs(hv[0] - settlement_coord[0]) < MARGIN_OF_ERROR and abs(hv[1] - settlement_coord[1]) < MARGIN_OF_ERROR:
                     hex_id = hex["id"]
                     token = TOKEN_MAPPING.get(hex_id)

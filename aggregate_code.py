@@ -30,6 +30,7 @@ file_paths = [
 
     r'back_end\utilities\__init__.py',
     r'back_end\utilities\board.py',
+    r'back_end\utilities\game_state.py',
 
     r'front_end\app\config.ts',
     r'front_end\app\globals.scss',
