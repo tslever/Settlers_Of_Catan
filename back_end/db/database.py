@@ -24,6 +24,7 @@ def get_db_connection():
         connection.commit()
     except Exception:
         connection.rollback()
+        logger.exception("Getting connection to database failed.")
         raise
     finally:
         connection.close()

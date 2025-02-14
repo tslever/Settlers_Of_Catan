@@ -50,7 +50,7 @@ def create_app():
 
     @app.errorhandler(400)
     def handle_bad_request(e):
-        app.logger.error(f"400 Bad Request: {e}")
+        logger.error(f"400 Bad Request: {e}")
         return (
             jsonify(
                 {
@@ -67,7 +67,7 @@ def create_app():
     
     @app.errorhandler(404)
     def handle_not_found(e):
-        app.logger.error(f"404 Not Found: {e}")
+        logger.error(f"404 Not Found: {e}")
         return (
             jsonify(
                 {
@@ -84,7 +84,7 @@ def create_app():
     
     @app.errorhandler(500)
     def handle_internal_server_error(e):
-        app.logger.error(f"500 Internal Server Error: {e}")
+        logger.exception(f"500 Internal Server Error: {e}")
         return (
             jsonify(
                 {
@@ -97,10 +97,8 @@ def create_app():
     
     @app.errorhandler(Exception)
     def handle_exception(e):
-        code = 500
-        if hasattr(e, 'code') and isinstance(e.code, int):
-            code = e.code
-        app.logger.error(f"Unhandled Exception: {e}")
+        code = getattr(e, 'code', 500)
+        logger.error(f"Unhandled Exception: {e}")
         return (
             jsonify(
                 {

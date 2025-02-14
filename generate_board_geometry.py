@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-import os
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
-from typing import Optional
 from back_end.utilities.board import HEIGHT_OF_HEX
 from back_end.utilities.board import MARGIN_OF_ERROR
 from back_end.utilities.board import WIDTH_OF_BOARD_IN_VMIN
@@ -12,6 +9,7 @@ from back_end.utilities.board import WIDTH_OF_HEX
 from back_end.utilities.board import Board
 import json
 import logging
+import os
 
 
 ARRAY_OF_HEX_IDS_REPRESENTING_BOARD: List[List[str]] = [
@@ -72,7 +70,7 @@ def edge_already_exists(
             True if the given tuple of edge coordinates matches a tuple of edge coordinates in the given list;
             False otherwise
     '''
-    (x11, y11, x12, y12) = tuple_of_edge_coordinates
+    x11, y11, x12, y12 = tuple_of_edge_coordinates
     for x21, y21, x22, y22 in list_of_tuples_of_edge_coordinates:
         if (
             (abs(x11 - x21) < margin_of_error and abs(y11 - y21) < margin_of_error and
