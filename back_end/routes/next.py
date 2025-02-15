@@ -3,11 +3,14 @@ from ..utilities.board import Board
 from ..utilities.board import MARGIN_OF_ERROR
 from ..utilities.phase import Phase
 from ..utilities.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
+from ..db.database import Road
+from ..db.database import Settlement
+from ..db.database import State
 from ..utilities.board import TOKEN_DOT_MAPPING
 from ..utilities.board import TOKEN_MAPPING
 from ..utilities.board import WIDTH_OF_HEX
 from flask import abort
-from ..db.database import get_db_connection
+from ..db.database import get_db_session
 import json
 from flask import jsonify
 import logging
@@ -25,31 +28,28 @@ board = Board()
 logger = logging.getLogger(__name__)
 
 
-def create_settlement(cursor, current_player, phase: Phase):
-    cursor.execute("SELECT vertex FROM settlements")
-    used_vertices = {r["vertex"] for r in cursor.fetchall()}
+def create_settlement(session, current_player, phase: Phase):
+    settlements = session.query(Settlement).all()
+    used_vertices = {settlement.vertex for settlement in settlements}
     vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
     existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
     available = []
     for v in board.vertices:
         label = v["label"]
-        x = v["x"]
-        y = v["y"]
+        x1 = v["x"]
+        y1 = v["y"]
         if label in used_vertices:
             continue
-        too_close = False
-        for ex in existing_coords:
-            if math.sqrt((x - ex[0])**2 + (y - ex[1])**2) < THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT:
-                too_close = True
-                break
+        too_close = any(
+            math.sqrt((x1 - x2)**2 + (y1 - y2)**2) < THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT
+            for x2, y2 in existing_coords
+        )
         if not too_close:
             available.append(label)
     if not available:
         logger.error(f"No vertices available for settlement placement (current_player={current_player}, phase={phase.value}).")
         return None, None, None, "No vertices are available."
     
-
-
     '''
     TODO: Include details such as
     the names of all players,
@@ -64,15 +64,10 @@ def create_settlement(cursor, current_player, phase: Phase):
     if not chosen_vertex:
         logger.error("AI failed to choose a vertex for settlement placement.")
         return None, None, None, "AI decision error."
-
-
-
-    cursor.execute(
-        "INSERT INTO settlements (player, vertex) VALUES (?, ?)",
-        (current_player, chosen_vertex)
-    )
-    settlement_id = cursor.lastrowid
-    next_phase = ""
+    settlement = Settlement(player = current_player, vertex = chosen_vertex)
+    session.add(settlement)
+    session.commit()
+    settlement_id = settlement.id
     if phase == Phase.TO_PLACE_FIRST_SETTLEMENT:
         next_phase = Phase.TO_PLACE_FIRST_ROAD
     elif phase == Phase.TO_PLACE_SECOND_SETTLEMENT:
@@ -83,7 +78,7 @@ def create_settlement(cursor, current_player, phase: Phase):
     return chosen_vertex, settlement_id, next_phase, None
     
 
-def create_road(cursor, current_player, phase: Phase, last_settlement):
+def create_road(session, current_player, phase: Phase, last_settlement):
     if not last_settlement:
         logger.error(f"No settlement recorded for road placement (current_player={current_player}, phase={phase.value})")
         return None, None, None, None, "No settlement recorded for road placement."
@@ -106,8 +101,9 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
     if not adjacent_edges:
         logger.error(f"No adjacent edges found for settlement at {settlement_coord}")
         return None, None, None, None, "No adjacent edges found for settlement."
-    cursor.execute("SELECT edge FROM roads")
-    used_edges = {row["edge"] for row in cursor.fetchall()}
+
+    roads = session.query(Road).all()
+    used_edges = {road.edge for road in roads}
     available_edges = []
     for edge in adjacent_edges:
         v1 = (edge["x1"], edge["y1"])
@@ -119,8 +115,6 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
         logger.error(f"No available roads adjacent to settlement {last_settlement}.")
         return None, None, None, None, "No available roads adjacent to settlement."
     
-
-
     '''
     TODO: Include details such as
     the names of all players,
@@ -136,11 +130,11 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
         logger.error("AI failed to choose an edge for road placement.")
         return None, None, None, None, "No valid edge found for road placement."
 
+    road = Road(player = current_player, edge = best_edge_key)
+    session.add(road)
+    session.commit()
+    road_id = road.id
 
-
-    cursor.execute("INSERT INTO roads (player, edge) VALUES (?, ?)", (current_player, best_edge_key))
-    road_id = cursor.lastrowid
-    next_player = 0
     if phase == Phase.TO_PLACE_FIRST_ROAD:
         next_phase = Phase.TO_PLACE_FIRST_SETTLEMENT
         if current_player == 1:
@@ -171,15 +165,13 @@ def create_road(cursor, current_player, phase: Phase, last_settlement):
     return best_edge_key, road_id, next_phase, next_player, None
 
 
-def compute_strengths():
+def compute_strengths(session):
     vertex_coord = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
     strengths = {1: 0, 2: 0, 3: 0}
-    with get_db_connection() as connection:
-        cursor = connection.execute("SELECT player, vertex FROM settlements")
-        settlements = cursor.fetchall()
+    settlements = session.query(Settlement).all()
     for settlement in settlements:
-        player = settlement["player"]
-        vertex_label = settlement["vertex"]
+        player = settlement.player
+        vertex_label = settlement.vertex
         if vertex_label not in vertex_coord:
             continue
         settlement_coord = vertex_coord[vertex_label]
@@ -197,39 +189,36 @@ def compute_strengths():
 
 @blueprint_for_route_next.route("/next", methods = ["POST"])
 def next_move():
-    with get_db_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute("SELECT current_player, phase, last_settlement FROM state WHERE id = ?", (ID_OF_STATE,))
-        row = cursor.fetchone()
-
-        if row is None:
-            current_player = 1
-            phase = Phase.TO_PLACE_FIRST_SETTLEMENT
-            last_settlement = None
-            cursor.execute(
-                "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, ?, NULL)",
-                (ID_OF_STATE, Phase.TO_PLACE_FIRST_SETTLEMENT)
+    with get_db_session() as session:
+        state = session.query(State).filter_by(id = ID_OF_STATE).first()
+        if state is None:
+            state = State(
+                id = ID_OF_STATE,
+                current_player = 1,
+                phase = Phase.TO_PLACE_FIRST_SETTLEMENT.value,
+                last_settlement = None
             )
-            logger.info(f"Initialized state: player=1, phase={Phase.TO_PLACE_FIRST_SETTLEMENT.value}")
-        else:
-            current_player = row["current_player"]
-            try:
-                phase = Phase(row["phase"])
-            except ValueError:
-                logger.error(f"Invalid phase in state: {row["phase"]}")
-                abort(500, description = "Invalid phase in state.")
-            last_settlement = row["last_settlement"]
-            logger.info(f"Current state: player={current_player}, phase={phase.value}, last_settlement={last_settlement}")
+            session.add(state)
+            session.commit()
+            logger.info(f"Initialized state: player = 1, phase = {Phase.TO_PLACE_FIRST_SETTLEMENT.value}")
+        current_player = state.current_player
+        try:
+            phase = Phase(state.phase)
+        except ValueError:
+            logger.error(f"Invalid phase in state: {state.phase}")
+            abort(500, description = "Invalid phase in state.")
+        last_settlement = state.last_settlement
+        logger.info(f"Current state: player = {current_player}, phase = {phase.value}, last_settlement = {last_settlement}")
+
         if phase in (Phase.TO_PLACE_FIRST_SETTLEMENT, Phase.TO_PLACE_SECOND_SETTLEMENT):
-            chosen_vertex, settlement_id, next_phase, error = create_settlement(cursor, current_player, phase)
+            chosen_vertex, settlement_id, next_phase, error = create_settlement(session, current_player, phase)
             if error:
                 logger.error(f"Settlement creation error: {error}")
                 abort(400, description = error)
-            cursor.execute(
-                "UPDATE state SET phase = ?, last_settlement = ? WHERE id = ?",
-                (next_phase.value, chosen_vertex, ID_OF_STATE)
-            )
-            logger.info(f"Settlement created for Player {current_player} at vertex {chosen_vertex} (settlement_id={settlement_id}). State updated to phase={next_phase.value}.")
+            state.phase = next_phase.value
+            state.last_settlement = chosen_vertex
+            session.commit()
+            logger.info(f"Settlement created for Player {current_player} at vertex {chosen_vertex} (settlement_id = {settlement_id}). State updated to phase = {next_phase.value}.")
             return jsonify(
                 {
                     "message": f"Settlement created for Player {current_player}",
@@ -242,14 +231,14 @@ def next_move():
                 }
             )
         elif phase in (Phase.TO_PLACE_FIRST_ROAD, Phase.TO_PLACE_SECOND_ROAD):
-            chosen_edge_key, road_id, next_phase, next_player, error = create_road(cursor, current_player, phase, last_settlement)
+            chosen_edge_key, road_id, next_phase, next_player, error = create_road(session, current_player, phase, last_settlement)
             if error:
                 logger.error(f"Road creation error: {error}")
                 abort(400, description = error)
-            cursor.execute(
-                "UPDATE state SET current_player = ?, phase = ?, last_settlement = NULL WHERE id = ?",
-                (next_player, next_phase.value, ID_OF_STATE)
-            )
+            state.current_player = next_player
+            state.phase = next_phase.value
+            state.last_settlement = None
+            session.commit()
             logger.info(f"Road created for Player {current_player} on edge {chosen_edge_key} (road_id={road_id}). State updated to player={next_player}, phase={next_phase.value}.")
             response = {
                 "message": f"Road created for Player {current_player}",
@@ -261,7 +250,7 @@ def next_move():
                 }
             }
             if (next_phase == Phase.TURN):
-                strengths = compute_strengths()
+                strengths = compute_strengths(session)
                 response["strengths"] = strengths
                 response["message"] += "\nGame setup complete. Strengths computed:\n" + json.dumps(strengths, indent = 4, sort_keys = True)
             return jsonify(response)

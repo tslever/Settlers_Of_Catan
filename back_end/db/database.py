@@ -1,75 +1,94 @@
+'''
+Download MySQL Community Installer for Windows from https://dev.mysql.com/downloads/installer/ .
+Install and configure MySQL.
+Run `pip install sqlalchemy pymysql cryptography`
+'''
+
+
+from sqlalchemy import Column
+from back_end.config import DB_HOST
+from back_end.config import DB_NAME
+from back_end.config import DB_PASSWORD
+from back_end.config import DB_USERNAME
+from sqlalchemy import Integer
+from sqlalchemy import String
 from contextlib import contextmanager
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base
 import logging
-import sqlite3
-
-
-BASE_NAME_OF_DATABASE = "back_end/db/game.db"
-ID_OF_STATE = 1
+import os
+from sqlalchemy.orm import sessionmaker
 
 
 logger = logging.getLogger(__name__)
 
 
-def get_connection_to_database():
-    connection = sqlite3.connect(BASE_NAME_OF_DATABASE)
-    connection.row_factory = sqlite3.Row
-    return connection
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
+)
+engine_with_connection_pool = create_engine(
+    DATABASE_URL,
+    pool_size = 10,
+    max_overflow = 20,
+    pool_pre_ping = True
+)
+SessionFactory = sessionmaker(autocommit = False, autoflush = False, bind = engine_with_connection_pool)
+BaseClassForOrmModels = declarative_base()
+
+
+class Settlement(BaseClassForOrmModels):
+    __tablename__ = "settlements"
+    id = Column(Integer, primary_key = True, autoincrement = True)
+    player = Column(Integer, nullable = False)
+    vertex = Column(String(length = 50), nullable = False)
+
+
+class Road(BaseClassForOrmModels):
+    __tablename__ = "roads"
+    id = Column(Integer, primary_key = True, autoincrement = True)
+    player = Column(Integer, nullable = False)
+    edge = Column(String(length = 50), nullable = False)
+
+
+class State(BaseClassForOrmModels):
+    __tablename__ = "state"
+    id = Column(Integer, primary_key = True)
+    current_player = Column(Integer, nullable = False)
+    phase = Column(String(length = 100), nullable = False)
+    last_settlement = Column(String(length = 50), nullable = True)
 
 
 @contextmanager
-def get_db_connection():
-    connection = get_connection_to_database()
+def get_db_session():
+    session = SessionFactory()
     try:
-        yield connection
-        connection.commit()
-    except Exception:
-        connection.rollback()
-        logger.exception("Getting connection to database failed.")
-        raise
+        yield session
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        logger.exception("Database session error")
+        raise e
     finally:
-        connection.close()
+        session.close()
 
 
 def initialize_database():
-    with get_db_connection() as connection:
-        connection.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS settlements (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                player INTEGER NOT NULL,
-                vertex TEXT NOT NULL
+    '''
+    Create all tables if they do not exist and ensure that the initial state record exists.
+    '''
+    BaseClassForOrmModels.metadata.create_all(bind = engine_with_connection_pool)
+    with get_db_session() as session:
+        state = session.query(State).filter_by(id = 1).first()
+        if not state:
+            initial_state = State(
+                id = 1,
+                current_player = 1,
+                phase = "phase to place first settlement",
+                last_settlement = None
             )
-            '''
-        )
-        logger.info("Ensured table 'settlements' exists.")
-        connection.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS roads (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                player INTEGER NOT NULL,
-                edge TEXT NOT NULL
-            )
-            '''
-        )
-        logger.info("Ensured table 'roads' exists.")
-        connection.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS state (
-                id INTEGER PRIMARY KEY,
-                current_player INTEGER NOT NULL,
-                phase TEXT NOT NULL,
-                last_settlement TEXT
-            )
-            '''
-        )
-        logger.info("Ensured table 'state' exists.")
-        cur = connection.execute("SELECT COUNT(*) as count FROM state")
-        row = cur.fetchone()
-        if row["count"] == 0:
-            connection.execute(
-                "INSERT INTO state (id, current_player, phase, last_settlement) VALUES (?, 1, 'phase to place first settlement', NULL)",
-                (ID_OF_STATE,)
-            )
-            logger.info("Initialized 'state' table with initial state: player 1, phase 'phase to place first settlement'.")
+            session.add(initial_state)
+            session.commit()
+            logger.info("State table was initialized with the initial state.")
         else:
-            logger.info(f"State table already initialized with {row["count"]} record(s).")
+            logger.info("State table was already initialized.")
