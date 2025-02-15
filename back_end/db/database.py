@@ -1,7 +1,18 @@
 '''
+Instructions to set up database
 Download MySQL Community Installer for Windows from https://dev.mysql.com/downloads/installer/ .
 Install and configure MySQL.
-Run `pip install sqlalchemy pymysql cryptography`
+Check that MySQL is running by running in Git Bash on Windows command `tasklist | grep mysqld`.
+
+Start MySQL Workbench 8.0 CE, connect to Local instance MySQL80, and open SQL scripts `create_game_database.sql` and `delete_game_database.sql`.
+Press the lightning button to create the game database.
+
+Alternatively, in Git Bash, run `winpty mysql -u root -p`.
+Enter the password for the root user.
+Run the commands in `create_game_database.sql` to create the database.
+Run command exit.
+
+Run `pip install sqlalchemy pymysql cryptography`.
 '''
 
 
