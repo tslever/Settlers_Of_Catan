@@ -1,12 +1,12 @@
-from ..utilities.board import Board, MARGIN_OF_ERROR, TOKEN_MAPPING, TOKEN_DOT_MAPPING, WIDTH_OF_BOARD_IN_VMIN
+from ..utilities.board import Board
+from ..utilities.board import MARGIN_OF_ERROR
 import math
-import numpy as np
 import os
+from back_end.settings import settings
 import threading
 import time
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class SettlersPolicyValueNet(nn.Module):
@@ -22,8 +22,8 @@ class SettlersPolicyValueNet(nn.Module):
 
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
         policy = torch.sigmoid(self.fc_policy(x))
         value = torch.tanh(self.fc_value(x))
         return value, policy
@@ -37,7 +37,7 @@ class NeuralNetwork:
       - a prior probability in [0, 1]
     """
 
-    def __init__(self, model_path="back_end/ai/neural_network.pt", device="cpu"):
+    def __init__(self, model_path = settings.model_path, device="cpu"):
         self.model_path = model_path
         self.device = device
         input_dim = 5  # Features: normalized pip sum, x, y, hex count, bias.

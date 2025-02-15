@@ -3,36 +3,28 @@
 train.py
 
 This script loads self–play training examples from
-`back_end/ai/self_play_training_data.npy`, constructs the appropriate 5–element
+the training data path in settings, constructs the appropriate 5–element
 input feature vectors (as used by the SettlersPolicyValueNet in neural_network.py),
 trains the network to predict both a value (in [-1,1]) and a policy (a probability in [0,1]),
-and then saves the trained model weights to `back_end/ai/neural_network.pt`.
+and then saves the trained model weights to the model path in settings.
 """
 
-import os
+from ..utilities.board import Board
+from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
+from ..utilities.board import MARGIN_OF_ERROR
+from ..ai.neural_network import SettlersPolicyValueNet
+from ..utilities.board import TOKEN_MAPPING
+from ..utilities.board import TOKEN_DOT_MAPPING
+from ..utilities.board import WIDTH_OF_BOARD_IN_VMIN
 import math
 import numpy as np
+import os
+from back_end.settings import settings
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
 
-# Import the board–related constants and helper functions.
-# (Adjust the import paths as needed for your project structure.)
-from ..utilities.board import (
-    Board,
-    MARGIN_OF_ERROR,
-    WIDTH_OF_BOARD_IN_VMIN,
-    TOKEN_MAPPING,
-    TOKEN_DOT_MAPPING,
-)
-
-# Import the neural network model.
-from ..ai.neural_network import SettlersPolicyValueNet
-
-# ------------------------------------------------------------------------------
-# Dataset definition
-# ------------------------------------------------------------------------------
 
 class SelfPlayDataset(Dataset):
     """
@@ -162,12 +154,9 @@ def train_model(npy_file, model_save_path, num_epochs=100, batch_size=32, learni
     torch.save(model.state_dict(), model_save_path)
     print(f"Model saved to {model_save_path}")
 
-# ------------------------------------------------------------------------------
-# Main
-# ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    npy_file = os.path.join(current_dir, "self_play_training_data.npy")
-    model_save_path = os.path.join(current_dir, "neural_network.pt")
+    npy_file = settings.training_data_path
+    model_save_path = settings.model_path
     train_model(npy_file, model_save_path, num_epochs=100, batch_size=32, learning_rate=1e-3)

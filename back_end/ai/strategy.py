@@ -14,6 +14,7 @@ from .mcts_node import MCTS_Node
 import math
 from .neural_network import neural_network
 import numpy as np
+from back_end.settings import settings
 
 
 def select_child(node, c_puct):
@@ -134,7 +135,7 @@ def monte_carlo_tree_search(
     return best_child.move
 
 
-def predict_best_settlement(game_state, available_vertices, vertex_coords, num_simulations = 100, c_puct = 1.0):
+def predict_best_settlement(game_state, available_vertices, vertex_coords, num_simulations = settings.num_simulations, c_puct = settings.c_puct):
     '''
     Run a full MCTS for settlement moves and return the best vertex.
     game_state: dictionary containing details of the current state
@@ -153,7 +154,7 @@ def predict_best_settlement(game_state, available_vertices, vertex_coords, num_s
     return best_vertex
 
 
-def predict_best_road(game_state, available_edges, vertex_coords, num_simulations = 100, c_puct = 1.0):
+def predict_best_road(game_state, available_edges, vertex_coords, num_simulations = settings.num_simulations, c_puct = settings.c_puct):
     '''
     Run a full MCTS for road moves and return the best edge and its key.
     available_edges: list of tuples (edge, edge_key) available for road placement

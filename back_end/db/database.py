@@ -17,10 +17,6 @@ Run `pip install sqlalchemy pymysql cryptography`.
 
 
 from sqlalchemy import Column
-from back_end.config import DB_HOST
-from back_end.config import DB_NAME
-from back_end.config import DB_PASSWORD
-from back_end.config import DB_USERNAME
 from sqlalchemy import Integer
 from sqlalchemy import String
 from contextlib import contextmanager
@@ -29,6 +25,7 @@ from sqlalchemy.orm import declarative_base
 import logging
 import os
 from sqlalchemy.orm import sessionmaker
+from back_end.settings import settings
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
+    f"mysql+pymysql://{settings.db_username}:{settings.db_password}@{settings.db_host}/{settings.db_name}"
 )
 engine_with_connection_pool = create_engine(
     DATABASE_URL,

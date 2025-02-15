@@ -1,14 +1,19 @@
-from ..utilities.board import MARGIN_OF_ERROR
 from ..utilities.board import Board
 from ..utilities.game_state import GameState
+from ..utilities.board import MARGIN_OF_ERROR
 from .mcts_node import MCTS_Node
-from ..utilities.board import TOKEN_DOT_MAPPING, TOKEN_MAPPING
+from ..utilities.board import TOKEN_DOT_MAPPING
+from ..utilities.board import TOKEN_MAPPING
+from .strategy import backpropagate
 import copy
+from .strategy import expand_node
 import math
 import numpy as np
 import os
 import random
-from .strategy import backpropagate, expand_node, simulate_rollout
+from .strategy import simulate_rollout
+from back_end.settings import settings
+
 
 # Create a single Board instance.
 board = Board()
@@ -61,7 +66,7 @@ def run_mcts_for_move(state, move_type, available_moves, num_simulations):
     chosen_move = max(root.children.items(), key=lambda item: item[1].N)[0]
     return chosen_move, policy
 
-def simulate_self_play_game(num_simulations=50, c_puct=1.0):
+def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct = settings.num_simulations):
     # Use our GameState class rather than a raw dict.
     game_state = GameState()
     training_examples = []
@@ -141,16 +146,15 @@ def simulate_self_play_game(num_simulations=50, c_puct=1.0):
         sample["value"] = outcomes.get(sample["player"], 0)
     return training_examples
 
-def generate_training_data(num_games=10, num_simulations=100, c_puct=1.0):
+def generate_training_data(num_games=10, num_simulations = settings.num_simulations, c_puct = settings.c_puct):
     all_examples = []
     for _ in range(num_games):
         examples = simulate_self_play_game(num_simulations=num_simulations, c_puct=c_puct)
         all_examples.extend(examples)
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    npy_file = os.path.join(current_dir, "self_play_training_data.npy")
+    npy_file = settings.training_data_path
     np.save(npy_file, all_examples)
     print(f"Generated {len(all_examples)} training examples.")
     return all_examples
 
 if __name__ == "__main__":
-    generate_training_data(num_games=100, num_simulations=100, c_puct=1.0)
+    generate_training_data(num_games=100, num_simulations = settings.num_simulations, c_puct = settings.c_puct)

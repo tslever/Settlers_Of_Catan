@@ -7,9 +7,6 @@ Run from directory `Settlers_Of_Catan` with `python -m backend.app`.
 
 from flask_cors import CORS
 from flask import Flask
-from .config import INDICATOR_OF_WHETHER_DEBUG_MODE_SHOULD_BE_ENABLED
-from .config import PORT_ON_WHICH_BACK_END_LISTENS
-from .config import URL_OF_FRONT_END
 from .routes import blueprint_for_route_next
 from .routes import blueprint_for_route_roads
 from .routes import blueprint_for_route_root
@@ -17,6 +14,7 @@ from .routes import blueprint_for_route_settlements
 from flask import jsonify
 from .db.database import initialize_database
 import logging
+from back_end.settings import settings
 from .ai.continuous_training import start_continuous_training_in_background
 
 
@@ -31,7 +29,7 @@ def create_app():
         app,
         resources = {
             r"/*": {
-                "origins": URL_OF_FRONT_END
+                "origins": settings.front_end_url
             }
         }
     )
@@ -115,9 +113,9 @@ def create_app():
 if __name__ == '__main__':
     start_continuous_training_in_background()
     app = create_app()
-    logger.info(f"Created back end on port {PORT_ON_WHICH_BACK_END_LISTENS}")
+    logger.info(f"Created back end on port {settings.back_end_port}")
     app.run(
-        port = PORT_ON_WHICH_BACK_END_LISTENS,
-        debug = INDICATOR_OF_WHETHER_DEBUG_MODE_SHOULD_BE_ENABLED,
+        port = settings.back_end_port,
+        debug = settings.debug,
         use_reloader = False
     )

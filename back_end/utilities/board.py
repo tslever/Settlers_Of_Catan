@@ -1,7 +1,7 @@
 import json
 import math
-import os
 from typing import List, Dict, Optional, Tuple
+from back_end.settings import settings
 
 # -- Constants (extracted from the original module) --
 MARGIN_OF_ERROR = 0.01
@@ -48,12 +48,10 @@ TOKEN_MAPPING = {
 WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD
 HEIGHT_OF_HEX = WIDTH_OF_HEX * RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX
 
-# -- The Board class --
 class Board:
     def __init__(self, geometry_file: Optional[str] = None):
         if geometry_file is None:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            geometry_file = os.path.join(base_dir, "..", "..", "board_geometry.json")
+            geometry_file = settings.board_geometry_path
         with open(geometry_file, "r") as f:
             data = json.load(f)
         self.hexes: List[Dict] = data["hexes"]
