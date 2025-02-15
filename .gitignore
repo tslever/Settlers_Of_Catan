@@ -1,7 +1,9 @@
 aggregated_contents.txt
 __pycache__
+back_end/config.py
+back_end/env
 back_end/ai/self_play_training_data.npy
 back_end/ai/neural_network.pt
-back_end/env
-back_end/db/game.db
+back_end/db/create_game_database.sql
+back_end/db/delete_game_database.sql
 front_end/node_modules
