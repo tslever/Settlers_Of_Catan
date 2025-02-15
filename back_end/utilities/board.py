@@ -4,14 +4,13 @@ from typing import Optional
 from typing import Tuple
 import json
 import math
+import numpy as np
 from back_end.settings import settings
 
 
 MARGIN_OF_ERROR = 0.01
-WIDTH_OF_BOARD_IN_VMIN = 100  # vmin
 NUMBER_OF_HEXES_THAT_SPAN_BOARD = 6
 RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX = math.tan(math.pi / 6)
-RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX = 2 * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
 TOKEN_DOT_MAPPING = {
     2: 1,
     3: 2,
@@ -45,6 +44,9 @@ TOKEN_MAPPING = {
     "H18": 6,
     "H19": 11
 }
+WIDTH_OF_BOARD_IN_VMIN = 100  # vmin
+
+RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX = 2 * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
 WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD
 HEIGHT_OF_HEX = WIDTH_OF_HEX * RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX
 LENGTH_OF_SIDE_OF_HEX = WIDTH_OF_HEX * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
@@ -60,6 +62,27 @@ class Board:
         self.hexes: List[Dict] = data["hexes"]
         self.vertices: List[Dict] = data["vertices"]
         self.edges: List[Dict] = data["edges"]
+
+        self._vertex_feature_map = {}
+        for vertex in self.vertices:
+            x, y = vertex["x"], vertex["y"]
+            total_pips = 0
+            hex_count = 0
+            point = np.array([x, y])
+            for hex in self.hexes:
+                hex_vertices = np.array(self.get_hex_vertices(hex))
+                if np.any(np.all(np.abs(hex_vertices - point) < MARGIN_OF_ERROR, axis = 1)):
+                    hex_id = hex["id"]
+                    token = TOKEN_MAPPING.get(hex_id)
+                    if token is not None:
+                        total_pips += TOKEN_DOT_MAPPING.get(token, 0)
+                        hex_count += 1
+            normalized_pip = total_pips / (hex_count * 5) if hex_count > 0 else 0.0
+            normalized_x = x / WIDTH_OF_BOARD_IN_VMIN
+            normalized_y = y / 100.0
+            normalized_hex_count = hex_count / 3.0
+            feature_vector = [normalized_pip, normalized_x, normalized_y, normalized_hex_count, 1.0]
+            self._vertex_feature_map[vertex["label"]] = feature_vector
 
 
     @staticmethod
@@ -93,36 +116,10 @@ class Board:
 
 
     def get_vertex_features(self, vertex_label: str) -> Optional[List[float]]:
-        """
-        Compute a feature vector for the given vertex label.
-        Features (all normalized):
-          1. Normalized pip sum: total_pips / (hex_count * 5)
-          2. Normalized x: x / WIDTH_OF_BOARD_IN_VMIN
-          3. Normalized y: y / 100.0
-          4. Normalized adjacent hex count: hex_count / 3.0
-          5. Bias term: 1.0
-        """
-        vertex = self.get_vertex_by_label(vertex_label)
-        if vertex is None:
-            return None
-        x, y = vertex["x"], vertex["y"]
-        total_pips = 0
-        hex_count = 0
-        for hex_tile in self.hexes:
-            vertices = self.get_hex_vertices(hex_tile)
-            for vx, vy in vertices:
-                if math.isclose(vx, x, abs_tol=MARGIN_OF_ERROR) and math.isclose(vy, y, abs_tol=MARGIN_OF_ERROR):
-                    hex_id = hex_tile["id"]
-                    token = TOKEN_MAPPING.get(hex_id)
-                    if token is not None:
-                        total_pips += TOKEN_DOT_MAPPING.get(token, 0)
-                        hex_count += 1
-                    break
-        normalized_pip = total_pips / (hex_count * 5) if hex_count > 0 else 0.0
-        normalized_x = x / WIDTH_OF_BOARD_IN_VMIN
-        normalized_y = y / 100.0
-        normalized_hex_count = hex_count / 3.0
-        return [normalized_pip, normalized_x, normalized_y, normalized_hex_count, 1.0]
+        '''
+        Return the precomputed feature vector for the given vertex label.
+        '''
+        return self._vertex_feature_map.get(vertex_label)
 
 
     def get_available_settlement_moves(self, used_vertices: List[str]) -> List[str]:
