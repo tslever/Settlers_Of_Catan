@@ -1,15 +1,17 @@
+from typing import List
+from typing import Dict
+from typing import Optional
+from typing import Tuple
 import json
 import math
-from typing import List, Dict, Optional, Tuple
 from back_end.settings import settings
 
-# -- Constants (extracted from the original module) --
+
 MARGIN_OF_ERROR = 0.01
 WIDTH_OF_BOARD_IN_VMIN = 100  # vmin
 NUMBER_OF_HEXES_THAT_SPAN_BOARD = 6
 RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX = math.tan(math.pi / 6)
 RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX = 2 * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
-
 TOKEN_DOT_MAPPING = {
     2: 1,
     3: 2,
@@ -22,7 +24,6 @@ TOKEN_DOT_MAPPING = {
     11: 2,
     12: 1
 }
-
 TOKEN_MAPPING = {
     "H01": 10,
     "H02": 2,
@@ -44,11 +45,13 @@ TOKEN_MAPPING = {
     "H18": 6,
     "H19": 11
 }
-
 WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD
 HEIGHT_OF_HEX = WIDTH_OF_HEX * RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX
+LENGTH_OF_SIDE_OF_HEX = WIDTH_OF_HEX * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
+
 
 class Board:
+
     def __init__(self, geometry_file: Optional[str] = None):
         if geometry_file is None:
             geometry_file = settings.board_geometry_path
@@ -58,6 +61,7 @@ class Board:
         self.vertices: List[Dict] = data["vertices"]
         self.edges: List[Dict] = data["edges"]
 
+
     @staticmethod
     def get_edge_key(v1: Tuple[float, float], v2: Tuple[float, float]) -> str:
         (x1, y1) = v1
@@ -66,6 +70,7 @@ class Board:
             return f"{x1:.2f}-{y1:.2f}_{x2:.2f}-{y2:.2f}"
         else:
             return f"{x2:.2f}-{y2:.2f}_{x1:.2f}-{y1:.2f}"
+
 
     def get_hex_vertices(self, hex_tile: Dict) -> List[Tuple[float, float]]:
         x = hex_tile["x"]
@@ -79,11 +84,13 @@ class Board:
             (x, y + 0.25 * HEIGHT_OF_HEX)
         ]
 
+
     def get_vertex_by_label(self, label: str) -> Optional[Dict]:
         for vertex in self.vertices:
             if vertex["label"] == label:
                 return vertex
         return None
+
 
     def get_vertex_features(self, vertex_label: str) -> Optional[List[float]]:
         """
@@ -117,15 +124,17 @@ class Board:
         normalized_hex_count = hex_count / 3.0
         return [normalized_pip, normalized_x, normalized_y, normalized_hex_count, 1.0]
 
+
     def get_available_settlement_moves(self, used_vertices: List[str]) -> List[str]:
-        """Return a list of vertex labels available for settlement placement."""
+        '''
+        Return a list of vertex labels available for settlement placement.
+        '''
         used_coords = []
         for label in used_vertices:
             vertex = self.get_vertex_by_label(label)
             if vertex:
                 used_coords.append((vertex["x"], vertex["y"]))
         available = []
-        threshold = 2.0  # Euclidean distance threshold
         for vertex in self.vertices:
             label = vertex["label"]
             if label in used_vertices:
@@ -133,15 +142,18 @@ class Board:
             x, y = vertex["x"], vertex["y"]
             too_close = False
             for ex, ey in used_coords:
-                if math.sqrt((x - ex) ** 2 + (y - ey) ** 2) < threshold:
+                if math.sqrt((x - ex) ** 2 + (y - ey) ** 2) < LENGTH_OF_SIDE_OF_HEX + MARGIN_OF_ERROR:
                     too_close = True
                     break
             if not too_close:
                 available.append(label)
         return available
 
+
     def get_available_road_moves(self, last_settlement: str, used_edge_keys: List[str]) -> List[Tuple[Dict, str]]:
-        """Return a list of (edge, edge_key) tuples adjacent to the given settlement."""
+        '''
+        Return a list of (edge, edge_key) tuples adjacent to the given settlement.
+        '''
         vertex = self.get_vertex_by_label(last_settlement)
         if vertex is None:
             return []
@@ -151,8 +163,8 @@ class Board:
             v1 = (edge["x1"], edge["y1"])
             v2 = (edge["x2"], edge["y2"])
             if (
-                (math.isclose(v1[0], settlement_coord[0], abs_tol=MARGIN_OF_ERROR) and math.isclose(v1[1], settlement_coord[1], abs_tol=MARGIN_OF_ERROR)) or
-                (math.isclose(v2[0], settlement_coord[0], abs_tol=MARGIN_OF_ERROR) and math.isclose(v2[1], settlement_coord[1], abs_tol=MARGIN_OF_ERROR))
+                (math.isclose(v1[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v1[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR)) or
+                (math.isclose(v2[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v2[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR))
             ):
                 edge_key = self.get_edge_key(v1, v2)
                 if edge_key not in used_edge_keys:
