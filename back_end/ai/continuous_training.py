@@ -10,14 +10,18 @@ The updated model is saved to disk so that the live Monte Carlo Tree Search
 (using NeuralNetwork) can detect and reload the new weights.
 '''
 
+from filelock import FileLock
+import numpy as np
 import os
+from back_end.settings import settings
+from .self_play import simulate_self_play_game
 import time
 import threading
-import numpy as np
-from .self_play import simulate_self_play_game
-from back_end.settings import settings
 from .train import train_model
 
+
+LOCK_PATH = settings.training_data_path + ".lock"
+lock = FileLock(LOCK_PATH)
 
 
 def load_existing_training_data():
@@ -27,10 +31,10 @@ def load_existing_training_data():
 
 
 def update_training_data(new_examples):
-    data = load_existing_training_data()
-    data.extend(new_examples)
-    # TODO: Use file locks for safety.
-    np.save(settings.training_data_path, data)
+    with lock:
+        data = load_existing_training_data()
+        data.extend(new_examples)
+        np.save(settings.training_data_path, data)
     return data
 
 
@@ -55,7 +59,8 @@ def continuous_self_play_loop():
                 learning_rate = 1e-3
             )
             print("[TRAINING] Training is complete. A new model has been saved.")
-            np.save(settings.training_data_path, [])
+            with lock:
+                np.save(settings.training_data_path, [])
         time.sleep(settings.game_interval)
 
 
