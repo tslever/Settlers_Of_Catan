@@ -45,10 +45,10 @@ def expand_node(node, available_moves, vertex_coords):
         if key in node.children:
             continue
         if node.move_type == "settlement":
-            value, prior = neural_network.predict_settlement(node.game_state, move, vertex_coords)
+            value, prior = neural_network.evaluate_settlement(move)
         elif node.move_type == "road":
             last_settlement = node.game_state.get("last_settlement")
-            value, prior = neural_network.predict_road(node.game_state, move[0], move[1], vertex_coords, last_settlement)
+            value, prior = neural_network.evaluate_road(move[0], vertex_coords, last_settlement)
         else:
             prior = 1.0
         child = MCTS_Node(
@@ -68,10 +68,10 @@ def simulate_rollout(node, vertex_coords):
     TODO: Implement a deeper implemention that simulates further moves.
     '''
     if node.move_type == "settlement":
-        value, _ = neural_network.predict_settlement(node.game_state, node.move, vertex_coords)
+        value, _ = neural_network.evaluate_settlement(node.move)
     elif node.move_type == "road":
         last_settlement = node.game_state.get("last_settlement")
-        value, _ = neural_network.predict_road(node.game_state, node.move[0], node.move[1], vertex_coords, last_settlement)
+        value, _ = neural_network.evaluate_road(node.move[0], vertex_coords, last_settlement)
     else:
         value = 0.0
     return value

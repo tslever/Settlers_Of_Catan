@@ -80,25 +80,9 @@ class SettlersNeuralNet:
             if self.last_model_mod_time is None or mod_time > self.last_model_mod_time:
                 print("[NEURAL NETWORK] Updated weights were detected and will be reloaded.")
                 self.load_model_weights()
-    
-
-    def predict_settlement(self, game_state, vertex, vertex_coords):
-        '''
-        Returns a value and a prior for settlement moves.
-        '''
-        value, prior = self.evaluate_settlement(vertex, vertex_coords, game_state)
-        return value, prior
 
 
-    def predict_road(self, game_state, edge, edge_key, vertex_coords, last_settlement):
-        '''
-        Return a value and a prior for road moves.
-        '''
-        value, prior = self.evaluate_road(edge, edge_key, vertex_coords, last_settlement, game_state)
-        return value, prior
-    
-
-    def evaluate_settlement(self, vertex, vertex_coords, game_state):
+    def evaluate_settlement(self, vertex):
         features = self.board.get_vertex_features(vertex)
         if features is None:
             return -1.0, 0.0
@@ -108,7 +92,7 @@ class SettlersNeuralNet:
             return value_tensor.item(), prior_tensor.item()
     
 
-    def evaluate_road(self, edge, edge_key, vertex_coords, last_settlement, game_state):
+    def evaluate_road(self, edge, vertex_coords, last_settlement):
         if last_settlement is None or last_settlement not in vertex_coords:
             return -1.0, 0.0
         settlement_coord = vertex_coords[last_settlement]
@@ -131,7 +115,7 @@ class SettlersNeuralNet:
                 break
         if other_label is None:
             return -1.0, 0.0
-        return self.evaluate_settlement(other_label, vertex_coords, game_state)
+        return self.evaluate_settlement(other_label)
 
 
 def start_model_watcher(neural_network, interval = 10):
