@@ -6,15 +6,16 @@ import Port from './components/Port';
 import React from 'react';
 import SettlementMarker from './components/SettlementMarker';
 import Vertex from './components/Vertex';
-import { edges } from './utilities/board';
+import { URL_OF_BACK_END } from './config';
+import { edges, ID_Of_Hex } from './utilities/board';
 import { hexes, } from './utilities/board';
 import { idToColor } from './utilities/board';
 import { tokenMapping } from './utilities/board';
 import { vertices } from './utilities/board';
-import { URL_OF_BACK_END } from './config';
-import { useApi } from './hooks/useApi';
-import { useEffect } from 'react';
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 type Road = {
     id: number;
@@ -22,23 +23,18 @@ type Road = {
     edge: string;
 };
 
+
 type Settlement = {
     id: number;
     player: number;
     vertex: string;
 };
 
-type MoveType = "settlement" | "road";
 
 type NextResponse =
     | { moveType: "settlement"; message: string; settlement: Settlement }
     | { moveType: "road"; message: string; road: Road };
 
-function isErrorResponse(
-    data: NextResponse | { error: string }
-): data is { error: string } {
-    return 'error' in data;
-}
 
 const vertexMapping: { [label: string]: { x: number; y: number } } =
     vertices.reduce((acc, v, i) => {
@@ -69,73 +65,70 @@ const portMapping: { [vertexLabel: string]: string } = {
 };
 
 export default function Home() {
-    const [serverMessage, setServerMessage] = useState<string>('');
-    const [nextLoading, setNextLoading] = useState<boolean>(false);
+    const queryClient = useQueryClient();
 
     const {
         data: settlementsData,
-        error: settlementsError,
-        loading: settlementsLoading,
-        refetch: refetchSettlements
-    } = useApi<{ settlements: Settlement[] }>(`${URL_OF_BACK_END}/settlements`);
+        isLoading: settlementsLoading,
+        error: settlementsError
+    } = useQuery<{ settlements: Settlement[] }>({
+        queryKey: ['settlements'],
+        queryFn: async () => {
+            const res = await fetch(`${URL_OF_BACK_END}/settlements`);
+            if (!res.ok) {
+                throw new Error(`Error fetching settlements: ${res.statusText}`);
+            }
+            return res.json();
+        }
+    });
 
     const {
         data: roadsData,
-        error: roadsError,
-        loading: roadsLoading,
-        refetch: refetchRoads
-    } = useApi<{ roads: Road[] }>(`${URL_OF_BACK_END}/roads`);
+        isLoading: roadsLoading,
+        error: roadsError
+    } = useQuery<{ roads: Road[] }>({
+        queryKey: ['roads'],
+        queryFn: async() => {
+            const res = await fetch(`${URL_OF_BACK_END}/roads`);
+            if (!res.ok) {
+                throw new Error(`Error fetching roads: ${res.statusText}`);
+            }
+            return res.json();
+        }
+    });
 
-    useEffect(() => {
-        refetchSettlements();
-        refetchRoads();
-    }, [refetchSettlements, refetchRoads]);
+    const {
+        mutate: postNextMove,
+        isPending: nextLoading,
+        error: nextError,
+        data: nextData
+    } = useMutation<NextResponse, Error>({
+        mutationFn: async () => {
+            const res = await fetch(`${URL_OF_BACK_END}/next`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || `Error: ${res.status}`);
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['settlements'] });
+            queryClient.invalidateQueries({ queryKey: ['roads'] });
+        }
+    });
+
+    const handleNext = () => {
+        postNextMove();
+    }
+
+    const serverMessage = nextError ? nextError.message : nextData?.message || '';
 
     const settlements = settlementsData ? settlementsData.settlements : [];
     const roads = roadsData ? roadsData.roads : [];
-
-    async function handleSettlementCreated(settlement: Settlement, message: string) {
-        setServerMessage(message);
-    }
-
-    async function handleRoadCreated(road: Road, message: string) {
-        setServerMessage(message);
-    }
-
-    async function handleNext() {
-        setNextLoading(true);
-        try {
-            const response = await fetch(`${URL_OF_BACK_END}/next`, {
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({})
-            });
-            const jsonData: NextResponse | { error: string } = await response.json();
-            if (isErrorResponse(jsonData)) {
-                setServerMessage(jsonData.error || `Server error: ${response.status}`);
-            } else {
-                if (jsonData.moveType === "settlement") {
-                    await handleSettlementCreated(jsonData.settlement, jsonData.message);
-                } else if (jsonData.moveType === "road") {
-                    await handleRoadCreated(jsonData.road, jsonData.message);
-                } else {
-                    setServerMessage("Unknown move type.");
-                }
-                refetchSettlements();
-                refetchRoads();
-            }
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                setServerMessage(`Error: ${error.message}`);
-            } else {
-                setServerMessage(`Error: ${error}`);
-            }
-        } finally {
-            setNextLoading(false);
-        }
-    }
 
     return (
         <div>
@@ -143,15 +136,18 @@ export default function Home() {
                 <Ocean />
                 <div className = "board-container">
                     <div className = "board">
-                        {hexes.map(({ id, x, y }) => (
-                            <HexTile
-                                key = {id}
-                                id = {id}
-                                color = {idToColor[id]}
-                                token = {tokenMapping[id]}
-                                style = {{ left: `${x}vmin`, top: `${y}vmin` }}
-                            />
-                        ))}
+                        {hexes.map(({ id, x, y }) => {
+                            const id_of_hex = id as ID_Of_Hex;
+                            return (
+                                <HexTile
+                                    key = {id}
+                                    id = {id_of_hex}
+                                    color = {idToColor[id_of_hex]}
+                                    token = {tokenMapping[id_of_hex]}
+                                    style = {{ left: `${x}vmin`, top: `${y}vmin` }}
+                                />
+                            );
+                        })}
                         <svg className = "edge-layer" viewBox="0 0 100 100" preserveAspectRatio = "none">
                             {edges.map((edge, index) => {
                                 const midX = (edge.x1 + edge.x2) / 2;
@@ -228,7 +224,7 @@ export default function Home() {
                 {serverMessage && <p>{serverMessage}</p>}
                 {(settlementsError || roadsError) && (
                     <p style = {{ color: "red "}}>
-                        {settlementsError || roadsError}
+                        {(settlementsError as Error)?.message || (roadsError as Error)?.message}
                     </p>
                 )}
             </div>
