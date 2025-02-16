@@ -17,19 +17,28 @@ import numpy as np
 from back_end.settings import settings
 
 
-def select_child(node, c_puct):
+def select_child(node, c_puct, tolerance = 1e-6):
     '''
     Select a child node with the maximum PUCT score.
+    If multiple children have scores within a small tolerance,
+    choose the child with the lower visit count.
+    If multiple children have scores within a small tolerance and the same visit count,
+    choose the child with the higher prior probability.
     '''
     best_score = -float('inf')
-    best_child = None
+    best_candidates = []
     for child in node.children.values():
         u = c_puct * child.P * math.sqrt(node.N) / (1 + child.N)
         score = child.Q + u # mean value Q + exploration bonus U
-        if score > best_score:
+        if score > best_score + tolerance:
             best_score = score
-            best_child = child
-    return best_child
+            best_candidates = [child]
+        elif abs(score - best_score) <= tolerance:
+            best_candidates.append(child)
+    if len(best_candidates) == 1:
+        return best_candidates[0]
+    best_candidates.sort(key = lambda c: (c.N, -c.P))
+    return best_candidates[0]
 
 
 def expand_node(node, available_moves, vertex_coords):

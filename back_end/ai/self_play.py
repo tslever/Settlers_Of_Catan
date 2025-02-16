@@ -9,8 +9,7 @@ import copy
 from .strategy import expand_node
 import math
 import numpy as np
-import os
-import random
+from .strategy import select_child
 from .strategy import simulate_rollout
 from back_end.settings import settings
 
@@ -56,7 +55,7 @@ def run_mcts_for_move(state, move_type, available_moves, num_simulations):
     for _ in range(num_simulations):
         node = root
         while not node.is_leaf():
-            node = random.choice(list(node.children.values()))
+            node = select_child(node, settings.c_puct)
         if node.N > 0:
             expand_node(node, available_moves, vertex_coords)
         value = simulate_rollout(node, vertex_coords)
