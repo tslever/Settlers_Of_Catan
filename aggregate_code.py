@@ -33,6 +33,7 @@ file_paths = [
     r'back_end\utilities\game_state.py',
 
     r'front_end\app\BoardLayout.tsx',
+    r'front_end\app\CanvasLayer.tsx',
     r'front_end\app\Providers.tsx',
     r'front_end\app\config.ts',
     r'front_end\app\globals.scss',

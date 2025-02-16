@@ -1,7 +1,6 @@
 'use client';
 
 import { Board } from './BoardLayout';
-import { EdgeLayer } from './BoardLayout';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex } from './types';
 import { NextResponse } from './types';
@@ -14,9 +13,7 @@ import { Road } from './types';
 import { RoadLayer } from './BoardLayout';
 import { Settlement } from './types';
 import SettlementMarker from './components/SettlementMarker';
-import Vertex from './components/Vertex';
 import { URL_OF_BACK_END } from './config';
-import { edges } from './board';
 import { getPositionStyles } from './BoardLayout';
 import { hexes } from './board';
 import { idToColor } from './types';
@@ -27,11 +24,12 @@ import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useState } from 'react';
+import CanvasLayer from './CanvasLayer';
 
 
 const vertexMapping: Record<string, { x: number, y: number }> =
     vertices.reduce((acc, v, i) => {
-        const label = `V${(i + 1).toString().padStart(2, "0")}`;
+        const label = `V${(i + 1).toString().padStart(2, '0')}`;
         acc[label] = v;
         return acc;
     }, {} as Record<string, { x: number; y: number }>);
@@ -131,7 +129,7 @@ export default function Home() {
         postNextMove();
     }
 
-    const serverMessage = nextError ? nextError.message : nextData?.message || "";
+    const serverMessage = nextError ? nextError.message : nextData?.message || '';
 
     const settlements = settlementsData?.settlements ?? [];
     const roads = roadsData?.roads ?? [];
@@ -146,7 +144,7 @@ export default function Home() {
                             const id_of_hex = id as ID_Of_Hex;
                             return (
                                 <HexTile
-                                    key = {id}
+                                    key = {id_of_hex}
                                     id = {id_of_hex}
                                     color = {idToColor[id_of_hex]}
                                     token = {tokenMapping[id_of_hex]}
@@ -154,34 +152,20 @@ export default function Home() {
                                 />
                             );
                         })}
-                        <EdgeLayer viewBox="0 0 100 100" preserveAspectRatio = "none">
-                            {edges.map((edge, index) => {
-                                const midX = (edge.x1 + edge.x2) / 2;
-                                const midY = (edge.y1 + edge.y2) / 2;
-                                const label = `E${(index + 1).toString().padStart(2, "0")}`;
-                                return (
-                                    <g key = {index}>
-                                        <line
-                                            x1 = {edge.x1}
-                                            y1 = {edge.y1}
-                                            x2 = {edge.x2}
-                                            y2 = {edge.y2}
-                                            stroke = "blue"
-                                            strokeWidth = "0.5"
-                                        />
-                                        <text
-                                            x = {midX}
-                                            y = {midY}
-                                            className = "edge-label"
-                                            textAnchor = "middle"
-                                            alignmentBaseline = "middle"
-                                        >
-                                            {label}
-                                        </text>
-                                    </g>
-                                );
-                            })}
-                        </EdgeLayer>
+                        <CanvasLayer />
+                        {vertices.map((v, i) => {
+                            const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
+                            return (
+                                <React.Fragment key = {i}>
+                                    {portMapping[vLabel] && <Port x={v.x} y={v.y} type={portMapping[vLabel]} />}
+                                </React.Fragment>
+                            );
+                        })}
+                        {settlements.map((s) => {
+                            const v = vertexMapping[s.vertex];
+                            if (!v) return null;
+                            return <SettlementMarker key = {s.id} x = {v.x} y = {v.y} player = {s.player} />
+                        })}
                         <RoadLayer viewBox = "0 0 100 100" preserveAspectRatio = "none">
                             {roads.map((road, index) => {
                                 const [firstPart, secondPart] = road.edge.split('_');
@@ -206,20 +190,6 @@ export default function Home() {
                                 );
                             })}
                         </RoadLayer>
-                        {vertices.map((v, i) => {
-                            const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
-                            return (
-                                <React.Fragment key = {i}>
-                                    <Vertex x = {v.x} y = {v.y} label = {vLabel} />
-                                    {portMapping[vLabel] && <Port x={v.x} y={v.y} type={portMapping[vLabel]} />}
-                                </React.Fragment>
-                            );
-                        })}
-                        {settlements.map((s) => {
-                            const v = vertexMapping[s.vertex];
-                            if (!v) return null;
-                            return <SettlementMarker key = {s.id} x = {v.x} y = {v.y} player = {s.player} />
-                        })}
                     </Board>
                 </BoardContainer>
             </OuterContainer>
