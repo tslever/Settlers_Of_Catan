@@ -32,11 +32,12 @@ file_paths = [
     r'back_end\utilities\board.py',
     r'back_end\utilities\game_state.py',
 
+    r'front_end\app\BoardLayout.tsx',
+    r'front_end\app\Providers.tsx',
     r'front_end\app\config.ts',
     r'front_end\app\globals.scss',
     r'front_end\app\layout.tsx',
     r'front_end\app\page.tsx',
-    r'front_end\app\Providers.tsx',
     r'front_end\app\types.ts',
     r'front_end\app\board.ts',
 

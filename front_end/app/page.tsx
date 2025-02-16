@@ -1,17 +1,23 @@
 'use client';
 
+import { Board } from './BoardLayout';
+import { EdgeLayer } from './BoardLayout';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex } from './types';
 import { NextResponse } from './types';
 import Ocean from './components/Ocean';
+import { OuterContainer } from './BoardLayout';
+import { BoardContainer } from './BoardLayout';
 import Port from './components/Port';
 import React from 'react';
 import { Road } from './types';
+import { RoadLayer } from './BoardLayout';
 import { Settlement } from './types';
 import SettlementMarker from './components/SettlementMarker';
 import Vertex from './components/Vertex';
 import { URL_OF_BACK_END } from './config';
 import { edges } from './board';
+import { getPositionStyles } from './BoardLayout';
 import { hexes } from './board';
 import { idToColor } from './types';
 import { tokenMapping } from './types';
@@ -19,6 +25,8 @@ import { vertices } from './board';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useState } from 'react';
 
 
 const vertexMapping: Record<string, { x: number, y: number }> =
@@ -52,7 +60,12 @@ const portMapping: Record<string, string> = {
 
 
 export default function Home() {
+    const [mounted, setMounted] = useState(false);
     const queryClient = useQueryClient();
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const {
         data: settlementsData,
@@ -66,7 +79,8 @@ export default function Home() {
                 throw new Error(`Error fetching settlements: ${res.statusText}`);
             }
             return res.json();
-        }
+        },
+        enabled: mounted
     });
 
     const {
@@ -81,7 +95,8 @@ export default function Home() {
                 throw new Error(`Error fetching roads: ${res.statusText}`);
             }
             return res.json();
-        }
+        },
+        enabled: mounted
     });
 
     const {
@@ -108,6 +123,10 @@ export default function Home() {
         }
     });
 
+    if (!mounted) {
+        return null;
+    }
+
     const handleNext = () => {
         postNextMove();
     }
@@ -119,10 +138,10 @@ export default function Home() {
 
     return (
         <div>
-            <div className = "outer-container">
+            <OuterContainer>
                 <Ocean />
-                <div className = "board-container">
-                    <div className = "board">
+                <BoardContainer>
+                    <Board>
                         {hexes.map(({ id, x, y }) => {
                             const id_of_hex = id as ID_Of_Hex;
                             return (
@@ -131,11 +150,11 @@ export default function Home() {
                                     id = {id_of_hex}
                                     color = {idToColor[id_of_hex]}
                                     token = {tokenMapping[id_of_hex]}
-                                    style = {{ left: `${x}vmin`, top: `${y}vmin` }}
+                                    style = {getPositionStyles(x, y)}
                                 />
                             );
                         })}
-                        <svg className = "edge-layer" viewBox="0 0 100 100" preserveAspectRatio = "none">
+                        <EdgeLayer viewBox="0 0 100 100" preserveAspectRatio = "none">
                             {edges.map((edge, index) => {
                                 const midX = (edge.x1 + edge.x2) / 2;
                                 const midY = (edge.y1 + edge.y2) / 2;
@@ -162,12 +181,8 @@ export default function Home() {
                                     </g>
                                 );
                             })}
-                        </svg>
-                        <svg
-                            className = "road-layer"
-                            viewBox = "0 0 100 100"
-                            preserveAspectRatio = "none"
-                        >
+                        </EdgeLayer>
+                        <RoadLayer viewBox = "0 0 100 100" preserveAspectRatio = "none">
                             {roads.map((road, index) => {
                                 const [firstPart, secondPart] = road.edge.split('_');
                                 const [x1, y1] = firstPart.split('-').map(Number);
@@ -190,9 +205,9 @@ export default function Home() {
                                     />
                                 );
                             })}
-                        </svg>
+                        </RoadLayer>
                         {vertices.map((v, i) => {
-                            const vLabel = `V${(i + 1).toString().padStart(2, "0")}`;
+                            const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
                             return (
                                 <React.Fragment key = {i}>
                                     <Vertex x = {v.x} y = {v.y} label = {vLabel} />
@@ -205,9 +220,9 @@ export default function Home() {
                             if (!v) return null;
                             return <SettlementMarker key = {s.id} x = {v.x} y = {v.y} player = {s.player} />
                         })}
-                    </div>
-                </div>
-            </div>
+                    </Board>
+                </BoardContainer>
+            </OuterContainer>
             <div style = {{ textAlign: "center", marginTop: "1rem" }}>
                 <button onClick = {handleNext} disabled = {nextLoading}>
                     {nextLoading ? "Loading..." : "Next"}
