@@ -15,15 +15,20 @@ const CanvasLayer: React.FC = () => {
         if (!canvas) { return };
         const context = canvas.getContext('2d');
         if (!context) { return };
-        const width = canvas.clientWidth;
-        const height = canvas.clientHeight;
-        canvas.width = width;
-        canvas.height = height;
+
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        context.scale(dpr, dpr);
+        context.translate(0.5, 0.5);
         context.clearRect(0, 0, width, height);
+        context.strokeStyle = 'blue';
+        context.lineWidth = 1;
         const toCanvasX = (x: number) => (x / 100) * width;
         const toCanvasY = (y: number) => (y / 100) * height;
-        context.strokeStyle = 'blue';
-        context.lineWidth = 0.5;
         memoizedEdges.forEach(edge => {
             context.beginPath();
             context.moveTo(toCanvasX(edge.x1), toCanvasY(edge.y1));
