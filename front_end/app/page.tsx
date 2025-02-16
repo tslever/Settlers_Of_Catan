@@ -1,49 +1,35 @@
-'use client'
+'use client';
 
 import HexTile from './components/HexTile';
+import { ID_Of_Hex } from './types';
+import { NextResponse } from './types';
 import Ocean from './components/Ocean';
 import Port from './components/Port';
 import React from 'react';
+import { Road } from './types';
+import { Settlement } from './types';
 import SettlementMarker from './components/SettlementMarker';
 import Vertex from './components/Vertex';
 import { URL_OF_BACK_END } from './config';
-import { edges, ID_Of_Hex } from './utilities/board';
-import { hexes, } from './utilities/board';
-import { idToColor } from './utilities/board';
-import { tokenMapping } from './utilities/board';
-import { vertices } from './utilities/board';
+import { edges } from './board';
+import { hexes } from './board';
+import { idToColor } from './types';
+import { tokenMapping } from './types';
+import { vertices } from './board';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 
 
-type Road = {
-    id: number;
-    player: number;
-    edge: string;
-};
-
-
-type Settlement = {
-    id: number;
-    player: number;
-    vertex: string;
-};
-
-
-type NextResponse =
-    | { moveType: "settlement"; message: string; settlement: Settlement }
-    | { moveType: "road"; message: string; road: Road };
-
-
-const vertexMapping: { [label: string]: { x: number; y: number } } =
+const vertexMapping: Record<string, { x: number, y: number }> =
     vertices.reduce((acc, v, i) => {
         const label = `V${(i + 1).toString().padStart(2, "0")}`;
         acc[label] = v;
         return acc;
-    }, {} as { [label: string]: { x: number; y: number } });
+    }, {} as Record<string, { x: number; y: number }>);
 
-const portMapping: { [vertexLabel: string]: string } = {
+
+const portMapping: Record<string, string> = {
   "V01": "3:1",
   "V06": "3:1",
   "V07": "Grain",
@@ -64,6 +50,7 @@ const portMapping: { [vertexLabel: string]: string } = {
   "V18": "Wood",
 };
 
+
 export default function Home() {
     const queryClient = useQueryClient();
 
@@ -72,7 +59,7 @@ export default function Home() {
         isLoading: settlementsLoading,
         error: settlementsError
     } = useQuery<{ settlements: Settlement[] }>({
-        queryKey: ['settlements'],
+        queryKey: ["settlements"],
         queryFn: async () => {
             const res = await fetch(`${URL_OF_BACK_END}/settlements`);
             if (!res.ok) {
@@ -87,7 +74,7 @@ export default function Home() {
         isLoading: roadsLoading,
         error: roadsError
     } = useQuery<{ roads: Road[] }>({
-        queryKey: ['roads'],
+        queryKey: ["roads"],
         queryFn: async() => {
             const res = await fetch(`${URL_OF_BACK_END}/roads`);
             if (!res.ok) {
@@ -116,8 +103,8 @@ export default function Home() {
             return res.json();
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['settlements'] });
-            queryClient.invalidateQueries({ queryKey: ['roads'] });
+            queryClient.invalidateQueries({ queryKey: ["settlements"] });
+            queryClient.invalidateQueries({ queryKey: ["roads"] });
         }
     });
 
@@ -125,10 +112,10 @@ export default function Home() {
         postNextMove();
     }
 
-    const serverMessage = nextError ? nextError.message : nextData?.message || '';
+    const serverMessage = nextError ? nextError.message : nextData?.message || "";
 
-    const settlements = settlementsData ? settlementsData.settlements : [];
-    const roads = roadsData ? roadsData.roads : [];
+    const settlements = settlementsData?.settlements ?? [];
+    const roads = roadsData?.roads ?? [];
 
     return (
         <div>
@@ -152,7 +139,7 @@ export default function Home() {
                             {edges.map((edge, index) => {
                                 const midX = (edge.x1 + edge.x2) / 2;
                                 const midY = (edge.y1 + edge.y2) / 2;
-                                const label = `E${(index + 1).toString().padStart(2, '0')}`;
+                                const label = `E${(index + 1).toString().padStart(2, "0")}`;
                                 return (
                                     <g key = {index}>
                                         <line
@@ -176,17 +163,21 @@ export default function Home() {
                                 );
                             })}
                         </svg>
-                        <svg className = "road-layer" viewBox = "0 0 100 100" preserveAspectRatio = "none">
+                        <svg
+                            className = "road-layer"
+                            viewBox = "0 0 100 100"
+                            preserveAspectRatio = "none"
+                        >
                             {roads.map((road, index) => {
                                 const [firstPart, secondPart] = road.edge.split('_');
                                 const [x1, y1] = firstPart.split('-').map(Number);
                                 const [x2, y2] = secondPart.split('-').map(Number);
-                                const colorMapping: { [key: number]: string } = {
-                                    1: 'red',
-                                    2: 'orange',
-                                    3: 'green'
+                                const colorMapping: Record<number, string> = {
+                                    1: "red",
+                                    2: "orange",
+                                    3: "green"
                                 };
-                                const strokeColor = colorMapping[road.player] || 'gray';
+                                const strokeColor = colorMapping[road.player] || "gray";
                                 return (
                                     <line
                                         key = {index}
@@ -201,7 +192,7 @@ export default function Home() {
                             })}
                         </svg>
                         {vertices.map((v, i) => {
-                            const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
+                            const vLabel = `V${(i + 1).toString().padStart(2, "0")}`;
                             return (
                                 <React.Fragment key = {i}>
                                     <Vertex x = {v.x} y = {v.y} label = {vLabel} />
@@ -217,13 +208,13 @@ export default function Home() {
                     </div>
                 </div>
             </div>
-            <div style = {{ textAlign: 'center', marginTop: '1rem' }}>
+            <div style = {{ textAlign: "center", marginTop: "1rem" }}>
                 <button onClick = {handleNext} disabled = {nextLoading}>
                     {nextLoading ? "Loading..." : "Next"}
                 </button>
                 {serverMessage && <p>{serverMessage}</p>}
                 {(settlementsError || roadsError) && (
-                    <p style = {{ color: "red "}}>
+                    <p style = {{ color: "red" }}>
                         {(settlementsError as Error)?.message || (roadsError as Error)?.message}
                     </p>
                 )}

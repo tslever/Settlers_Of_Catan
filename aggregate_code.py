@@ -34,17 +34,17 @@ file_paths = [
 
     r'front_end\app\config.ts',
     r'front_end\app\globals.scss',
+    r'front_end\app\layout.tsx',
     r'front_end\app\page.tsx',
+    r'front_end\app\Providers.tsx',
+    r'front_end\app\types.ts',
+    r'front_end\app\board.ts',
 
     r'front_end\app\components\HexTile.tsx',
     r'front_end\app\components\Ocean.tsx',
     r'front_end\app\components\Port.tsx',
     r'front_end\app\components\SettlementMarker.tsx',
-    r'front_end\app\components\Vertex.tsx',
-
-    r'front_end\app\hooks\useApi.ts',
-
-    r'front_end\app\utilities\board.ts'
+    r'front_end\app\components\Vertex.tsx'
 ]
 
 
