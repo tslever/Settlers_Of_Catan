@@ -52,6 +52,24 @@ def get_list_of_tuples_of_hex_information() -> List[Tuple[str, float, float]]:
     return list_of_tuples_of_hex_information
 
 
+def coordinates_are_close(a: float, b: float, margin_of_error: float) -> bool:
+    return abs(a - b) < margin_of_error
+
+
+def tuples_of_coordinates_are_close(
+    tuple_of_coordinates_1: Tuple[float, float],
+    tuple_of_coordinates_2: Tuple[float, float],
+    margin_of_error: float
+) -> bool:
+    x1, y1 = tuple_of_coordinates_1
+    x2, y2 = tuple_of_coordinates_2
+    indicator_of_whether_tuples_of_coordinates_are_close = (
+        coordinates_are_close(x1, x2, margin_of_error) and
+        coordinates_are_close(y1, y2, margin_of_error)
+    )
+    return indicator_of_whether_tuples_of_coordinates_are_close
+
+
 def edge_already_exists(
     tuple_of_edge_coordinates: Tuple[float, float, float, float],
     list_of_tuples_of_edge_coordinates: List[Tuple[float, float, float, float]],
@@ -73,10 +91,10 @@ def edge_already_exists(
     x11, y11, x12, y12 = tuple_of_edge_coordinates
     for x21, y21, x22, y22 in list_of_tuples_of_edge_coordinates:
         if (
-            (abs(x11 - x21) < margin_of_error and abs(y11 - y21) < margin_of_error and
-             abs(x12 - x22) < margin_of_error and abs(y12 - y22) < margin_of_error) or
-            (abs(x11 - x22) < margin_of_error and abs(y11 - y22) < margin_of_error and
-             abs(x12 - x21) < margin_of_error and abs(y12 - y21) < margin_of_error)
+            (tuples_of_coordinates_are_close((x11, y11), (x21, y21), margin_of_error) and
+             tuples_of_coordinates_are_close((x12, y12), (x22, y22), margin_of_error)) or
+            (tuples_of_coordinates_are_close((x11, y11), (x22, y22), margin_of_error) and
+             tuples_of_coordinates_are_close((x12, y12), (x21, y21), margin_of_error))
         ):
             return True
     return False
@@ -116,7 +134,7 @@ def vertex_already_exists(
     margin_of_error: float
 ) -> bool:
     '''
-    Check whether a tuple of vertex coordinates is already matches a tuple of vertex coordinates in the given list.
+    Check whether a tuple of vertex coordinates is matches a tuple of vertex coordinates in the given list.
 
     Arguments:
         tuple_of_vertex_coordinates: Tuple[float, float] -- a tuple of vertex coordinates of the form (x1, y1)
@@ -126,9 +144,8 @@ def vertex_already_exists(
     Returns:
         True if the given tuple of vertex coordinates matches a tuple in the list; False otherwise
     '''
-    x1, y1 = tuple_of_vertex_coordinates
-    for x2, y2 in list_of_tuples_of_vertex_coordinates:
-        if abs(x1 - x2) < margin_of_error and abs(y1 - y2) < margin_of_error:
+    for tuple_of_vertex_coordinates in list_of_tuples_of_vertex_coordinates:
+        if tuples_of_coordinates_are_close(tuple_of_vertex_coordinates, tuple_of_vertex_coordinates, margin_of_error):
             return True
     return False
 

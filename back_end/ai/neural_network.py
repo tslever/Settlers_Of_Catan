@@ -48,6 +48,7 @@ class SettlersNeuralNet:
         input_dim = 5 # Features: normalized pip sum, x, y, hex count, bias
         self.model = SettlersPolicyValueNet(input_dim)
         self.model.to(self.device)
+        self.last_model_mod_time = None
         self.load_model_weights()
         self.board = Board()
         self.model.eval()
