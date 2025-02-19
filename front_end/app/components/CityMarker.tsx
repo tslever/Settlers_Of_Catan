@@ -22,7 +22,7 @@ const CityMarker: React.FC<CityMarkerProps> = ({ x, y, player }) => {
                 position: 'absolute',
                 left: `${x}vmin`,
                 top: `${y}vmin`,
-                transform: 'translate(-50%, -100%)',
+                transform: 'translate(-75%, -50%)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center'
@@ -44,7 +44,7 @@ const CityMarker: React.FC<CityMarkerProps> = ({ x, y, player }) => {
                     width: `${baseWidth}vmin`,
                     height: `${baseHeight}vmin`,
                     backgroundColor: colorMapping[player] || 'gray',
-                    border: '1px solid black'
+                    transform: 'translate(25%, -10%)',
                 }}
             />
         </div>
