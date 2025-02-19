@@ -32,7 +32,8 @@ logger = logging.getLogger(__name__)
 
 def create_settlement(session, current_player, phase: Phase):
     settlements = session.query(Settlement).all()
-    used_vertices = {settlement.vertex for settlement in settlements}
+    cities = session.query(City).all()
+    used_vertices = {settlement.vertex for settlement in settlements}.union({city.vertex for city in cities})
     vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
     existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
     available = []
@@ -79,8 +80,9 @@ def create_settlement(session, current_player, phase: Phase):
 
 
 def create_city(session, current_player, phase: Phase):
+    settlements = session.query(Settlement).all()
     cities = session.query(City).all()
-    used_vertices = {city.vertex for city in cities}
+    used_vertices = {s.vertex for s in settlements}.union({city.vertex for city in cities})
     vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
     existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
     available = []
