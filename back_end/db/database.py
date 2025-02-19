@@ -45,8 +45,8 @@ SessionFactory = sessionmaker(autocommit = False, autoflush = False, bind = engi
 BaseClassForOrmModels = declarative_base()
 
 
-class Settlement(BaseClassForOrmModels):
-    __tablename__ = "settlements"
+class City(BaseClassForOrmModels):
+    __tablename__ = "cities"
     id = Column(Integer, primary_key = True, autoincrement = True)
     player = Column(Integer, nullable = False)
     vertex = Column(String(length = 50), nullable = False)
@@ -59,12 +59,20 @@ class Road(BaseClassForOrmModels):
     edge = Column(String(length = 50), nullable = False)
 
 
+class Settlement(BaseClassForOrmModels):
+    __tablename__ = "settlements"
+    id = Column(Integer, primary_key = True, autoincrement = True)
+    player = Column(Integer, nullable = False)
+    vertex = Column(String(length = 50), nullable = False)
+
+
 class State(BaseClassForOrmModels):
     __tablename__ = "state"
     id = Column(Integer, primary_key = True)
     current_player = Column(Integer, nullable = False)
     phase = Column(String(length = 100), nullable = False)
     last_settlement = Column(String(length = 50), nullable = True)
+    last_city = Column(String(length = 50), nullable = True)
 
 
 @contextmanager

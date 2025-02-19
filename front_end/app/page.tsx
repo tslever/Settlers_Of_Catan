@@ -1,6 +1,7 @@
 'use client';
 
 import { Board } from './BoardLayout';
+import CityMarker from './components/CityMarker';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex } from './types';
 import { NextResponse } from './types';
@@ -75,6 +76,22 @@ export default function Home() {
             const res = await fetch(`${URL_OF_BACK_END}/settlements`);
             if (!res.ok) {
                 throw new Error(`Error fetching settlements: ${res.statusText}`);
+            }
+            return res.json();
+        },
+        enabled: mounted
+    });
+
+    const {
+        data: citiesData,
+        isLoading: citiesLoading,
+        error: citiesError
+    } = useQuery<{ cities: { id: number; player: number; vertex: string }[] }>({
+        queryKey: ["cities"],
+        queryFn: async () => {
+            const res = await fetch(`${URL_OF_BACK_END}/cities`);
+            if (!res.ok) {
+                throw new Error(`Error fetching cities: ${res.statusText}`);
             }
             return res.json();
         },
@@ -163,8 +180,13 @@ export default function Home() {
                         })}
                         {settlements.map((s) => {
                             const v = vertexMapping[s.vertex];
-                            if (!v) return null;
+                            if (!v) { return null; }
                             return <SettlementMarker key = {s.id} x = {v.x} y = {v.y} player = {s.player} />
+                        })}
+                        {citiesData?.cities.map((c) => {
+                            const v = vertexMapping[c.vertex];
+                            if (!v) return null;
+                            return <CityMarker key = {c.id} x = {v.x} y = {v.y} player = {c.player} />;
                         })}
                         <RoadLayer viewBox = "0 0 100 100" preserveAspectRatio = "none">
                             {roads.map((road, index) => {
@@ -198,9 +220,11 @@ export default function Home() {
                     {nextLoading ? "Loading..." : "Next"}
                 </button>
                 {serverMessage && <p>{serverMessage}</p>}
-                {(settlementsError || roadsError) && (
+                {(settlementsError || roadsError || citiesError) && (
                     <p style = {{ color: "red" }}>
-                        {(settlementsError as Error)?.message || (roadsError as Error)?.message}
+                        {(settlementsError as Error)?.message ||
+                         (roadsError as Error)?.message ||
+                         (citiesError as Error)?.message}
                     </p>
                 )}
             </div>

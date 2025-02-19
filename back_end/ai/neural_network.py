@@ -39,6 +39,7 @@ class SettlersPolicyValueNet(nn.Module):
 
 
 class SettlersNeuralNet:
+
     '''
     Handles loading model weights and making predictions for settlement and road moves.
     '''
@@ -84,6 +85,16 @@ class SettlersNeuralNet:
 
 
     def evaluate_settlement(self, vertex):
+        features = self.board.get_vertex_features(vertex)
+        if features is None:
+            return -1.0, 0.0
+        input_tensor = torch.tensor(features, dtype = torch.float32).to(self.device).unsqueeze(0)
+        with torch.no_grad():
+            value_tensor, prior_tensor = self.model(input_tensor)
+            return value_tensor.item(), prior_tensor.item()
+        
+
+    def evaluate_city(self, vertex):
         features = self.board.get_vertex_features(vertex)
         if features is None:
             return -1.0, 0.0

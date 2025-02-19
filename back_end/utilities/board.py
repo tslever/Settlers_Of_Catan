@@ -148,21 +148,46 @@ class Board:
         return available
 
 
-    def get_available_road_moves(self, last_settlement: str, used_edge_keys: List[str]) -> List[Tuple[Dict, str]]:
+    def get_available_city_moves(self, used_vertices: List[str]) -> List[str]:
         '''
-        Return a list of (edge, edge_key) tuples adjacent to the given settlement.
+        Return a list of vertex labels available for city placement.
         '''
-        vertex = self.get_vertex_by_label(last_settlement)
+        used_coords = []
+        for label in used_vertices:
+            vertex = self.get_vertex_by_label(label)
+            if vertex:
+                used_coords.append((vertex["x"], vertex["y"]))
+        available = []
+        for vertex in self.vertices:
+            label = vertex["label"]
+            if label in used_vertices:
+                continue
+            x, y = vertex["x"], vertex["y"]
+            too_close = False
+            for ex, ey in used_coords:
+                if math.sqrt((x - ex) ** 2 + (y - ey) ** 2) < LENGTH_OF_SIDE_OF_HEX + MARGIN_OF_ERROR:
+                    too_close = True
+                    break
+            if not too_close:
+                available.append(label)
+        return available
+
+
+    def get_available_road_moves(self, last_settlement_or_city: str, used_edge_keys: List[str]) -> List[Tuple[Dict, str]]:
+        '''
+        Return a list of (edge, edge_key) tuples adjacent to the given settlement or city.
+        '''
+        vertex = self.get_vertex_by_label(last_settlement_or_city)
         if vertex is None:
             return []
-        settlement_coord = (vertex["x"], vertex["y"])
+        settlement_or_city_coord = (vertex["x"], vertex["y"])
         adjacent_edges = []
         for edge in self.edges:
             v1 = (edge["x1"], edge["y1"])
             v2 = (edge["x2"], edge["y2"])
             if (
-                (math.isclose(v1[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v1[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR)) or
-                (math.isclose(v2[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v2[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR))
+                (math.isclose(v1[0], settlement_or_city_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v1[1], settlement_or_city_coord[1], abs_tol = MARGIN_OF_ERROR)) or
+                (math.isclose(v2[0], settlement_or_city_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v2[1], settlement_or_city_coord[1], abs_tol = MARGIN_OF_ERROR))
             ):
                 edge_key = self.get_edge_key(v1, v2)
                 if edge_key not in used_edge_keys:

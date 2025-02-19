@@ -55,6 +55,8 @@ def expand_node(node, available_moves, vertex_coords):
             continue
         if node.move_type == "settlement":
             value, prior = neural_network.evaluate_settlement(move)
+        elif node.move_type == "city":
+            value, prior = neural_network.evaluate_city(move)
         elif node.move_type == "road":
             last_settlement = node.game_state.get("last_settlement")
             value, prior = neural_network.evaluate_road(move[0], vertex_coords, last_settlement)
@@ -78,6 +80,8 @@ def simulate_rollout(node, vertex_coords):
     '''
     if node.move_type == "settlement":
         value, _ = neural_network.evaluate_settlement(node.move)
+    elif node.move_type == "city":
+        value, _ = neural_network.evaluate_city(node.move)
     elif node.move_type == "road":
         last_settlement = node.game_state.get("last_settlement")
         value, _ = neural_network.evaluate_road(node.move[0], vertex_coords, last_settlement)
@@ -152,6 +156,25 @@ def predict_best_settlement(game_state, available_vertices, vertex_coords, num_s
     vertex_coords: dictionary mapping vertex label to (x, y) coordinates / positions
     '''
     root = MCTS_Node(game_state = game_state, move_type = "settlement")
+    best_vertex = monte_carlo_tree_search(
+        root,
+        available_vertices,
+        vertex_coords,
+        num_simulations,
+        c_puct,
+        add_dirichlet_noise = True
+    )
+    return best_vertex
+
+
+def predict_best_city(game_state, available_vertices, vertex_coords, num_simulations = settings.num_simulations, c_puct = settings.c_puct):
+    '''
+    Run a full MCTS for city moves and return the best vertex.
+    game_state: dictionary containing details of the current state
+    available_vertices: list of vertex labels (e.g., "V01", "V02", ...) available for city
+    vertex_coords: dictionary mapping vertex label to (x, y) coordinates / positions
+    '''
+    root = MCTS_Node(game_state = game_state, move_type = "city")
     best_vertex = monte_carlo_tree_search(
         root,
         available_vertices,

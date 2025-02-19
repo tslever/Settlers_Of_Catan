@@ -27,9 +27,18 @@ def available_settlement_moves(existing_settlements):
     """Return available settlement moves using the Board’s method."""
     return board.get_available_settlement_moves(list(existing_settlements))
 
+
+def available_city_moves(existing_cities):
+    '''
+    Return available city moves using the Board's method.
+    '''
+    return board.get_available_city_moves(list(existing_cities))
+
+
 def available_road_moves(last_settlement, existing_roads):
     """Return available road moves using the Board’s method."""
     return board.get_available_road_moves(last_settlement, list(existing_roads))
+
 
 def compute_game_outcome(settlements):
     strengths = {}
@@ -110,26 +119,26 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
             game_state.roads[player] = chosen_road[1]
         else:
             game_state.roads[player] = chosen_road
-    # Second round: settlement then road.
+    # Second round: city then road.
     for player in second_round:
         game_state.current_player = player
-        game_state.phase = "settlement"
-        available_settlements = available_settlement_moves(game_state.settlements.values())
-        if not available_settlements:
-            print("No available settlements!")
+        game_state.phase = "city"
+        available_cities = available_city_moves(game_state.cities.values())
+        if not available_cities:
+            print("No available cities!")
             break
-        chosen_settlement, policy = run_mcts_for_move(game_state, "settlement", available_settlements, num_simulations)
+        chosen_city, policy = run_mcts_for_move(game_state, "city", available_cities, num_simulations)
         training_examples.append({
             "state": copy.deepcopy(game_state.get_state_snapshot()),
-            "move_type": "settlement",
+            "move_type": "city",
             "policy": policy,
             "player": player
         })
-        game_state.place_settlement(player, chosen_settlement)
-        last_settlement = chosen_settlement
+        game_state.place_city(player, chosen_city)
+        last_city = chosen_city
         game_state.current_player = player
         game_state.phase = "road"
-        available_roads = available_road_moves(last_settlement, game_state.roads.values())
+        available_roads = available_road_moves(last_city, game_state.roads.values())
         if not available_roads:
             print("No available roads!")
             break
@@ -144,7 +153,7 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
             game_state.roads[player] = chosen_road[1]
         else:
             game_state.roads[player] = chosen_road
-    outcomes = compute_game_outcome(game_state.settlements)
+    outcomes = compute_game_outcome(game_state.cities)
     for sample in training_examples:
         sample["value"] = outcomes.get(sample["player"], 0)
     return training_examples
