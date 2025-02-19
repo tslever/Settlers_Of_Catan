@@ -10,35 +10,19 @@ The updated model is saved to disk so that the live Monte Carlo Tree Search
 (using NeuralNetwork) can detect and reload the new weights.
 '''
 
-from filelock import FileLock
 import logging
 import numpy as np
-import os
 from back_end.settings import settings
 from .self_play import simulate_self_play_game
 import time
 import threading
+from .io_helper import save_training_data
 from .train import train_model
+from .io_helper import update_training_data
 
 
-LOCK_PATH = settings.training_data_path + ".lock"
 logger = logging.getLogger(__name__)
-lock = FileLock(LOCK_PATH)
 stop_event = threading.Event()
-
-
-def load_existing_training_data():
-    if os.path.exists(settings.training_data_path):
-        return np.load(settings.training_data_path, allow_pickle = True).tolist()
-    return []
-
-
-def update_training_data(new_examples):
-    with lock:
-        data = load_existing_training_data()
-        data.extend(new_examples)
-        np.save(settings.training_data_path, data)
-    return data
 
 
 def continuous_self_play_loop(stop_event):
@@ -56,15 +40,13 @@ def continuous_self_play_loop(stop_event):
                 logger.info("[TRAINING] Starting training update...")
                 # Use a relatively short training run so as not to delay continuous play too much.
                 train_model(
-                    npy_file = settings.training_data_path,
-                    model_save_path = settings.model_path,
+                    training_data = data,
                     num_epochs = 10, # relatively few epochs for a quick update
                     batch_size = 32,
                     learning_rate = 1e-3
                 )
                 logger.info("[TRAINING] Training is complete. A new model has been saved.")
-                with lock:
-                    np.save(settings.training_data_path, [])
+                save_training_data([])
         except Exception as e:
             logger.exception(f"[SELF PLAY] The following exception occurred in a continuous self play loop. {e}")
         finally:

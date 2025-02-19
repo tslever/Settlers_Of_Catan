@@ -2,8 +2,8 @@
 """
 train.py
 
-This script loads self–play training examples from
-the training data path in settings, constructs the appropriate 5–element
+This script loads self play training examples from
+the training data path in settings, constructs the appropriate 5 element
 input feature vectors (as used by the SettlersPolicyValueNet in neural_network.py),
 trains the network to predict both a value (in [-1,1]) and a policy (a probability in [0,1]),
 and then saves the trained model weights to the model path in settings.
@@ -19,12 +19,12 @@ from ..board import TOKEN_DOT_MAPPING
 from ..board import WIDTH_OF_BOARD_IN_VMIN
 import logging
 import math
-import numpy as np
 import os
 from back_end.settings import settings
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from .io_helper import save_model_weights
 from back_end.logger import set_up_logging
 
 
@@ -34,19 +34,19 @@ logger = logging.getLogger(__name__)
 
 class SelfPlayDataset(Dataset):
     """
-    A PyTorch Dataset that loads self–play training examples from a .npy file.
+    A PyTorch Dataset that loads self play training examples from a .npy file.
     
     Each training example is assumed to be a dictionary with at least the following keys:
       - "move_type": either "settlement" or "road"
       - "policy": a dictionary mapping candidate moves (for settlements, vertex labels)
-          to their MCTS–derived probabilities.
-      - "value": a scalar outcome (e.g. +1 for win, –1 for loss)
+          to their MCTS derived probabilities.
+      - "value": a scalar outcome (e.g. +1 for win, -1 for loss)
     
-    For training the settlement network (which uses a 5–feature vector) we only use
+    For training the settlement network (which uses a 5 feature vector) we only use
     samples with "move_type" == "settlement". For each such sample we choose the move
     with the highest probability (from the MCTS policy) and then compute the feature vector
     for that candidate vertex. (The feature vector is computed exactly as in the neural
-    network’s evaluate_settlement function:)
+    network's evaluate_settlement function:)
     
       1. normalized pip sum from adjacent hexes: total_pips / (hex_count * 5)
       2. normalized x coordinate: x / WIDTH_OF_BOARD_IN_VMIN
@@ -54,9 +54,12 @@ class SelfPlayDataset(Dataset):
       4. normalized count of adjacent hexes: hex_count / 3.0
       5. bias term: 1.0
     """
-    def __init__(self, npy_file):
-        # Load the data (a list of training example dictionaries)
-        self.data = np.load(npy_file, allow_pickle=True)
+
+    def __init__(self, training_data: list):
+        '''
+        Training data is expected to be a list of example dictionaries.
+        '''
+        self.data = training_data
         # Precompute the vertex coordinates dictionary from vertices_with_labels.
         # (Each vertex is a dict with keys "label", "x", and "y".)
         board = Board()
@@ -106,39 +109,41 @@ class SelfPlayDataset(Dataset):
         
         print(f"Loaded {len(self.samples)} settlement training samples.")
 
+
     def __len__(self):
-        return len(self.samples)
-    
+        return len(self.data)
+
+
     def __getitem__(self, idx):
-        feature_vector, target_value, target_policy = self.samples[idx]
+        feature_vector, target_value, target_policy = self.data[idx]
         # Convert to tensors (the network expects inputs of shape [batch, 5])
-        x = torch.tensor(feature_vector, dtype=torch.float32)
-        y_value = torch.tensor([target_value], dtype=torch.float32)
-        y_policy = torch.tensor([target_policy], dtype=torch.float32)
+        x = torch.tensor(feature_vector, dtype = torch.float32)
+        y_value = torch.tensor([target_value], dtype = torch.float32)
+        y_policy = torch.tensor([target_policy], dtype = torch.float32)
         return x, y_value, y_policy
+
 
 # ------------------------------------------------------------------------------
 # Training loop
 # ------------------------------------------------------------------------------
 
-def train_model(npy_file, model_save_path, num_epochs=100, batch_size=32, learning_rate=1e-3):
+def train_model(training_data, num_epochs = 100, batch_size = 32, learning_rate = 1e-3):
     # Create the dataset and dataloader.
-    dataset = SelfPlayDataset(npy_file)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataset = SelfPlayDataset(training_data)
+    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = True)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = SettlersPolicyValueNet(input_dim=5, hidden_dim=128)
+    model = SettlersPolicyValueNet(input_dim = 5, hidden_dim = 128)
     model.to(device)
     
     # We use the mean–squared–error loss for both value and policy outputs.
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr = learning_rate)
     
     model.train()
     for epoch in range(num_epochs):
         epoch_loss = 0.0
-        for batch in dataloader:
-            x, target_value, target_policy = batch
+        for x, target_value, target_policy in dataloader:
             x = x.to(device)
             target_value = target_value.to(device)
             target_policy = target_policy.to(device)
@@ -151,13 +156,12 @@ def train_model(npy_file, model_save_path, num_epochs=100, batch_size=32, learni
             loss = loss_value + loss_policy
             loss.backward()
             optimizer.step()
-            
             epoch_loss += loss.item() * x.size(0)
         epoch_loss /= len(dataset)
         logger.info(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}")
     
     # Save the trained model’s state_dict to the specified path.
-    torch.save(model.state_dict(), model_save_path)
+    save_model_weights(model)
     logger.info(f"Model saved to {model_save_path}")
 
 

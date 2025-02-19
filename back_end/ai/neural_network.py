@@ -8,6 +8,7 @@ This module defines two separate concerns:
 
 from ..board import Board
 from ..board import MARGIN_OF_ERROR
+from .io_helper import load_model_weights
 import logging
 import math
 import os
@@ -54,25 +55,8 @@ class SettlersNeuralNet:
         self.model = SettlersPolicyValueNet(input_dim)
         self.model.to(self.device)
         self.last_model_mod_time = None
-        self.load_model_weights()
+        load_model_weights(self.model, self.device)
         self.board = Board()
-        self.model.eval()
-    
-
-    def load_model_weights(self):
-        '''
-        Load the model weights from disk.
-        If the file is not found, the untrained model remains active.
-        '''
-        if os.path.exists(self.model_path):
-            try:
-                self.model.load_state_dict(torch.load(self.model_path, map_location = self.device))
-                self.last_model_mod_time = os.path.getmtime(self.model_path)
-                logger.info(f"[NEURAL NETWORK] Weights were loaded from {self.model_path}.")
-            except Exception as e:
-                logger.exception(f"[NEURAL NETWORK] The following error occurred when loading weights. {e}")
-        else:
-            logger.warning("[NEURAL NETWORK] Weights file was not found. Untrained model will be used.")
         self.model.eval()
     
 
@@ -85,7 +69,7 @@ class SettlersNeuralNet:
             mod_time = os.path.getmtime(self.model_path)
             if self.last_model_mod_time is None or mod_time > self.last_model_mod_time:
                 print("[NEURAL NETWORK] Updated weights were detected and will be reloaded.")
-                self.load_model_weights()
+                load_model_weights(self.model, self.device)
 
 
     def evaluate_settlement(self, vertex):
