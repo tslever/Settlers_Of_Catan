@@ -6,8 +6,8 @@ This module defines two separate concerns:
 '''
 
 
-from ..utilities.board import Board
-from ..utilities.board import MARGIN_OF_ERROR
+from ..board import Board
+from ..board import MARGIN_OF_ERROR
 import logging
 import math
 import os

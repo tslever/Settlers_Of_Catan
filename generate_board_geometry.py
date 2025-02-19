@@ -2,11 +2,11 @@
 from typing import Dict
 from typing import List
 from typing import Tuple
-from back_end.utilities.board import HEIGHT_OF_HEX
-from back_end.utilities.board import MARGIN_OF_ERROR
-from back_end.utilities.board import WIDTH_OF_BOARD_IN_VMIN
-from back_end.utilities.board import WIDTH_OF_HEX
-from back_end.utilities.board import Board
+from back_end.board import HEIGHT_OF_HEX
+from back_end.board import MARGIN_OF_ERROR
+from back_end.board import WIDTH_OF_BOARD_IN_VMIN
+from back_end.board import WIDTH_OF_HEX
+from back_end.board import Board
 import json
 import logging
 from back_end.logger import set_up_logging

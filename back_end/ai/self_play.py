@@ -1,9 +1,9 @@
-from ..utilities.board import Board
-from ..utilities.game_state import GameState
-from ..utilities.board import MARGIN_OF_ERROR
+from ..board import Board
+from ..game_state import GameState
+from ..board import MARGIN_OF_ERROR
 from .mcts_node import MCTS_Node
-from ..utilities.board import TOKEN_DOT_MAPPING
-from ..utilities.board import TOKEN_MAPPING
+from ..board import TOKEN_DOT_MAPPING
+from ..board import TOKEN_MAPPING
 from .strategy import backpropagate
 import copy
 from .strategy import expand_node

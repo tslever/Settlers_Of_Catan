@@ -9,14 +9,14 @@ trains the network to predict both a value (in [-1,1]) and a policy (a probabili
 and then saves the trained model weights to the model path in settings.
 """
 
-from ..utilities.board import Board
+from ..board import Board
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-from ..utilities.board import MARGIN_OF_ERROR
+from ..board import MARGIN_OF_ERROR
 from ..ai.neural_network import SettlersPolicyValueNet
-from ..utilities.board import TOKEN_MAPPING
-from ..utilities.board import TOKEN_DOT_MAPPING
-from ..utilities.board import WIDTH_OF_BOARD_IN_VMIN
+from ..board import TOKEN_MAPPING
+from ..board import TOKEN_DOT_MAPPING
+from ..board import WIDTH_OF_BOARD_IN_VMIN
 import logging
 import math
 import numpy as np
