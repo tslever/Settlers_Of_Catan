@@ -11,7 +11,11 @@ import math
 import numpy as np
 from .strategy import select_child
 from .strategy import simulate_rollout
+from back_end.logger import set_up_logging
 from back_end.settings import settings
+
+
+set_up_logging()
 
 
 # Create a single Board instance.

@@ -14,11 +14,12 @@ from .routes import blueprint_for_route_settlements
 from flask import jsonify
 from .db.database import initialize_database
 import logging
+from back_end.logger import set_up_logging
 from back_end.settings import settings
 from .ai.continuous_training import start_continuous_training_in_background
 
 
-logging.basicConfig(level = logging.INFO)
+set_up_logging()
 logger = logging.getLogger(__name__)
 
 

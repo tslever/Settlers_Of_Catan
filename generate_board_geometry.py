@@ -9,11 +9,12 @@ from back_end.utilities.board import WIDTH_OF_HEX
 from back_end.utilities.board import Board
 import json
 import logging
+from back_end.logger import set_up_logging
 from back_end.settings import settings
 
 
+set_up_logging()
 logger = logging.getLogger(__name__)
-logging.basicConfig(level = logging.INFO)
 
 
 DEFAULT_BOARD_LAYOUT: List[List[str]] = [
@@ -26,6 +27,7 @@ DEFAULT_BOARD_LAYOUT: List[List[str]] = [
 
 
 class BoardGeometryGenerator:
+
     def __init__(
         self,
         board_layout: List[List[str]],

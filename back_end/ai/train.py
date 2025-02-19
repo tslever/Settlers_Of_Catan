@@ -24,6 +24,10 @@ from back_end.settings import settings
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from back_end.logger import set_up_logging
+
+
+set_up_logging()
 
 
 class SelfPlayDataset(Dataset):

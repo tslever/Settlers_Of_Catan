@@ -89,6 +89,7 @@ class Board:
     def get_edge_key(v1: Tuple[float, float], v2: Tuple[float, float]) -> str:
         (x1, y1) = v1
         (x2, y2) = v2
+        # Sorts the two endpoints so that edge direction is irrelevant.
         if x1 < x2 or (x1 == x2 and y1 <= y2):
             return f"{x1:.2f}-{y1:.2f}_{x2:.2f}-{y2:.2f}"
         else:

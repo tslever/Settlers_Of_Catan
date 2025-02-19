@@ -9,6 +9,7 @@ file_paths = [
 
     r'back_end\__init__.py',
     r'back_end\app.py',
+    r'back_end\logger.py',
     r'back_end\settings.py',
 
     r'back_end\ai\__init__.py',
