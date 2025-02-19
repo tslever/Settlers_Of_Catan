@@ -42,28 +42,32 @@ def update_training_data(new_examples):
 
 def continuous_self_play_loop():
     while True:
-        # Simulate one self play game.
-        new_examples = simulate_self_play_game(num_simulations = settings.num_simulations, c_puct = settings.c_puct)
-        logger.info(f"[SELF PLAY] Self play generated {len(new_examples)} new training examples.")
-        data = update_training_data(new_examples)
-        total = len(data)
-        logger.info(f"[SELF PLAY] Self play total training examples: {total}")
+        try:
+            # Simulate one self play game.
+            new_examples = simulate_self_play_game(num_simulations = settings.num_simulations, c_puct = settings.c_puct)
+            logger.info(f"[SELF PLAY] Self play generated {len(new_examples)} new training examples.")
+            data = update_training_data(new_examples)
+            total = len(data)
+            logger.info(f"[SELF PLAY] Self play total training examples: {total}")
 
-        # Trigger a training update if enough data has been accumulated.
-        if total >= settings.training_threshold:
-            logger.info("[TRAINING] Starting training update...")
-            # Use a relatively short training run so as not to delay continuous play too much.
-            train_model(
-                npy_file = settings.training_data_path,
-                model_save_path = settings.model_path,
-                num_epochs = 10, # relatively few epochs for a quick update
-                batch_size = 32,
-                learning_rate = 1e-3
-            )
-            logger.info("[TRAINING] Training is complete. A new model has been saved.")
-            with lock:
-                np.save(settings.training_data_path, [])
-        time.sleep(settings.game_interval)
+            # Trigger a training update if enough data has been accumulated.
+            if total >= settings.training_threshold:
+                logger.info("[TRAINING] Starting training update...")
+                # Use a relatively short training run so as not to delay continuous play too much.
+                train_model(
+                    npy_file = settings.training_data_path,
+                    model_save_path = settings.model_path,
+                    num_epochs = 10, # relatively few epochs for a quick update
+                    batch_size = 32,
+                    learning_rate = 1e-3
+                )
+                logger.info("[TRAINING] Training is complete. A new model has been saved.")
+                with lock:
+                    np.save(settings.training_data_path, [])
+        except Exception as e:
+            logger.exception(f"[SELF PLAY] The following exception occurred in a continuous self play loop. {e}")
+        finally:
+            time.sleep(settings.game_interval)
 
 
 def start_continuous_training_in_background():

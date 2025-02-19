@@ -143,7 +143,7 @@ def start_model_watcher(neural_network, interval = 10):
             try:
                 neural_network.reload_if_updated()
             except Exception as e:
-                print(f"[MODEL WATCHER] Error: {e}")
+                logger.exception(f"[MODEL WATCHER] Exception: {e}")
             time.sleep(interval)
     thread = threading.Thread(target = watcher, daemon = True)
     thread.start()
