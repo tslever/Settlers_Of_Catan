@@ -123,54 +123,34 @@ class Board:
         return self._vertex_feature_map.get(vertex_label)
 
 
-    def get_available_settlement_moves(self, used_vertices: List[str]) -> List[str]:
+    def get_available_building_moves(self, list_of_labels_of_occupied_vertices: List[str]) -> List[str]:
         '''
-        Return a list of vertex labels available for settlement placement.
+        Return the list of labels of vertices that are not too close to any vertex in the given list of labels of occupied vertices.
+        Two vertices are considered too close if the Euclidean distance between them is less than the length of the side of a hex plus a small margin.
         '''
-        used_coords = []
-        for label in used_vertices:
-            vertex = self.get_vertex_by_label(label)
-            if vertex:
-                used_coords.append((vertex["x"], vertex["y"]))
-        available = []
-        for vertex in self.vertices:
-            label = vertex["label"]
-            if label in used_vertices:
+        list_of_tuples_of_coordinates_of_occupied_vertices = []
+        for label in list_of_labels_of_occupied_vertices:
+            dictionary_of_vertex_information = self.get_vertex_by_label(label)
+            if dictionary_of_vertex_information:
+                x = dictionary_of_vertex_information["x"]
+                y = dictionary_of_vertex_information["y"]
+                tuple_of_coordinates_of_occupied_vertex = (x, y)
+                list_of_tuples_of_coordinates_of_occupied_vertices.append(tuple_of_coordinates_of_occupied_vertex)
+        list_of_labels_of_available_vertices = []
+        for dictionary_of_vertex_information in self.vertices:
+            label = dictionary_of_vertex_information["label"]
+            if label in list_of_labels_of_occupied_vertices:
                 continue
-            x, y = vertex["x"], vertex["y"]
-            too_close = False
-            for ex, ey in used_coords:
-                if math.sqrt((x - ex) ** 2 + (y - ey) ** 2) < LENGTH_OF_SIDE_OF_HEX + MARGIN_OF_ERROR:
-                    too_close = True
+            x1 = dictionary_of_vertex_information["x"]
+            y1 = dictionary_of_vertex_information["y"]
+            general_vertex_and_occupied_vertex_are_too_close = False
+            for x2, y2 in list_of_tuples_of_coordinates_of_occupied_vertices:
+                if math.sqrt((x1 - x2)**2 + (y1 - y2)**2) < LENGTH_OF_SIDE_OF_HEX + MARGIN_OF_ERROR:
+                    general_vertex_and_occupied_vertex_are_too_close = True
                     break
-            if not too_close:
-                available.append(label)
-        return available
-
-
-    def get_available_city_moves(self, used_vertices: List[str]) -> List[str]:
-        '''
-        Return a list of vertex labels available for city placement.
-        '''
-        used_coords = []
-        for label in used_vertices:
-            vertex = self.get_vertex_by_label(label)
-            if vertex:
-                used_coords.append((vertex["x"], vertex["y"]))
-        available = []
-        for vertex in self.vertices:
-            label = vertex["label"]
-            if label in used_vertices:
-                continue
-            x, y = vertex["x"], vertex["y"]
-            too_close = False
-            for ex, ey in used_coords:
-                if math.sqrt((x - ex) ** 2 + (y - ey) ** 2) < LENGTH_OF_SIDE_OF_HEX + MARGIN_OF_ERROR:
-                    too_close = True
-                    break
-            if not too_close:
-                available.append(label)
-        return available
+            if not general_vertex_and_occupied_vertex_are_too_close:
+                list_of_labels_of_available_vertices.append(label)
+        return list_of_labels_of_available_vertices
 
 
     def get_available_road_moves(self, last_settlement_or_city: str, used_edge_keys: List[str]) -> List[Tuple[Dict, str]]:

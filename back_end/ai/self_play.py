@@ -23,17 +23,6 @@ board = Board()
 # Build a mapping from vertex label to (x,y) from the board.
 vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
 
-def available_settlement_moves(existing_settlements):
-    """Return available settlement moves using the Board’s method."""
-    return board.get_available_settlement_moves(list(existing_settlements))
-
-
-def available_city_moves(existing_cities):
-    '''
-    Return available city moves using the Board's method.
-    '''
-    return board.get_available_city_moves(list(existing_cities))
-
 
 def available_road_moves(last_settlement, existing_roads):
     """Return available road moves using the Board’s method."""
@@ -89,11 +78,14 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
     for player in first_round:
         game_state.current_player = player
         game_state.phase = "settlement"
-        available_settlements = available_settlement_moves(game_state.settlements.values())
-        if not available_settlements:
-            print("No available settlements!")
+        list_of_labels_of_vertices_with_settlements = list(game_state.settlements.values())
+        list_of_labels_of_vertices_with_cities = list(game_state.cities.values())
+        list_of_labels_of_occupied_vertices = list_of_labels_of_vertices_with_settlements + list_of_labels_of_vertices_with_cities
+        list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
+        if not list_of_labels_of_available_vertices:
+            print("There are no vertices on which a settlement can be built.")
             break
-        chosen_settlement, policy = run_mcts_for_move(game_state, "settlement", available_settlements, num_simulations)
+        chosen_settlement, policy = run_mcts_for_move(game_state, "settlement", list_of_labels_of_available_vertices, num_simulations)
         training_examples.append({
             "state": copy.deepcopy(game_state.get_state_snapshot()),
             "move_type": "settlement",
@@ -123,11 +115,14 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
     for player in second_round:
         game_state.current_player = player
         game_state.phase = "city"
-        available_cities = available_city_moves(game_state.cities.values())
-        if not available_cities:
+        list_of_labels_of_vertices_with_settlements = list(game_state.settlements.values())
+        list_of_labels_of_vertices_with_cities = list(game_state.cities.values())
+        list_of_labels_of_occupied_vertices = list_of_labels_of_vertices_with_settlements + list_of_labels_of_vertices_with_cities
+        list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
+        if not list_of_labels_of_available_vertices:
             print("No available cities!")
             break
-        chosen_city, policy = run_mcts_for_move(game_state, "city", available_cities, num_simulations)
+        chosen_city, policy = run_mcts_for_move(game_state, "city", list_of_labels_of_available_vertices, num_simulations)
         training_examples.append({
             "state": copy.deepcopy(game_state.get_state_snapshot()),
             "move_type": "city",

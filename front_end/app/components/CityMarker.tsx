@@ -5,9 +5,6 @@ type CityMarkerProps = {
 };
 
 const CityMarker: React.FC<CityMarkerProps> = ({ x, y, player }) => {
-    const settlementWidth = 3;
-    const cityRectWidth = settlementWidth * 2;
-    const cityRectHeight = settlementWidth * 0.6;
     const colorMapping: { [key: number]: string } = {
         1: 'red',
         2: 'orange',
@@ -15,43 +12,20 @@ const CityMarker: React.FC<CityMarkerProps> = ({ x, y, player }) => {
     };
     return (
         <div
+            className = "city"
             style = {{
-                position: 'absolute',
                 left: `${x}vmin`,
                 top: `${y}vmin`,
-                width: `${cityRectWidth}vmin`,
-                height: `${settlementWidth}vmin`,
+                position: 'absolute',
                 transform: 'translate(-50%, -50%)',
+                width: '4vmin',
+                height: '4vmin',
+                borderRadius: '50%',
+                border: `2px solid ${colorMapping[player] || 'gray'}`,
+                backgroundColor: 'white',
+                zIndex: 3
             }}
-        >
-            {/* Draw the "settlement shape (e.g., house like) on top." */}
-            <div
-                className = "settlement"
-                style = {{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '0%',
-                    transform: 'translate(-50%, 0%)',
-                    width: `${settlementWidth}vmin`,
-                    height: `${settlementWidth}vmin`,
-                    backgroundColor: colorMapping[player] || 'gray'
-                }}
-            />
-            {/* Draw the rectangle under the settlement. */}
-            <div
-                style = {{
-                    position: 'absolute',
-                    left: '50%',
-                    bottom: '0%',
-                    transform: 'translate(-50%, 0%)',
-                    width: `${cityRectWidth}vmin`,
-                    height: `${cityRectHeight}vmin`,
-                    backgroundColor: colorMapping[player] ? `${colorMapping[player]}AA` : 'gray',
-                    border: '1 px solid black',
-                    zIndex: -1
-                }}
-            />
-        </div>
+        />
     );
 };
 

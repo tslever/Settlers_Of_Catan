@@ -133,6 +133,7 @@ export default function Home() {
             return res.json();
         },
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
         }
