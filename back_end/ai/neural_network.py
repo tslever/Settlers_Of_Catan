@@ -8,6 +8,7 @@ This module defines two separate concerns:
 
 from ..utilities.board import Board
 from ..utilities.board import MARGIN_OF_ERROR
+import logging
 import math
 import os
 from back_end.settings import settings
@@ -16,6 +17,9 @@ import time
 import torch
 import torch.nn as nn
 import threading
+
+
+logger = logging.getLogger(__name__)
 
 
 class SettlersPolicyValueNet(nn.Module):
@@ -64,11 +68,11 @@ class SettlersNeuralNet:
             try:
                 self.model.load_state_dict(torch.load(self.model_path, map_location = self.device))
                 self.last_model_mod_time = os.path.getmtime(self.model_path)
-                print(f"[NEURAL NETWORK] Weights were loaded from {self.model_path}.")
+                logger.info(f"[NEURAL NETWORK] Weights were loaded from {self.model_path}.")
             except Exception as e:
-                print(f"[NEURAL NETWORK] The following error occurred when loading weights. {e}")
+                logger.exception(f"[NEURAL NETWORK] The following error occurred when loading weights. {e}")
         else:
-            print("[NEURAL NETWORK] Weights file was not found. Untrained model will be used.")
+            logger.warning("[NEURAL NETWORK] Weights file was not found. Untrained model will be used.")
         self.model.eval()
     
 

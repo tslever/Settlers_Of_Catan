@@ -7,6 +7,7 @@ from ..utilities.board import TOKEN_MAPPING
 from .strategy import backpropagate
 import copy
 from .strategy import expand_node
+import logging
 import math
 import numpy as np
 from .strategy import select_child
@@ -16,6 +17,7 @@ from back_end.settings import settings
 
 
 set_up_logging()
+logger = logging.getLogger(__name__)
 
 
 # Create a single Board instance.
@@ -50,6 +52,7 @@ def compute_game_outcome(settlements):
     winner = max(strengths, key=lambda p: strengths[p])
     return {player: 1 if player == winner else -1 for player in strengths}
 
+
 def run_mcts_for_move(state, move_type, available_moves, num_simulations):
     # Create a root node; pass the game state as a dictionary snapshot.
     root = MCTS_Node(game_state=copy.deepcopy(state.get_state_snapshot()), move_type=move_type)
@@ -67,6 +70,7 @@ def run_mcts_for_move(state, move_type, available_moves, num_simulations):
     chosen_move = max(root.children.items(), key=lambda item: item[1].N)[0]
     return chosen_move, policy
 
+
 def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct = settings.num_simulations):
     # Use our GameState class rather than a raw dict.
     game_state = GameState()
@@ -83,7 +87,7 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
         list_of_labels_of_occupied_vertices = list_of_labels_of_vertices_with_settlements + list_of_labels_of_vertices_with_cities
         list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
         if not list_of_labels_of_available_vertices:
-            print("There are no vertices on which a settlement can be built.")
+            logger.exception("There are no vertices on which a settlement can be built.")
             break
         chosen_settlement, policy = run_mcts_for_move(game_state, "settlement", list_of_labels_of_available_vertices, num_simulations)
         training_examples.append({
@@ -120,7 +124,7 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
         list_of_labels_of_occupied_vertices = list_of_labels_of_vertices_with_settlements + list_of_labels_of_vertices_with_cities
         list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
         if not list_of_labels_of_available_vertices:
-            print("No available cities!")
+            logger.warning("No available cities!")
             break
         chosen_city, policy = run_mcts_for_move(game_state, "city", list_of_labels_of_available_vertices, num_simulations)
         training_examples.append({
@@ -135,7 +139,7 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
         game_state.phase = "road"
         available_roads = available_road_moves(last_city, game_state.roads.values())
         if not available_roads:
-            print("No available roads!")
+            logger.warning("No available roads!")
             break
         chosen_road, policy = run_mcts_for_move(game_state, "road", available_roads, num_simulations)
         training_examples.append({
@@ -153,6 +157,7 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
         sample["value"] = outcomes.get(sample["player"], 0)
     return training_examples
 
+
 def generate_training_data(num_games=10, num_simulations = settings.num_simulations, c_puct = settings.c_puct):
     all_examples = []
     for _ in range(num_games):
@@ -160,8 +165,9 @@ def generate_training_data(num_games=10, num_simulations = settings.num_simulati
         all_examples.extend(examples)
     npy_file = settings.training_data_path
     np.save(npy_file, all_examples)
-    print(f"Generated {len(all_examples)} training examples.")
+    logger.info(f"Generated {len(all_examples)} training examples.")
     return all_examples
+
 
 if __name__ == "__main__":
     generate_training_data(num_games=100, num_simulations = settings.num_simulations, c_puct = settings.c_puct)

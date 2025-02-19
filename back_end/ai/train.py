@@ -17,6 +17,7 @@ from ..ai.neural_network import SettlersPolicyValueNet
 from ..utilities.board import TOKEN_MAPPING
 from ..utilities.board import TOKEN_DOT_MAPPING
 from ..utilities.board import WIDTH_OF_BOARD_IN_VMIN
+import logging
 import math
 import numpy as np
 import os
@@ -28,6 +29,7 @@ from back_end.logger import set_up_logging
 
 
 set_up_logging()
+logger = logging.getLogger(__name__)
 
 
 class SelfPlayDataset(Dataset):
@@ -152,11 +154,11 @@ def train_model(npy_file, model_save_path, num_epochs=100, batch_size=32, learni
             
             epoch_loss += loss.item() * x.size(0)
         epoch_loss /= len(dataset)
-        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}")
+        logger.info(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}")
     
     # Save the trained model’s state_dict to the specified path.
     torch.save(model.state_dict(), model_save_path)
-    print(f"Model saved to {model_save_path}")
+    logger.info(f"Model saved to {model_save_path}")
 
 
 if __name__ == "__main__":
