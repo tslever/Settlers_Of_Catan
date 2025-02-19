@@ -4,14 +4,6 @@ import re
 
 base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
-    r'generate_board_geometry.py',
-    r'board_geometry.json',
-
-    r'back_end\__init__.py',
-    r'back_end\app.py',
-    r'back_end\logger.py',
-    r'back_end\settings.py',
-
     r'back_end\ai\__init__.py',
     r'back_end\ai\continuous_training.py',
     r'back_end\ai\mcts_node.py',
@@ -24,6 +16,7 @@ file_paths = [
     r'back_end\db\database.py',
 
     r'back_end\routes\__init__.py',
+    r'back_end\routes\cities.py',
     r'back_end\routes\next.py',
     r'back_end\routes\roads.py',
     r'back_end\routes\root.py',
@@ -32,22 +25,32 @@ file_paths = [
     r'back_end\utilities\__init__.py',
     r'back_end\utilities\board.py',
     r'back_end\utilities\game_state.py',
+    r'back_end\utilities\phase.py',
 
-    r'front_end\app\BoardLayout.tsx',
-    r'front_end\app\CanvasLayer.tsx',
-    r'front_end\app\Providers.tsx',
-    r'front_end\app\config.ts',
-    r'front_end\app\globals.scss',
-    r'front_end\app\layout.tsx',
-    r'front_end\app\page.tsx',
-    r'front_end\app\types.ts',
-    r'front_end\app\board.ts',
+    r'back_end\__init__.py',
+    r'back_end\app.py',
+    r'back_end\logger.py',
+    r'back_end\settings.py',
 
+    r'front_end\app\components\CityMarker.tsx',
     r'front_end\app\components\HexTile.tsx',
     r'front_end\app\components\Ocean.tsx',
     r'front_end\app\components\Port.tsx',
     r'front_end\app\components\SettlementMarker.tsx',
-    r'front_end\app\components\Vertex.tsx'
+    r'front_end\app\components\Vertex.tsx',
+
+    r'front_end\app\board.ts',
+    r'front_end\app\BoardLayout.tsx',
+    r'front_end\app\CanvasLayer.tsx',
+    r'front_end\app\config.ts',
+    r'front_end\app\globals.scss',
+    r'front_end\app\layout.tsx',
+    r'front_end\app\page.tsx',
+    r'front_end\app\Providers.tsx',
+    r'front_end\app\types.ts',
+
+    r'generate_board_geometry.py',
+    r'board_geometry.json'
 ]
 
 
