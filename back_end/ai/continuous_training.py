@@ -24,6 +24,7 @@ from .train import train_model
 LOCK_PATH = settings.training_data_path + ".lock"
 logger = logging.getLogger(__name__)
 lock = FileLock(LOCK_PATH)
+stop_event = threading.Event()
 
 
 def load_existing_training_data():
@@ -40,8 +41,8 @@ def update_training_data(new_examples):
     return data
 
 
-def continuous_self_play_loop():
-    while True:
+def continuous_self_play_loop(stop_event):
+    while not stop_event.is_set():
         try:
             # Simulate one self play game.
             new_examples = simulate_self_play_game(num_simulations = settings.num_simulations, c_puct = settings.c_puct)
@@ -71,6 +72,7 @@ def continuous_self_play_loop():
 
 
 def start_continuous_training_in_background():
-    thread = threading.Thread(target = continuous_self_play_loop, daemon = True)
+    thread = threading.Thread(target = continuous_self_play_loop, args = (stop_event,), daemon = True)
     thread.start()
     logger.info("[CONTINUOUS TRAINING] A loop for self play and training has been started in the background.")
+    return thread

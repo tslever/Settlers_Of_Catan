@@ -17,28 +17,15 @@ import numpy as np
 from back_end.settings import settings
 
 
-def select_child(node, c_puct, tolerance = 1e-6):
+def backpropagate(node, value):
     '''
-    Select a child node with the maximum PUCT score.
-    If multiple children have scores within a small tolerance,
-    choose the child with the lower visit count.
-    If multiple children have scores within a small tolerance and the same visit count,
-    choose the child with the higher prior probability.
+    Backpropagate the value estimated up the tree.
     '''
-    best_score = -float('inf')
-    best_candidates = []
-    for child in node.children.values():
-        u = c_puct * child.P * math.sqrt(node.N) / (1 + child.N)
-        score = child.Q + u # mean value Q + exploration bonus U
-        if score > best_score + tolerance:
-            best_score = score
-            best_candidates = [child]
-        elif abs(score - best_score) <= tolerance:
-            best_candidates.append(child)
-    if len(best_candidates) == 1:
-        return best_candidates[0]
-    best_candidates.sort(key = lambda c: (c.N, -c.P))
-    return best_candidates[0]
+    while node is not None:
+        node.N += 1
+        node.W += value
+        node.Q = node.W / node.N
+        node = node.parent
 
 
 def expand_node(node, available_moves, vertex_coords):
@@ -72,6 +59,30 @@ def expand_node(node, available_moves, vertex_coords):
         node.children[key] = child
 
 
+def select_child(node, c_puct, tolerance = 1e-6):
+    '''
+    Select a child node with the maximum PUCT score.
+    If multiple children have scores within a small tolerance,
+    choose the child with the lower visit count.
+    If multiple children have scores within a small tolerance and the same visit count,
+    choose the child with the higher prior probability.
+    '''
+    best_score = -float('inf')
+    best_candidates = []
+    for child in node.children.values():
+        u = c_puct * child.P * math.sqrt(node.N) / (1 + child.N)
+        score = child.Q + u # mean value Q + exploration bonus U
+        if score > best_score + tolerance:
+            best_score = score
+            best_candidates = [child]
+        elif abs(score - best_score) <= tolerance:
+            best_candidates.append(child)
+    if len(best_candidates) == 1:
+        return best_candidates[0]
+    best_candidates.sort(key = lambda c: (c.N, -c.P))
+    return best_candidates[0]
+
+
 def simulate_rollout(node, vertex_coords):
     '''
     When a leaf node is reached, use the neural network to estimate the value.
@@ -88,17 +99,6 @@ def simulate_rollout(node, vertex_coords):
     else:
         value = 0.0
     return value
-
-
-def backpropagate(node, value):
-    '''
-    Backpropagate the value estimated up the tree.
-    '''
-    while node is not None:
-        node.N += 1
-        node.W += value
-        node.Q = node.W / node.N
-        node = node.parent
 
 
 def monte_carlo_tree_search(

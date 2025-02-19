@@ -4,6 +4,10 @@ import re
 
 base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
+
+    r'back_end\ai\backpropagate.py',
+    r'back_end\ai\expand_node.py',
+
     r'back_end\ai\__init__.py',
     r'back_end\ai\continuous_training.py',
     r'back_end\ai\mcts_node.py',

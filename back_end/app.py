@@ -18,6 +18,7 @@ import logging
 from back_end.logger import set_up_logging
 from back_end.settings import settings
 from .ai.continuous_training import start_continuous_training_in_background
+from back_end.ai.continuous_training import stop_event
 
 
 set_up_logging()
@@ -115,11 +116,16 @@ def create_app():
 
 
 if __name__ == '__main__':
-    start_continuous_training_in_background()
+    training_thread = start_continuous_training_in_background()
     app = create_app()
     logger.info(f"Created back end on port {settings.back_end_port}")
-    app.run(
-        port = settings.back_end_port,
-        debug = settings.debug,
-        use_reloader = False
-    )
+    try:
+        app.run(
+            port = settings.back_end_port,
+            debug = settings.debug,
+            use_reloader = False
+        )
+    finally:
+        stop_event.set()
+        logger.info("A shutdown signal was sent. Threads are expected to exit.")
+        training_thread.join(timeout = 5)

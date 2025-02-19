@@ -12,11 +12,11 @@ import logging
 import math
 import os
 from back_end.settings import settings
+from back_end.ai.stop_event import stop_event
 import threading
 import time
 import torch
 import torch.nn as nn
-import threading
 
 
 logger = logging.getLogger(__name__)
@@ -134,12 +134,12 @@ class SettlersNeuralNet:
         return self.evaluate_settlement(other_label)
 
 
-def start_model_watcher(neural_network, interval = 10):
+def start_model_watcher(neural_network, stop_event, interval = 10):
     '''
     Start a daemon thread that periodically calls neural_network.reload_if_updated.
     '''
     def watcher():
-        while True:
+        while not stop_event.is_set():
             try:
                 neural_network.reload_if_updated()
             except Exception as e:
@@ -147,7 +147,9 @@ def start_model_watcher(neural_network, interval = 10):
             time.sleep(interval)
     thread = threading.Thread(target = watcher, daemon = True)
     thread.start()
+    logger.info("[MODEL WATCHER] A thread for watching for weights for a neural network was started.")
+    return thread
 
 
 neural_network = SettlersNeuralNet(settings.model_path)
-start_model_watcher(neural_network)
+start_model_watcher(neural_network, stop_event)
