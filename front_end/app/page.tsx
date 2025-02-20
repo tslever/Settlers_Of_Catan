@@ -13,7 +13,6 @@ import React from 'react';
 import { Road } from './types';
 import { RoadLayer } from './BoardLayout';
 import { Settlement } from './types';
-import SettlementMarker from './components/SettlementMarker';
 import { URL_OF_BACK_END } from './config';
 import { getPositionStyles } from './BoardLayout';
 import { hexes } from './board';
@@ -26,6 +25,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useState } from 'react';
 import CanvasLayer from './CanvasLayer';
+import Marker from './components/Marker';
 
 
 const vertexMapping: Record<string, { x: number, y: number }> =
@@ -182,12 +182,12 @@ export default function Home() {
                         {settlements.map((s) => {
                             const v = vertexMapping[s.vertex];
                             if (!v) { return null; }
-                            return <SettlementMarker key = {s.id} x = {v.x} y = {v.y} player = {s.player} />
+                            return <Marker key = {s.id} x = {v.x} y = {v.y} player = {s.player} type = "settlement" />
                         })}
                         {citiesData?.cities.map((c) => {
                             const v = vertexMapping[c.vertex];
                             if (!v) return null;
-                            return <CityMarker key = {c.id} x = {v.x} y = {v.y} player = {c.player} />;
+                            return <Marker key = {c.id} x = {v.x} y = {v.y} player = {c.player} type = "city" />;
                         })}
                         <RoadLayer viewBox = "0 0 100 100" preserveAspectRatio = "none">
                             {roads.map((road, index) => {
