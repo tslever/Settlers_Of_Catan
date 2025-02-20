@@ -11,105 +11,13 @@ This mododule supports both settlement and road moves.
 TODO: Simulate multiple moves / deeper rollouts.
 """
 
-from .mcts_node import MCTS_Node
-import math
+from .mcts.node import MCTS_Node
+from back_end.ai.mcts.backpropagation import backpropagate
+from back_end.ai.mcts.expansion import expand_node
 import numpy as np
+from back_end.ai.mcts.selection import select_child
 from back_end.settings import settings
-
-
-def backpropagate(node, value):
-    '''
-    Backpropagate the value estimated up the tree.
-    '''
-    while node is not None:
-        node.N += 1
-        node.W += value
-        node.Q = node.W / node.N
-        node = node.parent
-
-
-def expand_node(
-    node,
-    list_of_labels_of_available_vertices_or_tuples_of_edge_information,
-    vertex_coords,
-    neural_network
-):
-    for label_or_tuple in list_of_labels_of_available_vertices_or_tuples_of_edge_information:
-        label_of_available_vertex = None
-        edge = None
-        edge_key_of_available_edge = None
-        if node.move_type == "road":
-            the_tuple = label_or_tuple
-            edge = the_tuple[0]
-            edge_key_of_available_edge = the_tuple[1]
-            if edge_key_of_available_edge in node.children:
-                continue
-        else:
-            label_of_available_vertex = label_or_tuple
-            if label_of_available_vertex in node.children:
-                continue
-        if node.move_type == "city":
-            _, prior = neural_network.evaluate_city(label_of_available_vertex)
-        elif node.move_type == "road":
-            last_settlement = node.game_state.get("last_settlement")
-            _, prior = neural_network.evaluate_road(edge, vertex_coords, last_settlement)
-        elif node.move_type == "settlement":
-            _, prior = neural_network.evaluate_settlement(label_of_available_vertex)
-        else:
-            prior = 1.0
-        child = MCTS_Node(
-            game_state = node.game_state,
-            move = label_or_tuple,
-            parent = node,
-            move_type = node.move_type
-        )
-        child.P = prior
-        if node.move_type == "road":
-            node.children[edge_key_of_available_edge] = child
-        else:
-            node.children[label_of_available_vertex] = child
-
-
-def select_child(node, c_puct, tolerance = 1e-6):
-    '''
-    Select a child node with the maximum PUCT score.
-    If multiple children have scores within a small tolerance,
-    choose the child with the lower visit count.
-    If multiple children have scores within a small tolerance and the same visit count,
-    choose the child with the higher prior probability.
-    '''
-    best_score = -float('inf')
-    best_candidates = []
-    for child in node.children.values():
-        u = c_puct * child.P * math.sqrt(node.N) / (1 + child.N)
-        score = child.Q + u # mean value Q + exploration bonus U
-        if score > best_score + tolerance:
-            best_score = score
-            best_candidates = [child]
-        elif abs(score - best_score) <= tolerance:
-            best_candidates.append(child)
-    if len(best_candidates) == 1:
-        return best_candidates[0]
-    best_candidates.sort(key = lambda c: (c.N, -c.P))
-    return best_candidates[0]
-
-
-def simulate_rollout(node, vertex_coords, neural_network):
-    '''
-    When a leaf node is reached, use the neural network to estimate the value.
-    For now, we use a one step evaluation.
-    TODO: Implement a deeper implemention that simulates further moves.
-    '''
-    if node.move_type == "settlement":
-        value, _ = neural_network.evaluate_settlement(node.move)
-    elif node.move_type == "city":
-        value, _ = neural_network.evaluate_city(node.move)
-    elif node.move_type == "road":
-        last_settlement = node.game_state.get("last_settlement")
-        value, _ = neural_network.evaluate_road(node.move[0], vertex_coords, last_settlement)
-    else:
-        value = 0.0
-    return value
+from back_end.ai.mcts.simulation import simulate_rollout
 
 
 def monte_carlo_tree_search(
@@ -147,7 +55,7 @@ def monte_carlo_tree_search(
         node = root
         # Complete selection by descending / traversing the tree until a leaf is reached.
         while not node.is_leaf():
-            node = select_child(node, c_puct)
+            node = select_child(node, c_puct, tolerance = 1e-6)
         # Complete expansion by expanding any non-terminal node that has been visited before.
         if node.N > 0:
             expand_node(node, list_of_labels_of_available_vertices_or_tuples_of_edge_information, vertex_coords, neural_network)

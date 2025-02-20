@@ -1,6 +1,6 @@
 from ..board import Board
 from ..game_state import GameState
-from .mcts_node import MCTS_Node
+from .mcts.node import MCTS_Node
 from ..board import TOKEN_DOT_MAPPING
 from ..board import TOKEN_MAPPING
 from .strategy import backpropagate
@@ -73,7 +73,7 @@ def run_mcts_for_move(
     for _ in range(0, number_of_simulations):
         node = root
         while not node.is_leaf():
-            node = select_child(node, c_puct)
+            node = select_child(node, c_puct, tolerance = 1e-6)
         if node.N > 0:
             expand_node(
                 node,

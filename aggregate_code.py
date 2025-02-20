@@ -4,10 +4,16 @@ import re
 
 base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
+    r'back_end\ai\mcts\__init__.py',
+    r'back_end\ai\mcts\backpropagation.py',
+    r'back_end\ai\mcts\expansion.py',
+    r'back_end\ai\mcts\node.py',
+    r'back_end\ai\mcts\selection.py',
+    r'back_end\ai\mcts\simulation.py',
+
     r'back_end\ai\__init__.py',
     r'back_end\ai\continuous_training.py',
     r'back_end\ai\io_helper.py',
-    r'back_end\ai\mcts_node.py',
     r'back_end\ai\neural_network.py',
     r'back_end\ai\self_play.py',
     r'back_end\ai\strategy.py',
