@@ -12,14 +12,9 @@ and then saves the trained model weights to the model path in settings.
 from ..board import Board
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-from ..board import MARGIN_OF_ERROR
 from ..ai.neural_network import SettlersPolicyValueNet
-from ..board import TOKEN_MAPPING
-from ..board import TOKEN_DOT_MAPPING
-from ..board import WIDTH_OF_BOARD_IN_VMIN
 from .io_helper import load_training_data
 import logging
-import math
 import os
 from back_end.settings import settings
 import torch
@@ -78,33 +73,10 @@ class SelfPlayDataset(Dataset):
             chosen_vertex, target_policy = max(policy_dict.items(), key=lambda kv: kv[1])
             target_value = sample.get("value", 0.0)
             
-            # If the chosen vertex is not found in our board coordinates, skip this sample.
-            if chosen_vertex not in self.vertex_coords:
+            feature_vector = board.get_vertex_features(chosen_vertex)
+            if feature_vector is None:
+                # TODO: Implement fallback
                 continue
-            x, y = self.vertex_coords[chosen_vertex]
-            
-            # Compute the pip sum and count the number of adjacent hexes.
-            total_pips = 0
-            hex_count = 0
-            for hex_tile in board.hexes:
-                vertices = board.get_hex_vertices(hex_tile)
-                # If any vertex of the hex matches (within tolerance) the candidate vertex
-                # then add its pip value.
-                for vx, vy in vertices:
-                    if math.isclose(vx, x, abs_tol = MARGIN_OF_ERROR) and math.isclose(vy, y, abs_tol = MARGIN_OF_ERROR):
-                        hex_id = hex_tile["id"]
-                        token = TOKEN_MAPPING.get(hex_id)
-                        if token is not None:
-                            pip_value = TOKEN_DOT_MAPPING.get(token, 0)
-                            total_pips += pip_value
-                            hex_count += 1
-                        break  # move on to the next hex once a match is found.
-            
-            normalized_pip = total_pips / (hex_count * 5) if hex_count > 0 else 0.0
-            normalized_x = x / WIDTH_OF_BOARD_IN_VMIN
-            normalized_y = y / 100.0
-            normalized_hex_count = hex_count / 3.0  # maximum adjacent hexes is 3
-            feature_vector = [normalized_pip, normalized_x, normalized_y, normalized_hex_count, 1.0]
             
             self.samples.append((feature_vector, target_value, target_policy))
         

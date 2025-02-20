@@ -33,6 +33,7 @@ file_paths = [
     r'back_end\phase.py',
     r'back_end\phase_state_machine.py',
     r'back_end\settings.py',
+    r'back_end\utilities.py',
 
     r'front_end\app\components\CityMarker.tsx',
     r'front_end\app\components\HexTile.tsx',

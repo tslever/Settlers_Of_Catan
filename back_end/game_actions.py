@@ -9,6 +9,7 @@ from back_end.board import TOKEN_DOT_MAPPING
 from back_end.board import TOKEN_MAPPING
 from back_end.board import WIDTH_OF_HEX
 from flask import abort
+from back_end.utilities import get_list_of_labels_of_occupied_vertices
 import logging
 import math
 from back_end.ai.strategy import predict_best_settlement
@@ -44,100 +45,48 @@ def compute_strengths(session):
 
 
 def create_settlement(session, current_player, phase: Phase):
-    settlements = session.query(Settlement).all()
-    cities = session.query(City).all()
-    used_vertices = {settlement.vertex for settlement in settlements}.union({city.vertex for city in cities})
+    list_of_labels_of_occupied_vertices = get_list_of_labels_of_occupied_vertices(session, board)
+    list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
+    if not list_of_labels_of_available_vertices:
+        logger.exception(f"No vertices are available for settlement placement by Player {current_player} during phase {phase.value}.")
+        return None, None, None, f"No vertices are available for settlement placement by Player {current_player} during phase {phase.value}."
+
     vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
-    existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
-    available = []
-    for v in board.vertices:
-        label = v["label"]
-        x1 = v["x"]
-        y1 = v["y"]
-        if label in used_vertices:
-            continue
-        too_close = any(
-            math.sqrt((x1 - x2)**2 + (y1 - y2)**2) < THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT
-            for x2, y2 in existing_coords
-        )
-        if not too_close:
-            available.append(label)
-    if not available:
-        logger.error(f"No vertices available for settlement placement (current_player={current_player}, phase={phase.value}).")
-        return None, None, None, "No vertices are available."
-    
-    '''
-    TODO: Include details such as
-    the names of all players,
-    the positions of each player's settlements,
-    the positions of each player's roads,
-    and other details.
-    '''
     game_state = {
         
     }
-    chosen_vertex = predict_best_settlement(game_state, available, vertex_coords)
+    chosen_vertex = predict_best_settlement(game_state, list_of_labels_of_available_vertices, vertex_coords)
     if not chosen_vertex:
         logger.error("AI failed to choose a vertex for settlement placement.")
-        return None, None, None, "AI decision error."
+        return None, None, None, "AI failed to choose a vertex for settlement placement."
     settlement = Settlement(player = current_player, vertex = chosen_vertex)
     session.add(settlement)
     session.commit()
     settlement_id = settlement.id
-    if phase == Phase.TO_PLACE_FIRST_SETTLEMENT:
-        next_phase = Phase.TO_PLACE_FIRST_ROAD
-    else:
-        logger.error(f"Invalid phase for settlement placement: {phase.value}")
-        return None, None, None, "Invalid phase for settlement placement."
+    next_phase = Phase.TO_PLACE_FIRST_ROAD if phase == Phase.TO_PLACE_FIRST_SETTLEMENT else None
     return chosen_vertex, settlement_id, next_phase, None
 
 
 def create_city(session, current_player, phase: Phase):
-    settlements = session.query(Settlement).all()
-    cities = session.query(City).all()
-    used_vertices = {s.vertex for s in settlements}.union({city.vertex for city in cities})
+    list_of_labels_of_occupied_vertices = get_list_of_labels_of_occupied_vertices(session, board)
+    list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
+    if not list_of_labels_of_available_vertices:
+        logger.exception(f"No vertices are available for city placement by Player {current_player} during phase {phase.value}.")
+        return None, None, None, f"No vertices are available for city placement by Player {current_player} during phase {phase.value}."
+
     vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
-    existing_coords = [vertex_coords[label] for label in used_vertices if label in vertex_coords]
-    available = []
-    for v in board.vertices:
-        label = v["label"]
-        x1 = v["x"]
-        y1 = v["y"]
-        if label in used_vertices:
-            continue
-        too_close = any(
-            math.sqrt((x1 - x2)**2 + (y1 - y2)**2) < THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT
-            for x2, y2 in existing_coords
-        )
-        if not too_close:
-            available.append(label)
-    if not available:
-        logger.error(f"No vertices available for city placement (current_player={current_player}, phase={phase.value}).")
-        return None, None, None, "No vertices are available."
-    
-    '''
-    TODO: Include details such as
-    the names of all players,
-    the positions of each player's settlements,
-    the positions of each player's roads,
-    and other details.
-    '''
     game_state = {
         
     }
-    chosen_vertex = predict_best_city(game_state, available, vertex_coords)
+    chosen_vertex = predict_best_city(game_state, list_of_labels_of_available_vertices, vertex_coords)
     if not chosen_vertex:
-        logger.error("AI failed to choose a vertex for city placement.")
-        return None, None, None, "AI decision error."
+        logger.exception("AI failed to choose a vertex for city placement.")
+        return None, None, None, "AI failed to choose a vertex for city placement."
     city = City(player = current_player, vertex = chosen_vertex)
     session.add(city)
     session.commit()
     city_id = city.id
-    if phase == Phase.TO_PLACE_FIRST_CITY:
-        next_phase = Phase.TO_PLACE_SECOND_ROAD
-    else:
-        logger.error(f"Invalid phase for city placement: {phase.value}")
-        return None, None, None, "Invalid phase for city placement."
+    next_phase = Phase.TO_PLACE_SECOND_ROAD if phase == Phase.TO_PLACE_FIRST_CITY else None
     return chosen_vertex, city_id, next_phase, None
 
 
