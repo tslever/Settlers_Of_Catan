@@ -26,20 +26,22 @@ def compute_strengths(session):
     vertex_coord = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
     strengths = {1: 0, 2: 0, 3: 0}
     settlements = session.query(Settlement).all()
-    for settlement in settlements:
-        player = settlement.player
-        vertex_label = settlement.vertex
+    cities = session.query(City).all()
+    all_buildings = settlements + cities
+    for building in all_buildings:
+        player = building.player
+        vertex_label = building.vertex
         if vertex_label not in vertex_coord:
             continue
-        settlement_coord = vertex_coord[vertex_label]
+        building_coord = vertex_coord[vertex_label]
         for hex in board.hexes:
             for hv in board.get_hex_vertices(hex):
-                if abs(hv[0] - settlement_coord[0]) < MARGIN_OF_ERROR and abs(hv[1] - settlement_coord[1]) < MARGIN_OF_ERROR:
+                if abs(hv[0] - building_coord[0]) < MARGIN_OF_ERROR and abs(hv[1] - building_coord[1]) < MARGIN_OF_ERROR:
                     hex_id = hex["id"]
-                    token = TOKEN_MAPPING.get(hex_id)
-                    if token is not None:
-                        dot_count = TOKEN_DOT_MAPPING.get(token, 0)
-                        strengths[player] += dot_count
+                    number_of_token = TOKEN_MAPPING.get(hex_id)
+                    if number_of_token is not None:
+                        number_of_pips_corresponding_to_number_of_token = TOKEN_DOT_MAPPING.get(number_of_token, 0)
+                        strengths[player] += number_of_pips_corresponding_to_number_of_token
                     break
     return strengths
 
