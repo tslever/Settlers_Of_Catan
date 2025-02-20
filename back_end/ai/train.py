@@ -17,6 +17,7 @@ from ..ai.neural_network import SettlersPolicyValueNet
 from ..board import TOKEN_MAPPING
 from ..board import TOKEN_DOT_MAPPING
 from ..board import WIDTH_OF_BOARD_IN_VMIN
+from .io_helper import load_training_data
 import logging
 import math
 import os
@@ -90,7 +91,7 @@ class SelfPlayDataset(Dataset):
                 # If any vertex of the hex matches (within tolerance) the candidate vertex
                 # then add its pip value.
                 for vx, vy in vertices:
-                    if math.isclose(vx, x, abs_tol=MARGIN_OF_ERROR) and math.isclose(vy, y, abs_tol=MARGIN_OF_ERROR):
+                    if math.isclose(vx, x, abs_tol = MARGIN_OF_ERROR) and math.isclose(vy, y, abs_tol = MARGIN_OF_ERROR):
                         hex_id = hex_tile["id"]
                         token = TOKEN_MAPPING.get(hex_id)
                         if token is not None:
@@ -111,11 +112,11 @@ class SelfPlayDataset(Dataset):
 
 
     def __len__(self):
-        return len(self.data)
+        return len(self.samples)
 
 
     def __getitem__(self, idx):
-        feature_vector, target_value, target_policy = self.data[idx]
+        feature_vector, target_value, target_policy = self.samples[idx]
         # Convert to tensors (the network expects inputs of shape [batch, 5])
         x = torch.tensor(feature_vector, dtype = torch.float32)
         y_value = torch.tensor([target_value], dtype = torch.float32)
@@ -162,11 +163,12 @@ def train_model(training_data, num_epochs = 100, batch_size = 32, learning_rate 
     
     # Save the trained model’s state_dict to the specified path.
     save_model_weights(model)
-    logger.info(f"Model saved to {model_save_path}")
+    logger.info(f"Model has been saved.")
 
 
 if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.abspath(__file__))
     npy_file = settings.training_data_path
     model_save_path = settings.model_path
-    train_model(npy_file, model_save_path, num_epochs=100, batch_size=32, learning_rate=1e-3)
+    training_data = load_training_data()
+    train_model(training_data = training_data, num_epochs=100, batch_size=32, learning_rate=1e-3)

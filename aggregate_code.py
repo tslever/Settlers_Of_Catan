@@ -6,9 +6,11 @@ base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
     r'back_end\ai\__init__.py',
     r'back_end\ai\continuous_training.py',
+    r'back_end\ai\io_helper.py',
     r'back_end\ai\mcts_node.py',
     r'back_end\ai\neural_network.py',
     r'back_end\ai\self_play.py',
+    r'back_end\ai\stop_event.py',
     r'back_end\ai\strategy.py',
     r'back_end\ai\train.py',
 
@@ -22,10 +24,9 @@ file_paths = [
     r'back_end\routes\root.py',
     r'back_end\routes\settlements.py',
 
-    r'back_end\utilities\__init__.py',
-    r'back_end\utilities\board.py',
-    r'back_end\utilities\game_state.py',
-    r'back_end\utilities\phase.py',
+    r'back_end\board.py',
+    r'back_end\game_state.py',
+    r'back_end\phase.py',
 
     r'back_end\__init__.py',
     r'back_end\app.py',

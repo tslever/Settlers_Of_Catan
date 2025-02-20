@@ -43,18 +43,19 @@ class SettlersPolicyValueNet(nn.Module):
         return value, policy
 
 
-class SettlersNeuralNet:
+class SettlersNeuralNet(nn.Module):
 
-    '''
-    Handles loading model weights and making predictions for settlement and road moves.
-    '''
     def __init__(self, model_path):
+        '''
+        Handles loading model weights and making predictions for settlement and road moves.
+        '''
+        super().__init__()
         self.model_path = model_path
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         input_dim = 5 # Features: normalized pip sum, x, y, hex count, bias
         self.model = SettlersPolicyValueNet(input_dim)
         self.model.to(self.device)
-        self.last_model_mod_time = None
+        self.last_model_mod_time = load_model_weights(self.model, self.device)
         load_model_weights(self.model, self.device)
         self.board = Board()
         self.model.eval()
@@ -63,13 +64,14 @@ class SettlersNeuralNet:
     def reload_if_updated(self):
         '''
         Check if the model file has been updated and reload weights if so.
-        If so, reload weights.
+        If so, reload weights and update the last known modification time.
         '''
         if os.path.exists(self.model_path):
             mod_time = os.path.getmtime(self.model_path)
             if self.last_model_mod_time is None or mod_time > self.last_model_mod_time:
-                print("[NEURAL NETWORK] Updated weights were detected and will be reloaded.")
+                logger.info("[NEURAL NETWORK] Updated weights were detected and will be reloaded.")
                 load_model_weights(self.model, self.device)
+                self.last_model_mod_time = mod_time
 
 
     def evaluate_settlement(self, vertex):

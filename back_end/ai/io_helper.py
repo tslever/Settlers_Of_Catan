@@ -1,4 +1,5 @@
 from filelock import FileLock
+import logging
 import numpy as np
 import os
 from back_end.settings import settings
@@ -6,6 +7,7 @@ import torch
 
 
 LOCK_PATH = settings.training_data_path + ".lock"
+logger = logging.getLogger(__name__)
 lock = FileLock(LOCK_PATH)
 
 
@@ -46,6 +48,7 @@ def load_model_weights(model, device) -> float:
         try:
             state_dict = torch.load(settings.model_path, map_location = device)
             model.load_state_dict(state_dict)
+            logger.info(f"[IO HELPER] Weights were loaded from {settings.model_path}.")
             last_mod_time = os.path.getmtime(settings.model_path)
         except Exception as e:
             raise RuntimeError(f"Error loading model weights: {e}")

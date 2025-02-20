@@ -45,7 +45,7 @@ def continuous_self_play_loop(stop_event):
                     batch_size = 32,
                     learning_rate = 1e-3
                 )
-                logger.info("[TRAINING] Training is complete. A new model has been saved.")
+                logger.info("[TRAINING] Training is complete.")
                 save_training_data([])
         except Exception as e:
             logger.exception(f"[SELF PLAY] The following exception occurred in a continuous self play loop. {e}")
