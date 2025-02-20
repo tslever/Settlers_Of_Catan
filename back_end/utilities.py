@@ -1,11 +1,10 @@
 from back_end.board import Board
 from back_end.db.database import City
-from back_end.board import MARGIN_OF_ERROR
 from back_end.db.database import Settlement
 from back_end.board import TOKEN_DOT_MAPPING
 from back_end.board import TOKEN_MAPPING
-from back_end.board import WIDTH_OF_BOARD_IN_VMIN
 import math
+from back_end.settings import settings
 
 
 def calculate_euclidean_distance_between_points_defined_by_coordinates(x1: float, y1: float, x2: float, y2: float) -> float:
@@ -40,7 +39,7 @@ def compute_vertex_feature_vector(board: Board, label_of_vertex: str) -> list[fl
         number_of_adjacent_hexes = 0
         for dictionary_of_hex_information in board.hexes:
             for x2, y2 in board.get_hex_vertices(dictionary_of_hex_information):
-                if math.isclose(x2, x1, abs_tol = MARGIN_OF_ERROR) and math.isclose(y2, y1, abs_tol = MARGIN_OF_ERROR):
+                if math.isclose(x2, x1, abs_tol = settings.margin_of_error) and math.isclose(y2, y1, abs_tol = settings.margin_of_error):
                     number_on_token = TOKEN_MAPPING.get(dictionary_of_hex_information["id"])
                     if number_on_token is not None:
                         number_of_pips_corresponding_to_number_on_token = TOKEN_DOT_MAPPING.get(number_on_token, 0)
@@ -48,7 +47,7 @@ def compute_vertex_feature_vector(board: Board, label_of_vertex: str) -> list[fl
                         number_of_adjacent_hexes += 1
                     break
         normalized_total_number_of_pips = total_number_of_pips / (number_of_adjacent_hexes * 5) if number_of_adjacent_hexes > 0 else 0.0
-        normalized_horizontal_position_of_vertex = x1 / WIDTH_OF_BOARD_IN_VMIN
+        normalized_horizontal_position_of_vertex = x1 / settings.width_of_board_in_vmin
         normalized_vertical_position_of_vertex = y1 / 100.0
         normalized_number_of_adjacent_hexes = number_of_adjacent_hexes / 3.0
         feature_vector = [

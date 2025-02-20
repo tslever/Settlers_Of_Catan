@@ -7,7 +7,6 @@ This module defines two separate concerns:
 
 
 from ..board import Board
-from ..board import MARGIN_OF_ERROR
 from .io_helper import load_model_weights
 import logging
 import math
@@ -101,8 +100,8 @@ class SettlersNeuralNet(nn.Module):
         v1 = (edge["x1"], edge["y1"])
         v2 = (edge["x2"], edge["y2"])
         if (
-            math.isclose(v1[0], settlement_coord[0], abs_tol = MARGIN_OF_ERROR) and
-            math.isclose(v1[1], settlement_coord[1], abs_tol = MARGIN_OF_ERROR)
+            math.isclose(v1[0], settlement_coord[0], abs_tol = settings.margin_of_error) and
+            math.isclose(v1[1], settlement_coord[1], abs_tol = settings.margin_of_error)
         ):
             other = v2
         else:
@@ -110,8 +109,8 @@ class SettlersNeuralNet(nn.Module):
         other_label = None
         for label, coords in vertex_coords.items():
             if (
-                math.isclose(coords[0], other[0], abs_tol = MARGIN_OF_ERROR) and
-                math.isclose(coords[1], other[1], abs_tol = MARGIN_OF_ERROR)
+                math.isclose(coords[0], other[0], abs_tol = settings.margin_of_error) and
+                math.isclose(coords[1], other[1], abs_tol = settings.margin_of_error)
             ):
                 other_label = label
                 break

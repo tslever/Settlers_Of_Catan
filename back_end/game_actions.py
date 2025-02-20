@@ -1,6 +1,5 @@
 from back_end.board import Board
 from back_end.db.database import City
-from back_end.board import MARGIN_OF_ERROR
 from back_end.phase import Phase
 from back_end.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
 from back_end.db.database import Road
@@ -15,9 +14,10 @@ import math
 from back_end.ai.strategy import predict_best_settlement
 from back_end.ai.strategy import predict_best_city
 from back_end.ai.strategy import predict_best_road
+from back_end.settings import settings
 
 
-THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX * WIDTH_OF_HEX + MARGIN_OF_ERROR
+THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX * WIDTH_OF_HEX + settings.margin_of_error
 logger = logging.getLogger(__name__)
 board = Board()
 
@@ -36,7 +36,7 @@ def compute_strengths(session):
         building_coord = vertex_coord[vertex_label]
         for hex in board.hexes:
             for hv in board.get_hex_vertices(hex):
-                if abs(hv[0] - building_coord[0]) < MARGIN_OF_ERROR and abs(hv[1] - building_coord[1]) < MARGIN_OF_ERROR:
+                if abs(hv[0] - building_coord[0]) < settings.margin_of_error and abs(hv[1] - building_coord[1]) < settings.margin_of_error:
                     hex_id = hex["id"]
                     number_of_token = TOKEN_MAPPING.get(hex_id)
                     if number_of_token is not None:
@@ -112,8 +112,8 @@ def create_road(session, current_player, phase: Phase, last_settlement_or_city):
         x2 = edge["x2"]
         y2 = edge["y2"]
         if (
-            (math.isclose(x1, settlement_or_city_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(y1, settlement_or_city_coord[1], abs_tol = MARGIN_OF_ERROR)) or
-            (math.isclose(x2, settlement_or_city_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(y2, settlement_or_city_coord[1], abs_tol = MARGIN_OF_ERROR))
+            (math.isclose(x1, settlement_or_city_coord[0], abs_tol = settings.margin_of_error) and math.isclose(y1, settlement_or_city_coord[1], abs_tol = settings.margin_of_error)) or
+            (math.isclose(x2, settlement_or_city_coord[0], abs_tol = settings.margin_of_error) and math.isclose(y2, settlement_or_city_coord[1], abs_tol = settings.margin_of_error))
         ):
             adjacent_edges.append(edge)
     if not adjacent_edges:

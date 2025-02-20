@@ -21,4 +21,15 @@ class Settings(BaseSettings):
     num_simulations: int = 50
     training_threshold: int = 500
 
+    number_of_epochs_to_train_neural_network = 10
+    batch_size = 32
+    learning_rate = 1e-3
+    length_of_feature_vector = 5
+    number_of_neurons_in_hidden_layer = 128
+
+    margin_of_error = 0.01
+    width_of_board_in_vmin = 100
+    number_of_hexes_that_span_board = 6
+
+
 settings = Settings()

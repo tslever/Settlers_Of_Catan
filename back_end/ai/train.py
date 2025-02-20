@@ -100,13 +100,13 @@ class SelfPlayDataset(Dataset):
 # Training loop
 # ------------------------------------------------------------------------------
 
-def train_model(training_data, num_epochs = 100, batch_size = 32, learning_rate = 1e-3):
+def train_model(training_data, num_epochs = settings.number_of_epochs_to_train_neural_network, batch_size = settings.batch_size, learning_rate = settings.learning_rate):
     # Create the dataset and dataloader.
     dataset = SelfPlayDataset(training_data)
     dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = True)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = SettlersPolicyValueNet(input_dim = 5, hidden_dim = 128)
+    model = SettlersPolicyValueNet(input_dim = settings.length_of_feature_vector, hidden_dim = settings.number_of_neurons_in_hidden_layer)
     model.to(device)
     
     # We use the mean–squared–error loss for both value and policy outputs.
@@ -120,18 +120,18 @@ def train_model(training_data, num_epochs = 100, batch_size = 32, learning_rate 
             x = x.to(device)
             target_value = target_value.to(device)
             target_policy = target_policy.to(device)
-            
             optimizer.zero_grad()
             # Forward pass; the network returns (value, policy)
             pred_value, pred_policy = model(x)
             loss_value = criterion(pred_value, target_value)
             loss_policy = criterion(pred_policy, target_policy)
             loss = loss_value + loss_policy
+            # Backward pass
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item() * x.size(0)
         epoch_loss /= len(dataset)
-        logger.info(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}")
+        logger.info(f"Epoch {epoch + 1} / {num_epochs}, Loss: {epoch_loss:.4f}")
     
     # Save the trained model’s state_dict to the specified path.
     save_model_weights(model)

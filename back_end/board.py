@@ -8,8 +8,6 @@ import numpy as np
 from back_end.settings import settings
 
 
-MARGIN_OF_ERROR = 0.01
-NUMBER_OF_HEXES_THAT_SPAN_BOARD = 6
 RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX = math.tan(math.pi / 6)
 TOKEN_DOT_MAPPING = {
     2: 1,
@@ -44,10 +42,9 @@ TOKEN_MAPPING = {
     "H18": 6,
     "H19": 11
 }
-WIDTH_OF_BOARD_IN_VMIN = 100  # vmin
 
 RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX = 2 * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
-WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD
+WIDTH_OF_HEX = settings.width_of_board_in_vmin / settings.number_of_hexes_that_span_board
 HEIGHT_OF_HEX = WIDTH_OF_HEX * RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX
 LENGTH_OF_SIDE_OF_HEX = WIDTH_OF_HEX * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
 
@@ -71,14 +68,14 @@ class Board:
             point = np.array([x, y])
             for hex in self.hexes:
                 hex_vertices = np.array(self.get_hex_vertices(hex))
-                if np.any(np.all(np.abs(hex_vertices - point) < MARGIN_OF_ERROR, axis = 1)):
+                if np.any(np.all(np.abs(hex_vertices - point) < settings.margin_of_error, axis = 1)):
                     hex_id = hex["id"]
                     token = TOKEN_MAPPING.get(hex_id)
                     if token is not None:
                         total_pips += TOKEN_DOT_MAPPING.get(token, 0)
                         hex_count += 1
             normalized_pip = total_pips / (hex_count * 5) if hex_count > 0 else 0.0
-            normalized_x = x / WIDTH_OF_BOARD_IN_VMIN
+            normalized_x = x / settings.width_of_board_in_vmin
             normalized_y = y / 100.0
             normalized_hex_count = hex_count / 3.0
             feature_vector = [normalized_pip, normalized_x, normalized_y, normalized_hex_count, 1.0]
@@ -145,7 +142,7 @@ class Board:
             y1 = dictionary_of_vertex_information["y"]
             general_vertex_and_occupied_vertex_are_too_close = False
             for x2, y2 in list_of_tuples_of_coordinates_of_occupied_vertices:
-                if math.sqrt((x1 - x2)**2 + (y1 - y2)**2) < LENGTH_OF_SIDE_OF_HEX + MARGIN_OF_ERROR:
+                if math.sqrt((x1 - x2)**2 + (y1 - y2)**2) < LENGTH_OF_SIDE_OF_HEX + settings.margin_of_error:
                     general_vertex_and_occupied_vertex_are_too_close = True
                     break
             if not general_vertex_and_occupied_vertex_are_too_close:
@@ -166,8 +163,8 @@ class Board:
             v1 = (edge["x1"], edge["y1"])
             v2 = (edge["x2"], edge["y2"])
             if (
-                (math.isclose(v1[0], settlement_or_city_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v1[1], settlement_or_city_coord[1], abs_tol = MARGIN_OF_ERROR)) or
-                (math.isclose(v2[0], settlement_or_city_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v2[1], settlement_or_city_coord[1], abs_tol = MARGIN_OF_ERROR))
+                (math.isclose(v1[0], settlement_or_city_coord[0], abs_tol = settings.margin_of_error) and math.isclose(v1[1], settlement_or_city_coord[1], abs_tol = settings.margin_of_error)) or
+                (math.isclose(v2[0], settlement_or_city_coord[0], abs_tol = settings.margin_of_error) and math.isclose(v2[1], settlement_or_city_coord[1], abs_tol = settings.margin_of_error))
             ):
                 edge_key = self.get_edge_key(v1, v2)
                 if edge_key not in used_edge_keys:

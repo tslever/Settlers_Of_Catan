@@ -1,6 +1,5 @@
 from ..board import Board
 from ..game_state import GameState
-from ..board import MARGIN_OF_ERROR
 from .mcts_node import MCTS_Node
 from ..board import TOKEN_DOT_MAPPING
 from ..board import TOKEN_MAPPING
@@ -38,8 +37,8 @@ def compute_game_outcome(settlements):
         hex_count = 0
         for hex_tile in board.hexes:
             for vx, vy in board.get_hex_vertices(hex_tile):
-                if (math.isclose(vx, vertex_coords[vertex][0], abs_tol=MARGIN_OF_ERROR) and
-                    math.isclose(vy, vertex_coords[vertex][1], abs_tol=MARGIN_OF_ERROR)):
+                if (math.isclose(vx, vertex_coords[vertex][0], abs_tol = settings.margin_of_error) and
+                    math.isclose(vy, vertex_coords[vertex][1], abs_tol = settings.margin_of_error)):
                     hex_id = hex_tile["id"]
                     token = TOKEN_MAPPING.get(hex_id)
                     if token is not None:

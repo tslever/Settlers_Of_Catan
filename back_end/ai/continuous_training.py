@@ -11,7 +11,6 @@ The updated model is saved to disk so that the live Monte Carlo Tree Search
 '''
 
 import logging
-import numpy as np
 from back_end.settings import settings
 from .self_play import simulate_self_play_game
 import time
@@ -37,13 +36,13 @@ def continuous_self_play_loop(stop_event):
 
             # Trigger a training update if enough data has been accumulated.
             if total >= settings.training_threshold:
-                logger.info("[TRAINING] Starting training update...")
+                logger.info("[TRAINING] Training a neural network will begin.")
                 # Use a relatively short training run so as not to delay continuous play too much.
                 train_model(
                     training_data = data,
-                    num_epochs = 10, # relatively few epochs for a quick update
-                    batch_size = 32,
-                    learning_rate = 1e-3
+                    num_epochs = settings.number_of_epochs_to_train_neural_network, # relatively few epochs for a quick update
+                    batch_size = settings.batch_size,
+                    learning_rate = settings.learning_rate
                 )
                 logger.info("[TRAINING] Training is complete.")
                 save_training_data([])
