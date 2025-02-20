@@ -55,7 +55,6 @@ class SettlersNeuralNet(nn.Module):
         self.model = SettlersPolicyValueNet(input_dim)
         self.model.to(self.device)
         self.last_model_mod_time = load_model_weights(self.model, self.device)
-        load_model_weights(self.model, self.device)
         self.board = Board()
         self.model.eval()
     

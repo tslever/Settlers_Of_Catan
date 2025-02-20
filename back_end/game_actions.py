@@ -93,10 +93,10 @@ def create_city(session, current_player, phase: Phase):
 
 
 def create_road(session, current_player, phase: Phase, last_settlement_or_city):
-    if (Phase == Phase.TO_PLACE_FIRST_ROAD) and (not last_settlement_or_city):
+    if (phase == Phase.TO_PLACE_FIRST_ROAD) and (not last_settlement_or_city):
         logger.error(f"No settlement recorded for road placement (current_player={current_player}, phase={phase.value})")
         return None, None, None, None, "No settlement recorded for road placement."
-    if (Phase == Phase.TO_PLACE_SECOND_ROAD) and (not last_settlement_or_city):
+    if (phase == Phase.TO_PLACE_SECOND_ROAD) and (not last_settlement_or_city):
         logger.error(f"No city recorded for road placement (current_player={current_player}, phase={phase.value})")
         return None, None, None, None, "No settlement recorded for city placement."
     
