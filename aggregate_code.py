@@ -10,7 +10,6 @@ file_paths = [
     r'back_end\ai\mcts_node.py',
     r'back_end\ai\neural_network.py',
     r'back_end\ai\self_play.py',
-    r'back_end\ai\stop_event.py',
     r'back_end\ai\strategy.py',
     r'back_end\ai\train.py',
 

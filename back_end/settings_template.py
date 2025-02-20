@@ -18,10 +18,10 @@ class Settings(BaseSettings):
 
     game_interval: float = 1.0
     c_puct: float = 1.0
-    num_simulations: int = 50
+    number_of_simulations: int = 50
     training_threshold: int = 500
 
-    number_of_epochs_to_train_neural_network = 10
+    number_of_epochs = 10
     batch_size = 32
     learning_rate = 1e-3
     length_of_feature_vector = 5

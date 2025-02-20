@@ -100,7 +100,7 @@ class SelfPlayDataset(Dataset):
 # Training loop
 # ------------------------------------------------------------------------------
 
-def train_model(training_data, num_epochs = settings.number_of_epochs_to_train_neural_network, batch_size = settings.batch_size, learning_rate = settings.learning_rate):
+def train_model(training_data, num_epochs = settings.number_of_epochs, batch_size = settings.batch_size, learning_rate = settings.learning_rate):
     # Create the dataset and dataloader.
     dataset = SelfPlayDataset(training_data)
     dataloader = DataLoader(dataset, batch_size = batch_size, shuffle = True)

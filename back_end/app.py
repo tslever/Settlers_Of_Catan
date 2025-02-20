@@ -15,10 +15,12 @@ from .routes import blueprint_for_route_settlements
 from flask import jsonify
 from .db.database import initialize_database
 import logging
+from back_end.ai.neural_network import neural_network
 from back_end.logger import set_up_logging
 from back_end.settings import settings
 from .ai.continuous_training import start_continuous_training_in_background
-from back_end.ai.continuous_training import stop_event
+from back_end.ai.neural_network import start_model_watcher
+import threading
 
 
 set_up_logging()
@@ -116,7 +118,9 @@ def create_app():
 
 
 if __name__ == '__main__':
-    training_thread = start_continuous_training_in_background()
+    stop_event = threading.Event()
+    training_thread = start_continuous_training_in_background(stop_event, settings)
+    model_watcher_thread = start_model_watcher(neural_network, stop_event)
     app = create_app()
     logger.info(f"Created back end on port {settings.back_end_port}")
     try:

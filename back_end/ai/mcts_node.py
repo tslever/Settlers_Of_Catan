@@ -12,7 +12,7 @@ class MCTS_Node:
         self.move = move
         self.parent = parent
         self.move_type = move_type
-        self.children = {} # mapping from move (or edge_key for roads) to child node
+        self.children = {} # mapping from label of vertex for settlement, or key of edge for roads, to child node
         self.N = 0 # visit count
         self.W = 0.0 # total value
         self.Q = 0.0 # mean value (W / N)

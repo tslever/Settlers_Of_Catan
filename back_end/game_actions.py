@@ -11,6 +11,7 @@ from flask import abort
 from back_end.utilities import get_list_of_labels_of_occupied_vertices
 import logging
 import math
+from back_end.ai.neural_network import neural_network
 from back_end.ai.strategy import predict_best_settlement
 from back_end.ai.strategy import predict_best_city
 from back_end.ai.strategy import predict_best_road
@@ -57,7 +58,7 @@ def create_settlement(session, current_player, phase: Phase):
     game_state = {
         
     }
-    chosen_vertex = predict_best_settlement(game_state, list_of_labels_of_available_vertices, vertex_coords)
+    chosen_vertex = predict_best_settlement(game_state, list_of_labels_of_available_vertices, vertex_coords, neural_network)
     if not chosen_vertex:
         logger.error("AI failed to choose a vertex for settlement placement.")
         return None, None, None, "AI failed to choose a vertex for settlement placement."
@@ -80,7 +81,7 @@ def create_city(session, current_player, phase: Phase):
     game_state = {
         
     }
-    chosen_vertex = predict_best_city(game_state, list_of_labels_of_available_vertices, vertex_coords)
+    chosen_vertex = predict_best_city(game_state, list_of_labels_of_available_vertices, vertex_coords, neural_network)
     if not chosen_vertex:
         logger.exception("AI failed to choose a vertex for city placement.")
         return None, None, None, "AI failed to choose a vertex for city placement."
@@ -143,7 +144,7 @@ def create_road(session, current_player, phase: Phase, last_settlement_or_city):
     game_state = {
         "last_settlement": last_settlement_or_city
     }
-    best_edge, best_edge_key = predict_best_road(game_state, available_edges, vertex_coords)
+    best_edge, best_edge_key = predict_best_road(game_state, available_edges, vertex_coords, neural_network)
     if best_edge is None:
         logger.error("AI failed to choose an edge for road placement.")
         return None, None, None, None, "No valid edge found for road placement."

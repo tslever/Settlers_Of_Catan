@@ -52,17 +52,36 @@ def compute_game_outcome(settlements):
     return {player: 1 if player == winner else -1 for player in strengths}
 
 
-def run_mcts_for_move(state, move_type, available_moves, num_simulations):
+def run_mcts_for_move(
+    state,
+    move_type,
+    list_of_labels_of_available_vertices_or_tuples_of_edge_information,
+    dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
+    number_of_simulations,
+    c_puct,
+    neural_network
+):
     # Create a root node; pass the game state as a dictionary snapshot.
-    root = MCTS_Node(game_state=copy.deepcopy(state.get_state_snapshot()), move_type=move_type)
-    expand_node(root, available_moves, vertex_coords)
-    for _ in range(num_simulations):
+    copy_of_game_state = copy.deepcopy(state.get_state_snapshot())
+    root = MCTS_Node(copy_of_game_state, move_type = move_type)
+    expand_node(
+        root,
+        list_of_labels_of_available_vertices_or_tuples_of_edge_information,
+        dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
+        neural_network
+    )
+    for _ in range(0, number_of_simulations):
         node = root
         while not node.is_leaf():
-            node = select_child(node, settings.c_puct)
+            node = select_child(node, c_puct)
         if node.N > 0:
-            expand_node(node, available_moves, vertex_coords)
-        value = simulate_rollout(node, vertex_coords)
+            expand_node(
+                node,
+                list_of_labels_of_available_vertices_or_tuples_of_edge_information,
+                dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
+                neural_network
+            )
+        value = simulate_rollout(node, dictionary_of_labels_of_vertices_and_tuples_of_coordinates, neural_network)
         backpropagate(node, value)
     total_visits = sum(child.N for child in root.children.values())
     policy = {move: (child.N / total_visits) for move, child in root.children.items()}
@@ -70,7 +89,11 @@ def run_mcts_for_move(state, move_type, available_moves, num_simulations):
     return chosen_move, policy
 
 
-def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct = settings.num_simulations):
+def simulate_self_play_game(
+    neural_network,
+    number_of_simulations = settings.number_of_simulations,
+    c_puct = settings.c_puct
+):
     # Use our GameState class rather than a raw dict.
     game_state = GameState()
     training_examples = []
@@ -88,7 +111,15 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
         if not list_of_labels_of_available_vertices:
             logger.exception("There are no vertices on which a settlement can be built.")
             break
-        chosen_settlement, policy = run_mcts_for_move(game_state, "settlement", list_of_labels_of_available_vertices, num_simulations)
+        chosen_settlement, policy = run_mcts_for_move(
+            game_state,
+            "settlement",
+            list_of_labels_of_available_vertices,
+            vertex_coords,
+            number_of_simulations,
+            settings.c_puct,
+            neural_network
+        )
         training_examples.append({
             "state": copy.deepcopy(game_state.get_state_snapshot()),
             "move_type": "settlement",
@@ -103,7 +134,7 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
         if not available_roads:
             print("No available roads!")
             break
-        chosen_road, policy = run_mcts_for_move(game_state, "road", available_roads, num_simulations)
+        chosen_road, policy = run_mcts_for_move(game_state, "road", available_roads, vertex_coords, number_of_simulations, c_puct, neural_network)
         training_examples.append({
             "state": copy.deepcopy(game_state.get_state_snapshot()),
             "move_type": "road",
@@ -125,7 +156,7 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
         if not list_of_labels_of_available_vertices:
             logger.warning("No available cities!")
             break
-        chosen_city, policy = run_mcts_for_move(game_state, "city", list_of_labels_of_available_vertices, num_simulations)
+        chosen_city, policy = run_mcts_for_move(game_state, "city", list_of_labels_of_available_vertices, vertex_coords, number_of_simulations, c_puct, neural_network)
         training_examples.append({
             "state": copy.deepcopy(game_state.get_state_snapshot()),
             "move_type": "city",
@@ -140,7 +171,7 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
         if not available_roads:
             logger.warning("No available roads!")
             break
-        chosen_road, policy = run_mcts_for_move(game_state, "road", available_roads, num_simulations)
+        chosen_road, policy = run_mcts_for_move(game_state, "road", available_roads, vertex_coords, number_of_simulations, c_puct, neural_network)
         training_examples.append({
             "state": copy.deepcopy(game_state.get_state_snapshot()),
             "move_type": "road",
@@ -157,7 +188,7 @@ def simulate_self_play_game(num_simulations = settings.num_simulations, c_puct =
     return training_examples
 
 
-def generate_training_data(num_games=10, num_simulations = settings.num_simulations, c_puct = settings.c_puct):
+def generate_training_data(num_games=10, num_simulations = settings.number_of_simulations, c_puct = settings.c_puct):
     all_examples = []
     for _ in range(num_games):
         examples = simulate_self_play_game(num_simulations=num_simulations, c_puct=c_puct)
@@ -169,4 +200,4 @@ def generate_training_data(num_games=10, num_simulations = settings.num_simulati
 
 
 if __name__ == "__main__":
-    generate_training_data(num_games=100, num_simulations = settings.num_simulations, c_puct = settings.c_puct)
+    generate_training_data(num_games=100, num_simulations = settings.number_of_simulations, c_puct = settings.c_puct)
