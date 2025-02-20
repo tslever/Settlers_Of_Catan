@@ -14,7 +14,7 @@ const colorMapping: { [key: number]: string } = {
 
 const CityContainer = styled.div`
     position: absolute;
-    transform: translate(-75%, -50%);
+    transform: translate(-75%, -75%);
     display: flex;
     flex-direction: column;
     align-items: center;

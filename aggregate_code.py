@@ -37,10 +37,14 @@ file_paths = [
 
     r'front_end\app\components\CityMarker.tsx',
     r'front_end\app\components\HexTile.tsx',
+    r'front_end\app\components\Marker.tsx',
     r'front_end\app\components\Ocean.tsx',
     r'front_end\app\components\Port.tsx',
+    r'front_end\app\components\QueryBoundary.tsx',
     r'front_end\app\components\SettlementMarker.tsx',
     r'front_end\app\components\Vertex.tsx',
+
+    r'front_end\app\hooks\useCentralQuery.ts',
 
     r'front_end\app\board.ts',
     r'front_end\app\BoardLayout.tsx',
