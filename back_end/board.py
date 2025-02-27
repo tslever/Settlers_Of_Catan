@@ -49,6 +49,10 @@ HEIGHT_OF_HEX = WIDTH_OF_HEX * RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX
 LENGTH_OF_SIDE_OF_HEX = WIDTH_OF_HEX * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
 
 
+def euclidean_distance_between_vertices_with_coordinates(x1: float, y1: float, x2: float, y2: float) -> float:
+    return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
+
 class Board:
 
     def __init__(self, geometry_file: Optional[str] = None):
@@ -140,13 +144,12 @@ class Board:
                 continue
             x1 = dictionary_of_vertex_information["x"]
             y1 = dictionary_of_vertex_information["y"]
-            general_vertex_and_occupied_vertex_are_too_close = False
-            for x2, y2 in list_of_tuples_of_coordinates_of_occupied_vertices:
-                if math.sqrt((x1 - x2)**2 + (y1 - y2)**2) < LENGTH_OF_SIDE_OF_HEX + settings.margin_of_error:
-                    general_vertex_and_occupied_vertex_are_too_close = True
-                    break
-            if not general_vertex_and_occupied_vertex_are_too_close:
-                list_of_labels_of_available_vertices.append(label)
+            if any(
+                euclidean_distance_between_vertices_with_coordinates(x1, y1, x2, y2) < (LENGTH_OF_SIDE_OF_HEX + settings.margin_of_error)
+                for x2, y2 in list_of_tuples_of_coordinates_of_occupied_vertices
+            ):
+                continue
+            list_of_labels_of_available_vertices.append(label)
         return list_of_labels_of_available_vertices
 
 

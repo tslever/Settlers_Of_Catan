@@ -20,9 +20,23 @@ from back_end.settings import settings
 from back_end.ai.mcts.simulation import simulate_rollout
 
 
+def inject_dirichlet_noise(root, epsilon: float = 0.25, alpha: float = 0.03) -> None:
+    '''
+    Inject Dirichlet noise into the children of the root node.
+    This is used to encourage exploration at the root during MCTS.
+    '''
+    # Only inject if the root has no parent (i.e., the root is the true root).
+    if root.parent is None:
+        moves = list(root.children.keys())
+        noise = np.random.dirichlet([alpha] * len(moves))
+        for i, move in enumerate(moves):
+            child = root.children[move]
+            child.P = (1 - epsilon) * child.P + epsilon * noise[i]
+
+
 def monte_carlo_tree_search(
     root,
-    list_of_labels_of_available_vertices_or_tuples_of_edge_information,
+    list_of_labels_of_available_vertices_or_tuples_of_edge_information, # representing available moves
     vertex_coords,
     num_simulations,
     c_puct,
@@ -45,12 +59,8 @@ def monte_carlo_tree_search(
     '''
     if root.is_leaf():
         expand_node(root, list_of_labels_of_available_vertices_or_tuples_of_edge_information, vertex_coords, neural_network)
-        if add_dirichlet_noise and root.parent is None:
-            moves = list(root.children.keys())
-            noise = np.random.dirichlet([alpha] * len(moves))
-            for i, move in enumerate(moves):
-                child = root.children[move]
-                child.P = (1 - epsilon) * child.P + epsilon * noise[i]
+        if add_dirichlet_noise:
+            inject_dirichlet_noise(root, epsilon, alpha)
     for _ in range(0, num_simulations):
         node = root
         # Complete selection by descending / traversing the tree until a leaf is reached.
@@ -64,7 +74,7 @@ def monte_carlo_tree_search(
         # Complete backpropagation by updating node statistics.
         backpropagate(node, value)
     # Choose the move from the root with the highest visit count / that was most visited.
-    best_key, best_child = max(root.children.items(), key = lambda item: item[1].N)
+    _, best_child = max(root.children.items(), key = lambda item: item[1].N)
     return best_child.move
 
 

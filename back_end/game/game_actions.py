@@ -8,7 +8,6 @@ from back_end.board import TOKEN_DOT_MAPPING
 from back_end.board import TOKEN_MAPPING
 from back_end.board import WIDTH_OF_HEX
 from flask import abort
-from back_end.utilities import get_list_of_labels_of_occupied_vertices
 import logging
 import math
 from back_end.ai.neural_network import neural_network
@@ -21,6 +20,16 @@ from back_end.settings import settings
 THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX * WIDTH_OF_HEX + settings.margin_of_error
 logger = logging.getLogger(__name__)
 board = Board()
+
+
+def get_list_of_labels_of_occupied_vertices(session) -> list[str]:
+    settlements = session.query(Settlement).all()
+    cities = session.query(City).all()
+    set_of_labels_of_vertices_with_settlements = {settlement.vertex for settlement in settlements}
+    set_of_labels_of_vertices_with_cities = {city.vertex for city in cities}
+    set_of_labels_of_occupied_vertices = set_of_labels_of_vertices_with_settlements.union(set_of_labels_of_vertices_with_cities)
+    list_of_labels_of_occupied_vertices = list(set_of_labels_of_occupied_vertices)
+    return list_of_labels_of_occupied_vertices
 
 
 def compute_strengths(session):
@@ -48,7 +57,7 @@ def compute_strengths(session):
 
 
 def create_settlement(session, current_player, phase: Phase):
-    list_of_labels_of_occupied_vertices = get_list_of_labels_of_occupied_vertices(session, board)
+    list_of_labels_of_occupied_vertices = get_list_of_labels_of_occupied_vertices(session)
     list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
     if not list_of_labels_of_available_vertices:
         logger.exception(f"No vertices are available for settlement placement by Player {current_player} during phase {phase.value}.")
@@ -71,7 +80,7 @@ def create_settlement(session, current_player, phase: Phase):
 
 
 def create_city(session, current_player, phase: Phase):
-    list_of_labels_of_occupied_vertices = get_list_of_labels_of_occupied_vertices(session, board)
+    list_of_labels_of_occupied_vertices = get_list_of_labels_of_occupied_vertices(session)
     list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
     if not list_of_labels_of_available_vertices:
         logger.exception(f"No vertices are available for city placement by Player {current_player} during phase {phase.value}.")

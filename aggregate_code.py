@@ -22,6 +22,10 @@ file_paths = [
     r'back_end\db\__init__.py',
     r'back_end\db\database.py',
 
+    r'back_end\game\__init__.py',
+    r'back_end\game\game_actions.py',
+    r'back_end\game\game_state.py',
+
     r'back_end\routes\__init__.py',
     r'back_end\routes\cities.py',
     r'back_end\routes\next.py',
@@ -31,14 +35,11 @@ file_paths = [
 
     r'back_end\app.py',
     r'back_end\board.py',
-    r'back_end\game_actions.py',
-    r'back_end\game_state.py',
     r'back_end\__init__.py',
     r'back_end\logger.py',
     r'back_end\phase.py',
     r'back_end\phase_state_machine.py',
     r'back_end\settings.py',
-    r'back_end\utilities.py',
 
     r'front_end\app\components\CityMarker.tsx',
     r'front_end\app\components\HexTile.tsx',
