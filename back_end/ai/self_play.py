@@ -1,5 +1,5 @@
 from ..board import Board
-from ..game_state import GameState
+from back_end.game.game_state import GameState
 from .mcts.node import MCTS_Node
 from ..board import TOKEN_DOT_MAPPING
 from ..board import TOKEN_MAPPING
