@@ -23,14 +23,12 @@ logger = logging.getLogger(__name__)
 
 class SettlersPolicyValueNet(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim = 128):
+    def __init__(self, input_dim, hidden_dim = settings.number_of_neurons_in_hidden_layer):
         super().__init__()
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        # Policy head: single output squashed via sigmoid
-        self.fc_policy = nn.Linear(hidden_dim, 1)
-        # Value head: scalar output squashed via tanh
-        self.fc_value = nn.Linear(hidden_dim, 1)
+        self.fc_policy = nn.Linear(hidden_dim, 1) # policy head
+        self.fc_value = nn.Linear(hidden_dim, 1) # value head
 
 
     def forward(self, x):
@@ -41,54 +39,80 @@ class SettlersPolicyValueNet(nn.Module):
         return value, policy
 
 
-class SettlersNeuralNet(nn.Module):
+class ModelInference:
+
+    def __init__(self, model, device):
+        self.model = model
+        self.device = device
+    
+    def infer(self, features):
+        input_tensor = torch.tensor(features, dtype = torch.float32, device = self.device).unsqueeze(0)
+        with torch.no_grad():
+            value_tensor, policy_tensor = self.model(input_tensor)
+        return value_tensor.item(), policy_tensor.item()
+
+
+class WeightReloader:
+    
+    def __init__(self, model, model_path, device):
+        self.model = model
+        self.model_path = model_path
+        self.device = device
+        self.last_mod_time = None
+        self.load_weights()
+    
+    def load_weights(self):
+        if os.path.exists(self.model_path):
+            state_dict = torch.load(self.model_path, map_location = self.device)
+            self.model.load_state_dict(state_dict)
+            self.last_mod_time = os.path.getmtime(self.model_path)
+            logger.info(f"Weights were loaded from {self.model_path}.")
+    
+    def check_and_reload(self):
+        if os.path.exists(self.model_path):
+            mod_time = os.path.getmtime(self.model_path)
+            if self.last_mod_time is None or mod_time > self.last_mod_time:
+                logger.info("Updated weights have been detected and will be reloaded.")
+                self.load_weights()
+
+
+class BoardFeatureExtractor:
+
+    def __init__(self, board: Board):
+        self.board = board
+    
+    def extract_features(self, vertex_label: str):
+        return self.board.get_vertex_features(vertex_label)
+
+
+class SettlersNeuralNet():
 
     def __init__(self, model_path):
-        '''
-        Handles loading model weights and making predictions for settlement and road moves.
-        '''
-        super().__init__()
-        self.model_path = model_path
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         input_dim = settings.length_of_feature_vector
         self.model = SettlersPolicyValueNet(input_dim)
         self.model.to(self.device)
-        self.last_model_mod_time = load_model_weights(self.model, self.device)
-        self.board = Board()
+        self.weight_reloader = WeightReloader(self.model, model_path, self.device)
+        self.inference_engine = ModelInference(self.model, self.device)
+        self.feature_extractor = BoardFeatureExtractor(Board())
         self.model.eval()
-    
 
     def reload_if_updated(self):
-        '''
-        Check if the model file has been updated and reload weights if so.
-        If so, reload weights and update the last known modification time.
-        '''
-        if os.path.exists(self.model_path):
-            mod_time = os.path.getmtime(self.model_path)
-            if self.last_model_mod_time is None or mod_time > self.last_model_mod_time:
-                logger.info("[NEURAL NETWORK] Updated weights were detected and will be reloaded.")
-                load_model_weights(self.model, self.device)
-                self.last_model_mod_time = mod_time
+        self.weight_reloader.check_and_reload()
 
 
-    def evaluate_settlement(self, vertex):
-        features = self.board.get_vertex_features(vertex)
+    def evaluate_settlement(self, label_of_vertex: str):
+        features = self.feature_extractor.extract_features(label_of_vertex)
         if features is None:
             return -1.0, 0.0
-        input_tensor = torch.tensor(features, dtype = torch.float32, device = self.device).unsqueeze(0)
-        with torch.no_grad():
-            value_tensor, prior_tensor = self.model(input_tensor)
-            return value_tensor.item(), prior_tensor.item()
+        return self.inference_engine.infer(features)
         
 
-    def evaluate_city(self, vertex):
-        features = self.board.get_vertex_features(vertex)
+    def evaluate_city(self, label_of_vertex: str):
+        features = self.feature_extractor.extract_features(label_of_vertex)
         if features is None:
             return -1.0, 0.0
-        input_tensor = torch.tensor(features, dtype = torch.float32, device = self.device).unsqueeze(0)
-        with torch.no_grad():
-            value_tensor, prior_tensor = self.model(input_tensor)
-            return value_tensor.item(), prior_tensor.item()
+        return self.inference_engine.infer(features)
     
 
     def evaluate_road(self, edge, vertex_coords, last_settlement):
