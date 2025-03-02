@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""
+'''
 strategy.py
 
 A prior probability is an assumed probability of a visit count in a policy distribution of visit counts.
-TODO: Determine whether a policy is a distribution of prior probabilities.
+A policy is a distribution over moves of prior probabilities based on normalized MCTS visit counts.
 
 Module strategy implements move selection using an AlphaGo Zero style Monte Carlo Tree Search (MCTS)
-and a neural network that provides both a value estimate and a policy / prior for candidate moves.
-This mododule supports both settlement and road moves.
-TODO: Simulate multiple moves / deeper rollouts.
-"""
+and a neural network that provides both a value estimate and a policy.
+The simulation currently uses a single step rollout (i.e., one move evaluation) for value estimation;
+future improvements may include multi-step rollouts for deeper evaluation.
+TODO: Include multi-step rollouts for deeper evaluation.
+'''
 
 from .mcts.node import MCTS_Node
 from back_end.ai.mcts.backpropagation import backpropagate

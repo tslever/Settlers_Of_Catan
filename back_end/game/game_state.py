@@ -1,8 +1,11 @@
+from back_end.phase import Phase
+
+
 class GameState:
 
     def __init__(self):
         self.current_player = 1
-        self.phase = "to_place_first_settlement" # TODO: Use class Phase.
+        self.phase = Phase.TO_PLACE_FIRST_SETTLEMENT.value
         self.settlements = {
             1: [],
             2: [],

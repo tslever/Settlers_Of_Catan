@@ -65,7 +65,7 @@ class SelfPlayDataset(Dataset):
         self.samples = []
         for sample in self.data:
             if sample.get("move_type") != "settlement":
-                continue  # For this training script we only use settlement moves.
+                continue  # TODO: Consider non-settlement moves.
             policy_dict = sample.get("policy", {})
             if not policy_dict:
                 continue
@@ -75,8 +75,7 @@ class SelfPlayDataset(Dataset):
             
             feature_vector = board.get_vertex_features(chosen_vertex)
             if feature_vector is None:
-                # TODO: Implement fallback
-                continue
+                feature_vector = [0.0, 0.0, 0.0, 0.0, 1.0]
             
             self.samples.append((feature_vector, target_value, target_policy))
         

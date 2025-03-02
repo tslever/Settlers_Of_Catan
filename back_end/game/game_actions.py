@@ -104,10 +104,10 @@ def create_city(session, current_player, phase: Phase):
 
 def create_road(session, current_player, phase: Phase, last_settlement_or_city):
     if (phase == Phase.TO_PLACE_FIRST_ROAD) and (not last_settlement_or_city):
-        logger.error(f"No settlement recorded for road placement (current_player={current_player}, phase={phase.value})")
+        logger.error(f"No settlement recorded for road placement (current_player = {current_player}, phase = {phase.value})")
         return None, None, None, None, "No settlement recorded for road placement."
     if (phase == Phase.TO_PLACE_SECOND_ROAD) and (not last_settlement_or_city):
-        logger.error(f"No city recorded for road placement (current_player={current_player}, phase={phase.value})")
+        logger.error(f"No city recorded for road placement (current_player = {current_player}, phase = {phase.value})")
         return None, None, None, None, "No settlement recorded for city placement."
     
     vertex_coords = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
@@ -144,14 +144,14 @@ def create_road(session, current_player, phase: Phase, last_settlement_or_city):
         return None, None, None, None, "No available roads adjacent to settlement or city."
     
     '''
-    TODO: Include details such as
-    the names of all players,
-    the positions of each player's settlements,
-    the positions of each player's roads,
-    and other details.
+    TODO: Consider whether or not more items of the game state should be used.
     '''
     game_state = {
-        "last_settlement": last_settlement_or_city
+        "last_settlement": last_settlement_or_city,
+        "settlements": [s.vertex for s in session.query(Settlement).all()],
+        "cities": [c.vertex for c in session.query(City).all()],
+        "roads": [r.edge for r in session.query(Road).all()],
+        "players": [1, 2, 3]
     }
     best_edge, best_edge_key = predict_best_road(game_state, available_edges, vertex_coords, neural_network)
     if best_edge is None:
