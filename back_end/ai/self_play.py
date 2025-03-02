@@ -175,32 +175,44 @@ def simulate_self_play_game(neural_network, number_of_simulations = settings.num
             break
         training_examples.append(example)
     
-    outcomes = compute_game_outcome(game_state.cities)
+    outcomes = compute_game_outcome(copy.deepcopy(game_state.get_state_snapshot()))
     for example in training_examples:
         example["value"] = outcomes.get(example["player"], 0)
     return training_examples
 
 
-def compute_game_outcome(settlements):
+def compute_game_outcome(snapshot_of_game_state):
+    '''
+    Determine the game outcome by summing the pip values on all hexes adjacent to each player's settlements and cities.
+    The state snapshot is expected to be a dictionary with keys "settlements" and "cities",
+    where each value is a list of vertex labels.
+    Returns a dictionary mapping each player to 1 (win) if their total pip count equals the maximum, and -1 (loss) otherwise.
+    '''
     strengths = {}
-    for player, vertex in settlements.items():
-        total_pips = 0
-        hex_count = 0
-        for hex_tile in board.hexes:
-            for vx, vy in board.get_hex_vertices(hex_tile):
-                if (math.isclose(vx, dictionary_of_labels_of_vertices_and_tuples_of_coordinates[vertex][0], abs_tol = settings.margin_of_error) and
-                    math.isclose(vy, dictionary_of_labels_of_vertices_and_tuples_of_coordinates[vertex][1], abs_tol = settings.margin_of_error)):
-                    hex_id = hex_tile["id"]
-                    token = TOKEN_MAPPING.get(hex_id)
-                    if token is not None:
-                        total_pips += TOKEN_DOT_MAPPING.get(token, 0)
-                        hex_count += 1
-                    break
-        strengths[player] = total_pips
+    for building_key in ["settlements", "cities"]:
+        buildings = snapshot_of_game_state.get(building_key, {})
+        for player, list_of_vertices in buildings.items():
+            for label_of_vertex in list_of_vertices:
+                tuple_of_coordinates = dictionary_of_labels_of_vertices_and_tuples_of_coordinates.get(label_of_vertex)
+                if tuple_of_coordinates is None:
+                    continue
+                for hex_tile in board.hexes:
+                    for vx, vy in board.get_hex_vertices(hex_tile):
+                        if (
+                            math.isclose(vx, tuple_of_coordinates[0], abs_tol = settings.margin_of_error) and
+                            math.isclose(vy, tuple_of_coordinates[1], abs_tol = settings.margin_of_error)
+                        ):
+                            hex_id = hex_tile["id"]
+                            token = TOKEN_MAPPING.get(hex_id)
+                            if token is not None:
+                                pips = TOKEN_DOT_MAPPING.get(token, 0)
+                                strengths[player] = strengths.get(player, 0) + pips
+                            break
+
     if not strengths:
         return {}
-    winner = max(strengths, key=lambda p: strengths[p])
-    return {player: 1 if player == winner else -1 for player in strengths}
+    max_pips = max(strengths.values())
+    return {player: 1 if score == max_pips else -1 for player, score in strengths.items()}
 
 
 def run_mcts_for_move(

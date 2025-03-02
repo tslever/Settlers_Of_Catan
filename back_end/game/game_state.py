@@ -2,24 +2,40 @@ class GameState:
 
     def __init__(self):
         self.current_player = 1
-        self.phase = "to_place_first_settlement"  # You might later use an Enum.
-        self.settlements = {}  # Mapping from player number to vertex label.
-        self.cities = {}
-        self.roads = {}        # Mapping from player number to a road’s unique key.
+        self.phase = "to_place_first_settlement" # TODO: Use class Phase.
+        self.settlements = {
+            1: [],
+            2: [],
+            3: []
+        }
+        self.cities = {
+            1: [],
+            2: [],
+            3: []
+        }
+        self.roads = {
+            1: [],
+            2: [],
+            3: []
+        }
         self.last_settlement = None
+        self.last_city = None
 
 
     def place_city(self, player: int, vertex: str):
-        self.cities[player] = vertex
-        self.last_settlement = vertex
+        list_of_labels_of_vertices_with_cities_for_player = self.cities[player]
+        list_of_labels_of_vertices_with_cities_for_player.append(vertex)
+        self.last_city = vertex
 
 
     def place_road(self, player: int, road_key: str):
-        self.roads[player] = road_key
+        list_of_keys_of_edges_with_roads_for_player = self.roads[player]
+        list_of_keys_of_edges_with_roads_for_player.append(road_key)
 
 
     def place_settlement(self, player: int, vertex: str):
-        self.settlements[player] = vertex
+        list_of_labels_of_vertices_with_settlements_for_player = self.settlements[player]
+        list_of_labels_of_vertices_with_settlements_for_player.append(vertex)
         self.last_settlement = vertex
 
 
@@ -28,7 +44,8 @@ class GameState:
         return {
             "current_player": self.current_player,
             "phase": self.phase,
-            "settlements": self.settlements.copy(),
-            "roads": self.roads.copy(),
-            "last_settlement": self.last_settlement
+            "settlements": self.settlements,
+            "roads": self.roads,
+            "last_settlement": self.last_settlement,
+            "last_city": self.last_city
         }
