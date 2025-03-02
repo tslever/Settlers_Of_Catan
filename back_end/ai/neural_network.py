@@ -21,6 +21,10 @@ import torch.nn as nn
 logger = logging.getLogger(__name__)
 
 
+class FeatureExtractionException(Exception):
+    pass
+
+
 class SettlersPolicyValueNet(nn.Module):
 
     def __init__(self, input_dim, hidden_dim = settings.number_of_neurons_in_hidden_layer):
@@ -104,26 +108,35 @@ class SettlersNeuralNet():
     def evaluate_settlement(self, label_of_vertex: str):
         features = self.feature_extractor.extract_features(label_of_vertex)
         if features is None:
-            return -1.0, 0.0
+            logger.exception(f"Feature extraction failed for settlement at vertex {label_of_vertex}.")
+            raise FeatureExtractionException(f"Feature extraction failed for settlement at vertex {label_of_vertex}.")
         return self.inference_engine.infer(features)
         
 
     def evaluate_city(self, label_of_vertex: str):
         features = self.feature_extractor.extract_features(label_of_vertex)
         if features is None:
-            return -1.0, 0.0
+            logger.exception(f"Feature extraction failed for city at vertex {label_of_vertex}.")
+            raise FeatureExtractionException(f"Feature extraction failed for city at vertex {label_of_vertex}.")
         return self.inference_engine.infer(features)
     
 
-    def evaluate_road(self, edge, vertex_coords, last_settlement):
-        if last_settlement is None or last_settlement not in vertex_coords:
-            return -1.0, 0.0
-        settlement_coord = vertex_coords[last_settlement]
+    def evaluate_road(self, edge, vertex_coords, last_building):
+        if last_building is None or last_building not in vertex_coords:
+            logger.exception(
+                "Vertex of last building for road evaluation is invalid because it is None " +
+                "or not found in a dictionary of labels of vertices of buildings and tuples of coordinates."
+            )
+            raise FeatureExtractionException(
+                "Vertex of last builidng for road evaluation is invalid because it is None " +
+                "or not found in a dictionary of vertices of building and tuples of coordinates."
+            )
+        building_coord = vertex_coords[last_building]
         v1 = (edge["x1"], edge["y1"])
         v2 = (edge["x2"], edge["y2"])
         if (
-            math.isclose(v1[0], settlement_coord[0], abs_tol = settings.margin_of_error) and
-            math.isclose(v1[1], settlement_coord[1], abs_tol = settings.margin_of_error)
+            math.isclose(v1[0], building_coord[0], abs_tol = settings.margin_of_error) and
+            math.isclose(v1[1], building_coord[1], abs_tol = settings.margin_of_error)
         ):
             other = v2
         else:
@@ -137,7 +150,8 @@ class SettlersNeuralNet():
                 other_label = label
                 break
         if other_label is None:
-            return -1.0, 0.0
+            logger.exception("A matching vertex for the road's endpoint could not be found.")
+            raise FeatureExtractionException("A matching vertex for the road's endpoint could not be found.")
         return self.evaluate_settlement(other_label)
 
 

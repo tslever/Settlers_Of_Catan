@@ -10,12 +10,12 @@ def simulate_rollout(node, dictionary_of_labels_of_vertices_and_tuples_of_coordi
     elif node.move_type == "city":
         value, _ = neural_network.evaluate_city(node.move)
     elif node.move_type == "road":
-        label_of_vertex_of_last_settlement = node.game_state.get("last_settlement")
+        label_of_vertex_of_last_building = node.game_state.get("last_settlement") # TODO: Find the label of the last building, which can be either a settlement or a city.
         dictionary_of_coordinates_of_available_edge = node.move[0]
         value, _ = neural_network.evaluate_road(
             dictionary_of_coordinates_of_available_edge,
             dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
-            label_of_vertex_of_last_settlement
+            label_of_vertex_of_last_building
         )
     else:
         value = 0.0
