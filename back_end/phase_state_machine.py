@@ -32,7 +32,6 @@ class PlaceFirstSettlementState(PhaseState):
             logger.error(f"The following error occurred when creating a settlement. {exception}")
             abort(400, description = exception)
         state.phase = next_phase.value
-        state.last_settlement = chosen_vertex
         state.last_building = chosen_vertex
         session.commit()
         logger.info(f"Settlement {settlement_id} was created for Player {current_player} at vertex {chosen_vertex}.")
@@ -55,7 +54,6 @@ class PlaceFirstCityState(PhaseState):
             logger.exception(f"The following error occurred when creating a city. {exception}")
             abort(400, description = exception)
         state.phase = next_phase.value
-        state.last_city = chosen_vertex
         state.last_building = chosen_vertex
         session.commit()
         logger.info(f"City {city_id} was created for Player {current_player} at vertex {chosen_vertex}.")
@@ -85,12 +83,7 @@ class RoadState(PhaseState):
             abort(400, description = exception)
         state.current_player = next_player
         state.phase = next_phase.value
-        if self.phase == Phase.TO_PLACE_FIRST_ROAD:
-            state.last_settlement = None
-            state.last_building = None
-        else:
-            state.last_city = None
-            state.last_building = None
+        state.last_building = None
         session.commit()
         logger.info(f"Road {road_id} was created for Player {current_player} on edge {chosen_edge_key}.")
         logger.info(f"Player {next_player}'s phase {next_phase.value} will begin.")

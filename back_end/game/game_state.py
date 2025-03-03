@@ -21,7 +21,6 @@ class GameState:
             2: [],
             3: []
         }
-        self.last_settlement = None
         self.last_city = None
         self.last_building = None
 
@@ -41,7 +40,6 @@ class GameState:
     def place_settlement(self, player: int, vertex: str):
         list_of_labels_of_vertices_with_settlements_for_player = self.settlements[player]
         list_of_labels_of_vertices_with_settlements_for_player.append(vertex)
-        self.last_settlement = vertex
         self.last_building = vertex
 
 
@@ -54,7 +52,6 @@ class GameState:
             "phase": self.phase,
             "settlements": self.settlements,
             "roads": self.roads,
-            "last_settlement": self.last_settlement,
             "last_city": self.last_city,
             "last_building": self.last_building
         }

@@ -144,10 +144,10 @@ def predict_best_road(
     '''
     Run a full MCTS for road moves and return the best edge and its key.
     available_edges: list of tuples (edge, edge_key) available for road placement
-    game_state: dictionary that must include `last_settlement` for road evaluation
+    game_state: dictionary that must include `last_building` for road evaluation
     '''
-    label_of_vertex_of_last_settlement = game_state.get("last_building")
-    if label_of_vertex_of_last_settlement is None:
+    label_of_vertex_of_last_building = game_state.get("last_building")
+    if label_of_vertex_of_last_building is None:
         return None, None
     root = MCTS_Node(game_state, move_type = "road")
     tuple_of_information_re_best_edge = monte_carlo_tree_search(

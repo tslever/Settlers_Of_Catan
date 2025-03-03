@@ -71,8 +71,6 @@ class State(BaseClassForOrmModels):
     id = Column(Integer, primary_key = True)
     current_player = Column(Integer, nullable = False)
     phase = Column(String(length = 100), nullable = False)
-    last_settlement = Column(String(length = 50), nullable = True)
-    last_city = Column(String(length = 50), nullable = True)
     last_building = Column(String(length = 50), nullable = True)
 
 
@@ -102,7 +100,7 @@ def initialize_database():
                 id = 1,
                 current_player = 1,
                 phase = "phase to place first settlement",
-                last_settlement = None
+                last_building = None
             )
             session.add(initial_state)
             session.commit()

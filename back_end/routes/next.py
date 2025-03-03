@@ -23,13 +23,12 @@ def next_move():
                 id = ID_OF_STATE,
                 current_player = 1,
                 phase = Phase.TO_PLACE_FIRST_SETTLEMENT.value,
-                last_settlement = None,
-                last_city = None
+                last_building = None
             )
             session.add(state)
             session.commit()
             logger.info(f"Initialized state: player = 1, phase = {Phase.TO_PLACE_FIRST_SETTLEMENT.value}")
-        logger.info(f"Current state: player = {state.current_player}, phase = {state.phase}, last_settlement = {state.last_settlement}, last_city = {state.last_city}, last_building = {state.last_building}")
+        logger.info(f"Current state: player = {state.current_player}, phase = {state.phase}, last_building = {state.last_building}")
         machine = PhaseStateMachine()
         response = machine.handle(session, state)
         return jsonify(response)
