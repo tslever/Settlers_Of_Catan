@@ -73,6 +73,7 @@ class State(BaseClassForOrmModels):
     phase = Column(String(length = 100), nullable = False)
     last_settlement = Column(String(length = 50), nullable = True)
     last_city = Column(String(length = 50), nullable = True)
+    last_building = Column(String(length = 50), nullable = True)
 
 
 @contextmanager

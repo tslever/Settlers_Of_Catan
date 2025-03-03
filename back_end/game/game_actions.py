@@ -147,7 +147,7 @@ def create_road(session, current_player, phase: Phase, last_settlement_or_city):
     TODO: Consider whether or not more items of the game state should be used.
     '''
     game_state = {
-        "last_settlement": last_settlement_or_city,
+        "last_building": last_settlement_or_city,
         "settlements": [s.vertex for s in session.query(Settlement).all()],
         "cities": [c.vertex for c in session.query(City).all()],
         "roads": [r.edge for r in session.query(Road).all()],

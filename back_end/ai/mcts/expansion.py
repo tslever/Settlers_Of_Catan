@@ -12,14 +12,17 @@ def expand_node(
         # Determine the key of the move based on the type of the move.
         # If the move is placing a settlement, the key is a label of an available vertex.
         # If the move is placing a road, the key is an edge key.
-        key = label_of_available_vertex_or_tuple_of_information_re_available_edge if node.move_type != "road" else label_of_available_vertex_or_tuple_of_information_re_available_edge[1]
+        key = (
+            label_of_available_vertex_or_tuple_of_information_re_available_edge if node.move_type != "road"
+            else label_of_available_vertex_or_tuple_of_information_re_available_edge[1]
+        )
         if key in node.children:
             continue
         # Evaluate the move via the neural network.
         if node.move_type == "city":
             _, prior_probability = neural_network.evaluate_city(label_of_available_vertex_or_tuple_of_information_re_available_edge)
         elif node.move_type == "road":
-            label_of_vertex_of_last_building = node.game_state.get("last_settlement") # TODO: Find the label of the last building, which can be either a settlement or a city.
+            label_of_vertex_of_last_building = node.game_state.get("last_building")
             dictionary_of_coordinates_of_available_edge = label_of_available_vertex_or_tuple_of_information_re_available_edge[0]
             _, prior_probability = neural_network.evaluate_road(
                 dictionary_of_coordinates_of_available_edge,

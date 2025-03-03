@@ -146,7 +146,7 @@ def predict_best_road(
     available_edges: list of tuples (edge, edge_key) available for road placement
     game_state: dictionary that must include `last_settlement` for road evaluation
     '''
-    label_of_vertex_of_last_settlement = game_state.get("last_settlement")
+    label_of_vertex_of_last_settlement = game_state.get("last_building")
     if label_of_vertex_of_last_settlement is None:
         return None, None
     root = MCTS_Node(game_state, move_type = "road")
