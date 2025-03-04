@@ -1,11 +1,29 @@
-import { ID_Of_Hex } from '../utilities/board';
+import styled from "styled-components";
+import { ID_Of_Hex } from '../types'
 
 type HexTileProps = {
     id: ID_Of_Hex;
     token: number | null;
     color: string;
-    style?: React.CSSProperties;
+    style?: React.CSSProperties; // TODO: Consider ceasing to pass styles and keeping styles in styled components.
 };
+
+const HexTileContainer = styled.div<{ $bgColor: string }>`
+    position: absolute;
+    background-color: ${({ $bgColor }) => $bgColor};
+`;
+
+const HexTokenContainer = styled.div<{ $fontSize: string }>`
+    font-size: ${({ $fontSize }) => $fontSize};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+`;
+
+const TokenNumber = styled.div``;
+const TokenDots = styled.div``;
+const Dot = styled.span``;
 
 const HexTile: React.FC<HexTileProps> = ({ token, color, style }) => {
     const getTokenFontSize = (token: number): string => {
@@ -37,28 +55,23 @@ const HexTile: React.FC<HexTileProps> = ({ token, color, style }) => {
         12: 1
     };
     return (
-        <div className = "hex-tile" style = {{ ...style, backgroundColor: color }}>
+        <HexTileContainer $bgColor = {color} className = "hex-tile" style = {style}>
             {token !== null && (
-                <div
+                <HexTokenContainer
+                    $fontSize = {getTokenFontSize(token)}
                     className="hex-token"
-                    style = {{
-                        fontSize: getTokenFontSize(token),
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}
                 >
-                    <div className="token-number">{token}</div>
-                    <div className="token-dots">
-                        { Array.from( { length: tokenDotMapping[token] || 0 }, (_, i) => (
-                            <span key = {i} className = "dot" />
-                        ))}
-                    </div>
-                </div>
+                    <TokenNumber className = "token-number">{token}</TokenNumber>
+                    <TokenDots className = "token-dots">
+                        { Array.from(
+                            { length: tokenDotMapping[token] || 0 },
+                            (_, i) => <Dot key = {i} className = "dot" />
+                        )}
+                    </TokenDots>
+                </HexTokenContainer>
             )}
-        </div>
+        </HexTileContainer>
     );
-}
+};
 
 export default HexTile;
