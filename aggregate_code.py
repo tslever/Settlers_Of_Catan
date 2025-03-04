@@ -33,21 +33,20 @@ file_paths = [
     r'back_end\routes\root.py',
     r'back_end\routes\settlements.py',
 
+    r'back_end\__init__.py',
     r'back_end\app.py',
     r'back_end\board.py',
-    r'back_end\__init__.py',
     r'back_end\logger.py',
-    r'back_end\phase.py',
     r'back_end\phase_state_machine.py',
+    r'back_end\phase.py',
     r'back_end\settings.py',
 
-    r'front_end\app\components\CityMarker.tsx',
     r'front_end\app\components\HexTile.tsx',
     r'front_end\app\components\Marker.tsx',
+    r'front_end\app\components\MarkerComponents.tsx',
     r'front_end\app\components\Ocean.tsx',
     r'front_end\app\components\Port.tsx',
     r'front_end\app\components\QueryBoundary.tsx',
-    r'front_end\app\components\SettlementMarker.tsx',
     r'front_end\app\components\Vertex.tsx',
 
     r'front_end\app\hooks\useCentralQuery.ts',
@@ -62,8 +61,8 @@ file_paths = [
     r'front_end\app\Providers.tsx',
     r'front_end\app\types.ts',
 
-    r'generate_board_geometry.py',
-    r'board_geometry.json'
+    r'board_geometry.json',
+    r'generate_board_geometry.py'
 ]
 
 
