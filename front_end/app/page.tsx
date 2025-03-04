@@ -1,5 +1,6 @@
 'use client';
 
+import { API, apiFetch } from './api';
 import { Board } from './BoardLayout';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex } from './types';
@@ -12,7 +13,6 @@ import React from 'react';
 import { Road } from './types';
 import { RoadLayer } from './BoardLayout';
 import { Settlement } from './types';
-import { URL_OF_BACK_END } from './config';
 import { getPositionStyles } from './BoardLayout';
 import { hexes } from './board';
 import { idToColor } from './types';
@@ -72,15 +72,9 @@ export default function Home() {
         error: settlementsError
     } = useCentralQuery<{ settlements: Settlement[] }>(
         ["settlements"],
-        async() => {
-            const response = await fetch(`${URL_OF_BACK_END}/settlements`);
-            if (!response.ok) {
-                throw new Error(`The following error occurred when fetching settlements: ${response.statusText}`);
-            }
-            return response.json();
-        },
+        () => apiFetch<{ settlements: Settlement[] }>(API.endpoints.settlements),
         { enabled: mounted }
-    )
+    );
 
     const {
         data: citiesData,
@@ -88,13 +82,7 @@ export default function Home() {
         error: citiesError
     } = useCentralQuery<{ cities: { id: Number; player: Number; vertex: string }[] }>(
         ["cities"],
-        async() => {
-            const response = await fetch(`${URL_OF_BACK_END}/cities`);
-            if (!response.ok) {
-                throw new Error(`Error fetching cities: ${response.statusText}`);
-            }
-            return response.json();
-        },
+        () => apiFetch<{ cities: { id: Number; player: Number; vertex: string }[] }>(API.endpoints.cities),
         { enabled: mounted }
     );
 
@@ -104,13 +92,7 @@ export default function Home() {
         error: roadsError
     } = useCentralQuery<{ roads: Road[] }>(
         ["roads"],
-        async () => {
-            const response = await fetch(`${URL_OF_BACK_END}/roads`);
-            if (!response.ok) {
-                throw new Error(`Error fetching roads: ${response.statusText}`);
-            }
-            return response.json();
-        },
+        () => apiFetch<{ roads: Road[] }>(API.endpoints.roads),
         { enabled: mounted }
     );
 
@@ -120,18 +102,11 @@ export default function Home() {
         error: nextError,
         data: nextData
     } = useMutation<NextResponse, Error>({
-        mutationFn: async () => {
-            const response = await fetch(`${URL_OF_BACK_END}/next`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Error: ${response.status}`);
-            }
-            return response.json();
-        },
+        mutationFn: () => apiFetch<NextResponse>(API.endpoints.next, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
@@ -180,7 +155,7 @@ export default function Home() {
                                 const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
                                 return (
                                     <React.Fragment key = {i}>
-                                        {portMapping[vLabel] && <Port x={v.x} y={v.y} type={portMapping[vLabel]} />}
+                                        {portMapping[vLabel] && <Port x = {v.x} y = {v.y} type = {portMapping[vLabel]} />}
                                     </React.Fragment>
                                 );
                             })}

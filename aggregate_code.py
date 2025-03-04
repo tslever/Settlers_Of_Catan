@@ -51,10 +51,10 @@ file_paths = [
 
     r'front_end\app\hooks\useCentralQuery.ts',
 
+    r'front_end\app\api.ts',
     r'front_end\app\board.ts',
     r'front_end\app\BoardLayout.tsx',
     r'front_end\app\CanvasLayer.tsx',
-    r'front_end\app\config.ts',
     r'front_end\app\globals.scss',
     r'front_end\app\layout.tsx',
     r'front_end\app\page.tsx',
