@@ -66,24 +66,7 @@ class Board:
 
         self._vertex_feature_map = {}
         for vertex in self.vertices:
-            x, y = vertex["x"], vertex["y"]
-            total_pips = 0
-            hex_count = 0
-            point = np.array([x, y])
-            for hex in self.hexes:
-                hex_vertices = np.array(self.get_hex_vertices(hex))
-                if np.any(np.all(np.abs(hex_vertices - point) < settings.margin_of_error, axis = 1)):
-                    hex_id = hex["id"]
-                    token = TOKEN_MAPPING.get(hex_id)
-                    if token is not None:
-                        total_pips += TOKEN_DOT_MAPPING.get(token, 0)
-                        hex_count += 1
-            normalized_pip = total_pips / (hex_count * 5) if hex_count > 0 else 0.0
-            normalized_x = x / settings.width_of_board_in_vmin
-            normalized_y = y / 100.0
-            normalized_hex_count = hex_count / 3.0
-            feature_vector = [normalized_pip, normalized_x, normalized_y, normalized_hex_count, 1.0]
-            self._vertex_feature_map[vertex["label"]] = feature_vector
+            self._vertex_feature_map[vertex["label"]] = self.compute_vertex_feature(vertex)
 
 
     @staticmethod
@@ -95,6 +78,32 @@ class Board:
             return f"{x1:.2f}-{y1:.2f}_{x2:.2f}-{y2:.2f}"
         else:
             return f"{x2:.2f}-{y2:.2f}_{x1:.2f}-{y1:.2f}"
+
+
+    def compute_vertex_feature(self, dictionary_of_vertex_information):
+        x, y = dictionary_of_vertex_information["x"], dictionary_of_vertex_information["y"]
+        total_number_of_pips = 0
+        number_of_hexes = 0
+        array_of_coordinates = np.array([x, y])
+        for dictionary_of_hex_information in self.hexes:
+            array_of_coordinates_of_vertices_of_hex = np.array(self.get_hex_vertices(dictionary_of_hex_information))
+            if np.any(
+                np.all(
+                    np.abs(array_of_coordinates_of_vertices_of_hex - array_of_coordinates) < settings.margin_of_error,
+                    axis = 1
+                )
+            ):
+                id_of_hex = dictionary_of_hex_information["id"]
+                number_of_token = TOKEN_MAPPING.get(id_of_hex)
+                if number_of_token is not None:
+                    number_of_pips = TOKEN_DOT_MAPPING.get(number_of_token, 0)
+                    total_number_of_pips += number_of_pips
+                    number_of_hexes += 1
+        normalized_total_number_of_pips = total_number_of_pips / (number_of_hexes * 5) if number_of_hexes > 0 else 0.0
+        normalized_x_coordinate = x / settings.width_of_board_in_vmin
+        normalized_y_coordinate = y / 100.0
+        normalized_number_of_hexes = number_of_hexes / 3.0
+        return [normalized_total_number_of_pips, normalized_x_coordinate, normalized_y_coordinate, normalized_number_of_hexes, 1.0]
 
 
     def get_hex_vertices(self, hex_tile: Dict) -> List[Tuple[float, float]]:
