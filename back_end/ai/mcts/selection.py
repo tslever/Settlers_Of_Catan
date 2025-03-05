@@ -3,14 +3,16 @@ import math
 
 def select_child(node, c_puct, tolerance):
     '''
-    TODO: What is `c_puct`?
-    TODO: What is tolerance?
-    TODO: What is the typical distribution of values of tolerance?
     Select a child node with the maximum PUCT score.
     If multiple children have scores within a small tolerance,
     choose the child with the lower visit count.
     If multiple children have scores within a small tolerance and the same visit count,
     choose the child with the higher prior probability.
+
+    Parameters:
+        c_puct: float -- A constant that balances exploration versus exploitation in the PUCT formula
+        tolerance: TODO: Include type. -- A small threshold used to consider scores effectively equal when selecting among child nodes
+        TODO: What is the typical distribution of values of tolerance?
     '''
     best_score = -float('inf')
     best_candidates = []
