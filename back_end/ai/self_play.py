@@ -66,6 +66,22 @@ def simulate_building_move(game_state: GameState, neural_network, move_type: str
     return label_of_chosen_vertex, training_example
 
 
+def simulate_move(game_state: GameState, neural_network, move_type: str, num_simulations: int, c_puct: float):
+    '''
+    Update game_state phase and simulate a move of the given type.
+    For settlement or city moves, call function `simulate_building_move`.
+    For road moves, call `simulate_road_move` using `game_state.last_building` as reference.
+    Returns (move, training_example) or (None, None) on failure.
+    '''
+    game_state.phase = move_type
+    if move_type in ("settlement", "city"):
+        return simulate_building_move(game_state, neural_network, move_type, num_simulations, c_puct)
+    elif move_type == "road":
+        return simulate_road_move(game_state, neural_network, num_simulations, c_puct, game_state.last_building)
+    else:
+        raise ValueError(f"Provided move type {move_type} is unsupported.")
+
+
 def simulate_road_move(
     game_state: GameState,
     neural_network,
@@ -101,10 +117,10 @@ def simulate_road_move(
 def simulate_self_play_game(neural_network, number_of_simulations = settings.number_of_simulations, c_puct = settings.c_puct):
     game_state = GameState()
     training_examples = []
+
     for player in [1, 2, 3]:
         game_state.current_player = player
-        game_state.phase = "settlement"
-        label_of_chosen_vertex, example = simulate_building_move(
+        label_of_chosen_vertex, example = simulate_move(
             game_state,
             neural_network,
             "settlement",
@@ -115,13 +131,12 @@ def simulate_self_play_game(neural_network, number_of_simulations = settings.num
             break
         training_examples.append(example)
 
-        game_state.phase = "road"
-        key_of_chosen_edge, example = simulate_road_move(
+        key_of_chosen_edge, example = simulate_move(
             game_state,
             neural_network,
+            "road",
             number_of_simulations,
-            c_puct,
-            label_of_chosen_vertex
+            c_puct
         )
         if not key_of_chosen_edge:
             break
@@ -129,8 +144,7 @@ def simulate_self_play_game(neural_network, number_of_simulations = settings.num
     
     for player in [3, 2, 1]:
         game_state.current_player = player
-        game_state.phase = "city"
-        label_of_chosen_vertex, example = simulate_building_move(
+        label_of_chosen_vertex, example = simulate_move(
             game_state,
             neural_network,
             "city",
@@ -141,13 +155,12 @@ def simulate_self_play_game(neural_network, number_of_simulations = settings.num
             break
         training_examples.append(example)
 
-        game_state.phase = "road"
-        key_of_chosen_edge, example = simulate_road_move(
+        key_of_chosen_edge, example = simulate_move(
             game_state,
             neural_network,
+            "road",
             number_of_simulations,
-            c_puct,
-            label_of_chosen_vertex
+            c_puct
         )
         if not key_of_chosen_edge:
             break
