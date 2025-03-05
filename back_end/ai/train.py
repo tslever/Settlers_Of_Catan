@@ -116,25 +116,26 @@ def train_model(training_data, num_epochs = settings.number_of_epochs, batch_siz
     for epoch in range(num_epochs):
         epoch_loss = 0.0
         for x, target_value, target_policy in dataloader:
-            x = x.to(device)
-            target_value = target_value.to(device)
-            target_policy = target_policy.to(device)
-            optimizer.zero_grad()
-            # Forward pass; the network returns (value, policy)
-            pred_value, pred_policy = model(x)
-            loss_value = criterion(pred_value, target_value)
-            loss_policy = criterion(pred_policy, target_policy)
-            loss = loss_value + loss_policy
-            # Backward pass
-            loss.backward()
-            optimizer.step()
-            epoch_loss += loss.item() * x.size(0)
-        epoch_loss /= len(dataset)
-        logger.info(f"Epoch {epoch + 1} / {num_epochs}, Loss: {epoch_loss:.4f}")
+            epoch_loss += train_step(model, optimizer, criterion, x, target_value, target_policy, device)
+            epoch_loss /= len(dataset)
+            logger.info(f"Epoch {epoch + 1} / {num_epochs}, Loss: {epoch_loss:.4f}")
     
-    # Save the trained model’s state_dict to the specified path.
     save_model_weights(model)
     logger.info(f"Model has been saved.")
+
+
+def train_step(model, optimizer, criterion, x, target_value, target_policy, device):
+    x = x.to(device)
+    target_value = target_value.to(device)
+    target_policy = target_policy.to(device)
+    optimizer.zero_grad()
+    pred_value, pred_policy = model(x)
+    loss_value = criterion(pred_value, target_value)
+    loss_policy = criterion(pred_policy, target_policy)
+    loss = loss_value + loss_policy
+    loss.backward()
+    optimizer.step()
+    return loss.item() * x.size(0)
 
 
 if __name__ == "__main__":
