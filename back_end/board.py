@@ -64,6 +64,8 @@ class Board:
         self.vertices: List[Dict] = data["vertices"]
         self.edges: List[Dict] = data["edges"]
 
+        self._hex_vertex_cache: Dict[str, List[Tuple[float, float]]] = {}
+
         self._vertex_feature_map = {}
         for vertex in self.vertices:
             self._vertex_feature_map[vertex["label"]] = self.compute_vertex_feature(vertex)
@@ -107,9 +109,18 @@ class Board:
 
 
     def get_hex_vertices(self, hex_tile: Dict) -> List[Tuple[float, float]]:
+        '''
+        Given a dictionary of hex information, return a list of pairs of coordinates of the vertices of the hex.
+        This function caches the result so that repeated calls with the same hex (determined by its ID)
+        do not recompute the vertex coordinates.
+        '''
+        hex_id = hex_tile.get("id")
+        if hex_id in self._hex_vertex_cache:
+            return self._hex_vertex_cache[hex_id]
+
         x = hex_tile["x"]
         y = hex_tile["y"]
-        return [
+        vertices = [
             (x + 0.5 * WIDTH_OF_HEX, y),
             (x + WIDTH_OF_HEX, y + 0.25 * HEIGHT_OF_HEX),
             (x + WIDTH_OF_HEX, y + 0.75 * HEIGHT_OF_HEX),
@@ -117,6 +128,8 @@ class Board:
             (x, y + 0.75 * HEIGHT_OF_HEX),
             (x, y + 0.25 * HEIGHT_OF_HEX)
         ]
+        self._hex_vertex_cache[hex_id] = vertices
+        return vertices
 
 
     def get_vertex_by_label(self, label: str) -> Optional[Dict]:
