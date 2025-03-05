@@ -19,39 +19,47 @@ set_up_logging()
 logger = logging.getLogger(__name__)
 
 
-# Create a single Board instance.
 board = Board()
-# Build a mapping from vertex label to (x,y) from the board.
 dictionary_of_labels_of_vertices_and_tuples_of_coordinates = {v["label"]: (v["x"], v["y"]) for v in board.vertices}
 
 
-def simulate_settlement_move(
-    game_state: GameState,
-    neural_network,
-    dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
-    num_simulations,
-    c_puct
-):
+def simulate_building_move(game_state: GameState, neural_network, move_type: str, num_simulations: int, c_puct: float):
+    '''
+    Simulate a move that places a building (i.e., a settlement or city).
+    
+    Parameters:
+        game_state: current game state
+        neural_network: network used to evaluate moves
+        move_type: either "settlement" or "city"
+        num_simulations: parameter for MCTS
+        c_puct: parameter for MCTS
+    
+    Returns:
+        chosen_vertex and a training example dictionary
+    '''
     list_of_vertices_of_settlements = list(game_state.settlements.values())
     list_of_vertices_of_cities = list(game_state.cities.values())
     list_of_labels_of_occupied_vertices = list_of_vertices_of_settlements + list_of_vertices_of_cities
     list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
     if not list_of_labels_of_available_vertices:
-        logger.exception("No vertices are available for settlement placement.")
+        logger.exception(f"No vertices are available for {move_type} placement.")
         return None, None
     label_of_chosen_vertex, policy = run_mcts_for_move(
-        game_state,
-        "settlement",
-        list_of_labels_of_available_vertices,
-        dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
-        num_simulations,
-        c_puct,
-        neural_network
+        state = game_state,
+        move_type = move_type,
+        list_of_labels_of_available_vertices_or_tuples_of_edge_information = list_of_labels_of_available_vertices,
+        dictionary_of_labels_of_vertices_and_tuples_of_coordinates = dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
+        number_of_simulations = num_simulations,
+        c_puct = c_puct,
+        neural_network = neural_network
     )
-    game_state.place_settlement(game_state.current_player, label_of_chosen_vertex)
+    if move_type == "settlement":
+        game_state.place_settlement(game_state.current_player, label_of_chosen_vertex)
+    elif move_type == "city":
+        game_state.place_city(game_state.current_player, label_of_chosen_vertex)
     training_example = {
         "state": copy.deepcopy(game_state.get_state_snapshot()),
-        "move_type": "settlement",
+        "move_type": move_type,
         "policy": policy,
         "player": game_state.current_player
     }
@@ -61,7 +69,6 @@ def simulate_settlement_move(
 def simulate_road_move(
     game_state: GameState,
     neural_network,
-    dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
     num_simulations,
     c_puct,
     last_move
@@ -91,43 +98,16 @@ def simulate_road_move(
     return key_of_chosen_edge, training_example
 
 
-def simulate_city_move(game_state: GameState, neural_network, dictionary_of_labels_of_vertices_and_tuples_of_coordinates, num_simulations, c_puct):
-    list_of_vertices_of_settlements = list(game_state.settlements.values())
-    list_of_vertices_of_cities = list(game_state.cities.values())
-    list_of_labels_of_occupied_vertices = list_of_vertices_of_settlements + list_of_vertices_of_cities
-    list_of_labels_of_available_vertices = board.get_available_building_moves(list_of_labels_of_occupied_vertices)
-    if not list_of_labels_of_available_vertices:
-        logger.exception("No vertices are available for city placement.")
-        return None, None
-    label_of_chosen_vertex, policy = run_mcts_for_move(
-        game_state,
-        "city",
-        list_of_labels_of_available_vertices,
-        dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
-        num_simulations,
-        c_puct,
-        neural_network
-    )
-    game_state.place_city(game_state.current_player, label_of_chosen_vertex)
-    training_example = {
-        "state": copy.deepcopy(game_state.get_state_snapshot()),
-        "move_type": "city",
-        "policy": policy,
-        "player": game_state.current_player
-    }
-    return label_of_chosen_vertex, training_example
-
-
 def simulate_self_play_game(neural_network, number_of_simulations = settings.number_of_simulations, c_puct = settings.c_puct):
     game_state = GameState()
     training_examples = []
     for player in [1, 2, 3]:
         game_state.current_player = player
         game_state.phase = "settlement"
-        label_of_chosen_vertex, example = simulate_settlement_move(
+        label_of_chosen_vertex, example = simulate_building_move(
             game_state,
             neural_network,
-            dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
+            "settlement",
             number_of_simulations,
             c_puct
         )
@@ -139,7 +119,6 @@ def simulate_self_play_game(neural_network, number_of_simulations = settings.num
         key_of_chosen_edge, example = simulate_road_move(
             game_state,
             neural_network,
-            dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
             number_of_simulations,
             c_puct,
             label_of_chosen_vertex
@@ -151,10 +130,10 @@ def simulate_self_play_game(neural_network, number_of_simulations = settings.num
     for player in [3, 2, 1]:
         game_state.current_player = player
         game_state.phase = "city"
-        label_of_chosen_vertex, example = simulate_city_move(
+        label_of_chosen_vertex, example = simulate_building_move(
             game_state,
             neural_network,
-            dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
+            "city",
             number_of_simulations,
             c_puct
         )
@@ -166,7 +145,6 @@ def simulate_self_play_game(neural_network, number_of_simulations = settings.num
         key_of_chosen_edge, example = simulate_road_move(
             game_state,
             neural_network,
-            dictionary_of_labels_of_vertices_and_tuples_of_coordinates,
             number_of_simulations,
             c_puct,
             label_of_chosen_vertex
