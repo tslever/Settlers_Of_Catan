@@ -3,6 +3,10 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
 
+    mysql_host: str = "localhost or something else"
+    mysql_username: str = "username"
+    mysql_password: str = "password"
+
     db_username: str = "username"
     db_password: str = "password"
     db_host: str = "localhost or something else"
@@ -21,15 +25,15 @@ class Settings(BaseSettings):
     number_of_simulations: int = 50
     training_threshold: int = 500
 
-    number_of_epochs = 10
-    batch_size = 32
-    learning_rate = 1e-3
-    length_of_feature_vector = 5
-    number_of_neurons_in_hidden_layer = 128
+    number_of_epochs: int = 10
+    batch_size: int = 32
+    learning_rate: float = 1e-3
+    length_of_feature_vector: int = 5
+    number_of_neurons_in_hidden_layer: int = 128
 
-    margin_of_error = 0.01
-    width_of_board_in_vmin = 100
-    number_of_hexes_that_span_board = 6
+    margin_of_error: float = 0.01
+    width_of_board_in_vmin: int = 100
+    number_of_hexes_that_span_board: int = 6
 
 
 settings = Settings()

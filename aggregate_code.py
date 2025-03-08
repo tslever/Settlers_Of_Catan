@@ -20,7 +20,9 @@ file_paths = [
     r'back_end\ai\train.py',
 
     r'back_end\db\__init__.py',
+    r'back_end\db\change_password.py',
     r'back_end\db\database.py',
+    r'back_end\db\set_up_or_tear_down_game_database.py',
 
     r'back_end\game\__init__.py',
     r'back_end\game\game_actions.py',
@@ -62,7 +64,8 @@ file_paths = [
     r'front_end\app\types.ts',
 
     r'board_geometry.json',
-    r'generate_board_geometry.py'
+    r'generate_board_geometry.py',
+    r'requirements.txt'
 ]
 
 
