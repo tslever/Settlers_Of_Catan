@@ -1,8 +1,9 @@
 from .cities import blueprint_for_route_cities
 from .next import blueprint_for_route_next
+from .reset import blueprint_for_route_reset
 from .roads import blueprint_for_route_roads
-from .settlements import blueprint_for_route_settlements
 from .root import blueprint_for_route_root
+from .settlements import blueprint_for_route_settlements
 
 
 __all__ = [

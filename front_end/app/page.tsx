@@ -3,7 +3,7 @@
 import { API, apiFetch } from './api';
 import { Board } from './BoardLayout';
 import HexTile from './components/HexTile';
-import { ID_Of_Hex } from './types';
+import { ID_Of_Hex, ResetResponse } from './types';
 import { NextResponse } from './types';
 import Ocean from './components/Ocean';
 import { OuterContainer } from './BoardLayout';
@@ -16,6 +16,7 @@ import { Settlement } from './types';
 import { getPositionStyles } from './BoardLayout';
 import { hexes } from './board';
 import { idToColor } from './types';
+import { portMapping } from './types';
 import { tokenMapping } from './types';
 import { vertices } from './board';
 import { useMutation } from '@tanstack/react-query';
@@ -36,35 +37,19 @@ const vertexMapping: Record<string, { x: number, y: number }> =
     }, {} as Record<string, { x: number; y: number }>);
 
 
-const portMapping: Record<string, string> = {
-  "V01": "3:1",
-  "V06": "3:1",
-  "V07": "Grain",
-  "V08": "Grain",
-  "V13": "Ore",
-  "V23": "Ore",
-  "V36": "3:1",
-  "V37": "3:1",
-  "V46": "Wool",
-  "V47": "Wool",
-  "V51": "3:1",
-  "V52": "3:1",
-  "V49": "3:1",
-  "V50": "3:1",
-  "V41": "Brick",
-  "V27": "Brick",
-  "V17": "Wood",
-  "V18": "Wood",
-};
-
-
 export default function Home() {
+
     const [mounted, setMounted] = useState(false);
+
+    const [message, setMessage] = useState("");
+
     const queryClient = useQueryClient();
+
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
 
     const {
         data: settlementsData,
@@ -96,23 +81,49 @@ export default function Home() {
         { enabled: mounted }
     );
 
+
     const {
         mutate: postNextMove,
-        isPending: nextLoading,
-        error: nextError,
-        data: nextData
+        isPending: nextLoading
     } = useMutation<NextResponse, Error>({
         mutationFn: () => apiFetch<NextResponse>(API.endpoints.next, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
         }),
-        onSuccess: () => {
+        onSuccess: (data) => {
+            setMessage(data.message);
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
+        },
+        onError: (error: Error) => {
+            setMessage(error.message);
         }
     });
+
+
+    const {
+        mutate: resetGame,
+        isPending: resetLoading
+    } = useMutation<ResetResponse, Error>({
+        mutationFn: () =>
+            apiFetch<ResetResponse>(API.endpoints.reset, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            }),
+        onSuccess: (data) => {
+            setMessage(data.message);
+            queryClient.invalidateQueries({ queryKey: ["cities"] });
+            queryClient.invalidateQueries({ queryKey: ["settlements"] });
+            queryClient.invalidateQueries({ queryKey: ["roads"] });
+        },
+        onError: (error: Error) => {
+            setMessage(error.message);
+        }
+    });
+
 
     if (!mounted) {
         return null;
@@ -122,7 +133,9 @@ export default function Home() {
         postNextMove();
     }
 
-    const serverMessage = nextError ? nextError.message : nextData?.message || '';
+    const handleReset = () => {
+        resetGame();
+    }
 
     const settlements = settlementsData?.settlements ?? [];
     const roads = roadsData?.roads ?? [];
@@ -201,7 +214,10 @@ export default function Home() {
                 <button onClick = {handleNext} disabled = {nextLoading}>
                     {nextLoading ? "Loading..." : "Next"}
                 </button>
-                {serverMessage && <p>{serverMessage}</p>}
+                <button onClick = {handleReset} disabled = {resetLoading} style = {{ marginLeft: "1rem" }}>
+                    { resetLoading ? "Resetting..." : "Reset Game" }
+                </button>
+                {message && <p>{message}</p>}
             </div>
         </div>
     );

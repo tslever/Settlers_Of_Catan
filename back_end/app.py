@@ -9,6 +9,7 @@ from flask_cors import CORS
 from flask import Flask
 from .routes import blueprint_for_route_cities
 from .routes import blueprint_for_route_next
+from .routes import blueprint_for_route_reset
 from .routes import blueprint_for_route_roads
 from .routes import blueprint_for_route_root
 from .routes import blueprint_for_route_settlements
@@ -43,6 +44,8 @@ def create_app():
     logger.info("Registered blueprint for '/cities'")
     app.register_blueprint(blueprint_for_route_next)
     logger.info("Registered blueprint for '/next'")
+    app.register_blueprint(blueprint_for_route_reset)
+    logger.info("Registered blueprint for '/reset'")
     app.register_blueprint(blueprint_for_route_roads)
     logger.info("Registered blueprint for '/roads'")
     app.register_blueprint(blueprint_for_route_root)

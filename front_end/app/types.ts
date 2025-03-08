@@ -1,36 +1,13 @@
-export type Player = 1 | 2 | 3;
-export type MoveType = "settlement" | "road";
-
-export type VertexLabel = string;
 export type EdgeKey = string;
 
-export interface Settlement {
-    id: number;
-    player: Player;
-    vertex: VertexLabel;
-}
+export type MoveType = "settlement" | "road";
 
-export interface Road {
-    id: number;
-    player: Player;
-    edge: EdgeKey;
-}
+export type Player = 1 | 2 | 3;
 
-export type NextResponse =
-    | { moveType: "settlement"; message: string; settlement: Settlement }
-    | { moveType: "road"; message: string; road: Road };
+export type ResetResponse = { message: string };
 
-export interface HexInformation {
-    id: ID_Of_Hex;
-    x: number;
-    y: number;
-}
+export type VertexLabel = string;
 
-export interface VertexInformation {
-    x: number;
-    y: number;
-    label?: VertexLabel;
-}
 
 export interface Edge {
     x1: number;
@@ -39,7 +16,36 @@ export interface Edge {
     y2: number;
 }
 
+export interface HexInformation {
+    id: ID_Of_Hex;
+    x: number;
+    y: number;
+}
+
 export type ID_Of_Hex = keyof typeof idToColor;
+
+export type NextResponse =
+    | { moveType: "settlement"; message: string; settlement: Settlement }
+    | { moveType: "road"; message: string; road: Road };
+
+export interface Road {
+    id: number;
+    player: Player;
+    edge: EdgeKey;
+}
+
+export interface Settlement {
+    id: number;
+    player: Player;
+    vertex: VertexLabel;
+}
+
+export interface VertexInformation {
+    x: number;
+    y: number;
+    label?: VertexLabel;
+}
+
 
 export const colorOf = {
     Brick: "rgb(170, 74, 68)",
@@ -71,7 +77,28 @@ export const idToColor = {
     H18: colorOf.Grain,
     H19: colorOf.Wool,
 } as const;
-  
+
+export const portMapping: Record<string, string> = {
+    "V01": "3:1",
+    "V06": "3:1",
+    "V07": "Grain",
+    "V08": "Grain",
+    "V13": "Ore",
+    "V23": "Ore",
+    "V36": "3:1",
+    "V37": "3:1",
+    "V46": "Wool",
+    "V47": "Wool",
+    "V51": "3:1",
+    "V52": "3:1",
+    "V49": "3:1",
+    "V50": "3:1",
+    "V41": "Brick",
+    "V27": "Brick",
+    "V17": "Wood",
+    "V18": "Wood",
+};
+
 export const tokenMapping: { [key in ID_Of_Hex]: number | null } = {
     H01: 10,
     H02: 2,

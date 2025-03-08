@@ -3,10 +3,11 @@ const URL_OF_BACK_END = "http://localhost:5000";
 export const API = {
     baseUrl: URL_OF_BACK_END,
     endpoints: {
-        settlements: '/settlements',
         cities: '/cities',
+        next: '/next',
+        reset: '/reset',
         roads: '/roads',
-        next: '/next'
+        settlements: '/settlements'
     }
 };
 

@@ -31,6 +31,7 @@ file_paths = [
     r'back_end\routes\__init__.py',
     r'back_end\routes\cities.py',
     r'back_end\routes\next.py',
+    r'back_end\routes\reset.py',
     r'back_end\routes\roads.py',
     r'back_end\routes\root.py',
     r'back_end\routes\settlements.py',
