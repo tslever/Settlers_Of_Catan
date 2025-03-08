@@ -41,6 +41,7 @@ file_paths = [
     r'back_end\logger.py',
     r'back_end\phase_state_machine.py',
     r'back_end\phase.py',
+    r'back_end\requirements.txt',
     r'back_end\settings.py',
 
     r'front_end\app\components\HexTile.tsx',
@@ -64,8 +65,7 @@ file_paths = [
     r'front_end\app\types.ts',
 
     r'board_geometry.json',
-    r'generate_board_geometry.py',
-    r'requirements.txt'
+    r'generate_board_geometry.py'
 ]
 
 
