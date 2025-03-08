@@ -1,22 +1,19 @@
 from back_end.board import Board
+from back_end.ai.neural_network import SettlersNeuralNet
 import copy
 import random
 
 
-def simulate_rollout(node, dictionary_of_labels_of_vertices_and_tuples_of_coordinates, neural_network, rollout_depth = 3):
+def simulate_rollout(node, dictionary_of_labels_of_vertices_and_tuples_of_coordinates, neural_network: SettlersNeuralNet, rollout_depth = 3):
     '''
-    Perform a multi-step rollout simulation from the current leaf node.
+    Perform a multi-step rollout simulation from the given node.
     # TODO: What is a multi-step rollout simulation from the current leaf node?
 
-    This function simulates a sequence of moves (up to a specific rollout depth) using a simple random rollout policy.
-    # TODO: Consider whether a rollout policy that is not simple random is appropriate.
-
-    At each step, for "settlement" and "city" moves, the function computes available building moves,
-    randomly selects one, and updates the state by adding the chosen move for the current player.
-    For "road" moves, the function finds available road moves adjacent to the last building,
-    randomly selects one, and updates the state appropriately.
-    
-    After the rollout, the final state is evaluated using the neural network's settlement evaluation.
+    At each step, for the current phase (settlement / city / road),
+    the function evaluates all available moves using the neural network
+    and chooses the move with the highest predicted value.
+    TODO: Consider sampling from the network's policy distribution.
+    Finally, the resulting state is evaluated using the learned evaluation of the last building.
     For simplicity, the same evaluation is used regardless of move type.
     TODO: Consider implementing evaluations for each move type.
 
@@ -32,11 +29,11 @@ def simulate_rollout(node, dictionary_of_labels_of_vertices_and_tuples_of_coordi
     state = copy.deepcopy(node.game_state)
     board = Board()
     current_depth = 0
+    phase = state.get("phase")
 
     # Simulate moves until the rollout depth is reached or no move is available.
     while current_depth < rollout_depth:
-        move_type = state.get("phase")
-        if move_type in ("settlement", "city"):
+        if phase in ("settlement", "city"):
             # Flatten the settlements and cities dictionaries into single lists of occupied vertices.
             occupied = []
             for lst in state.get("settlements", {}).values():
@@ -46,17 +43,30 @@ def simulate_rollout(node, dictionary_of_labels_of_vertices_and_tuples_of_coordi
             available_moves = board.get_available_building_moves(occupied)
             if not available_moves:
                 break
-            chosen_move = random.choice(available_moves)
-            # TODO: Consider whether a rollout policy that is not simple random is appropriate.
-            if move_type == "settlement":
-                state.setdefault("settlements", {}).setdefault(state.get("current_player"), []).append(chosen_move)
+
+            best_move = None
+            best_value = -float("inf")
+            for label_of_vertex in available_moves:
+                if phase == "settlement":
+                    value, _ = neural_network.evaluate_settlement(label_of_vertex)
+                else:
+                    value, _ = neural_network.evaluate_city(label_of_vertex)
+                if value > best_value:
+                    best_value = value
+                    best_move = label_of_vertex
+                
+            if best_move is None:
+                break
+
+            if phase == "settlement":
+                state.setdefault("settlements", {}).setdefault(state.get("current_player"), []).append(best_move)
             else:
-                state.setdefault("cities", {}).setdefault(state.get("current_player"), []).append(chosen_move)
-            state["last_building"] = chosen_move
+                state.setdefault("cities", {}).setdefault(state.get("current_player"), []).append(best_move)
+            state["last_building"] = best_move
         
-        elif move_type == "road":
-            last = state.get("last_building")
-            if last is None:
+        elif phase == "road":
+            last_building = state.get("last_building")
+            if last_building is None:
                 break
             used_edges = []
             current_roads = state.get("roads")
@@ -65,10 +75,22 @@ def simulate_rollout(node, dictionary_of_labels_of_vertices_and_tuples_of_coordi
                     used_edges.extend(lst)
             else:
                 used_edges = current_roads if current_roads is not None else []
-            available_edges = board.get_available_road_moves(last, used_edges)
+            available_edges = board.get_available_road_moves(last_building, used_edges)
             if not available_edges:
                 break
-            _, chosen_edge_key = random.choice(available_edges)
+
+            best_edge = None
+            best_value = -float("inf")
+            for edge, edge_key in available_edges:
+                value, _ = neural_network.evaluate_road(edge, dictionary_of_labels_of_vertices_and_tuples_of_coordinates, last_building)
+                if value > best_value:
+                    best_value = value
+                    best_edge = (edge, edge_key)
+            
+            if best_edge is None:
+                break
+
+            _, chosen_edge_key = best_edge
             if isinstance(state.get("roads"), dict):
                 state.setdefault("roads", {}).setdefault(state.get("current_player"), []).append(chosen_edge_key)
             else:
@@ -77,14 +99,17 @@ def simulate_rollout(node, dictionary_of_labels_of_vertices_and_tuples_of_coordi
             break
 
         current_depth += 1
-        # TODO: Consider whether updating state["phase"] here according to game rules is appropriate.
+        # TODO: Consider updating state["phase"] here if the game rules change the phase after a move.
+        # For simplicity, we break after one iteration in this example.
         # TODO: Consider whether simulating multiple moves per rollout is appropriate.
         break
 
-    # Evaluate the resulting state.
-    # TODO: Consider whether to do something other than using the evaluation for settlements as a proxy.
-    if state.get("last_building") is not None:
-        value, _ = neural_network.evaluate_settlement(state["last_building"])
+    # Evaluate the final state using the learned evaluation.
+    # TODO: Consider whether to do something other than using the `evaluate_settlement` function with the last settlement or city,
+    # such as using more comprehensive state evaluation.
+    last_building = state.get("last_building")
+    if last_building:
+        value, _ = neural_network.evaluate_settlement(last_building)
     else:
         value = 0.0
     return value
