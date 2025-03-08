@@ -37,3 +37,15 @@ To start the back end,
 15. Run `cd ..`.
 
 16. Run `python -m back_end.app`.
+
+To start the front end,
+
+1. Download Node.js v22.14.0 from https://nodejs.org/en .
+
+2. Install Node.js.
+
+3. Run `cd front_end`.
+
+4. Run `npm install`.
+
+5. Run `npm run dev`.
