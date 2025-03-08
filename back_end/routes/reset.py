@@ -3,6 +3,7 @@ from back_end.db.database import State, Settlement, City, Road
 from back_end.db.database import get_db_session
 from back_end.phase import Phase
 import logging
+from sqlalchemy import text
 
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,13 @@ def reset_game():
         num_cities = session.query(City).delete()
         num_roads = session.query(Road).delete()
         logger.info(f"{num_settlements} settlements, {num_cities} cities, and {num_roads} roads were deleted.")
+        session.commit()
+
+        # Reset auto-increment counters so that future settlements, cities, and roads start at ID 1.
+        session.execute(text("ALTER TABLE settlements AUTO_INCREMENT = 1"))
+        session.execute(text("ALTER TABLE cities AUTO_INCREMENT = 1"))
+        session.execute(text("ALTER TABLE roads AUTO_INCREMENT = 1"))
+        session.commit()
 
         # Reset the game state.
         state = session.query(State).filter_by(id = 1).first()
