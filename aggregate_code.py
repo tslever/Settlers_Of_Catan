@@ -4,6 +4,24 @@ import re
 
 base_path = r'C:\Users\thoma\Documents\Settlers_Of_Catan'
 file_paths = [
+    r'.gitignore',
+
+    r'back_end\back_end.sln',
+    r'back_end\back_end\back_end.vcxproj',
+    r'back_end\back_end\back_end.vcxproj.filters',
+    r'back_end\back_end\back_end.vcxproj.user',
+
+    r'back_end\back_end\back_end.cpp',
+
+    r'back_end\back_end\mcts_node.hpp',
+    r'back_end\back_end\neural_network.hpp',
+
+    r'back_end\back_end\database.hpp',
+    r'back_end\back_end\models.hpp',
+
+    r'back_end\back_end\game_state.hpp'
+]
+file_paths = [
     r'Python_back_end\ai\mcts\__init__.py',
     r'Python_back_end\ai\mcts\backpropagation.py',
     r'Python_back_end\ai\mcts\expansion.py',
