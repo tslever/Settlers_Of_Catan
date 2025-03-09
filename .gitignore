@@ -2,11 +2,14 @@ __pycache__
 
 aggregated_contents.txt
 
-Python_back_end/settings.py
-
-Python_back_end/ai/self_play_training_data.npy
-Python_back_end/ai/neural_network.pt
-
-Python_back_end/env
+back_end/.vs
+back_end/back_end/x64
+back_end/dependencies
+back_end/x64
 
 front_end/node_modules
+
+Python_back_end/settings.py
+Python_back_end/ai/self_play_training_data.npy
+Python_back_end/ai/neural_network.pt
+Python_back_end/env
