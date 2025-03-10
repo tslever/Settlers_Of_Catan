@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
-#include "game_state.hpp"
+#include "../../game/game_state.hpp"
 
 
 class MCTSNode {
