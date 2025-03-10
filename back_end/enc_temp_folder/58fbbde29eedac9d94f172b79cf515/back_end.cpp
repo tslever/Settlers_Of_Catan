@@ -40,7 +40,15 @@ int main() {
 	gameState.lastBuilding = "";
 
     // GET /cities - return a JSON list of cities.
-	// TODO: Resolve the error that occurs after a city is placed and this endpoint is queried where the response is `{"cities":null}`.
+	/* TODO: Resolve the following error.
+	thoma@DESKTOP - DEO3T6M MINGW64 ~
+		$ curl - X GET http ://localhost:5000/cities
+	500 Internal Server Error
+	
+	(2025-03-10 03:29:46) [INFO    ] Request: 127.0.0.1:55418 000001C2109BA0E0 HTTP/1.1 GET /cities
+(2025-03-10 03:29:46) [ERROR   ] An uncaught exception occurred: Table 'game.cities' doesn't exist
+(2025-03-10 03:29:46) [INFO    ] Response: 000001C2109BA0E0 /cities 500 0
+	*/
     CROW_ROUTE(app, "/cities")
     ([&db]() {
 		crow::json::wvalue result;
@@ -61,14 +69,6 @@ int main() {
     });
 
 	// POST /next - transition the game state using phase state machine.
-	// TODO: Resolve the error where querying next repeatedly doesn't result in the progression of players and phases in the Python back end.
-	// Player 1 places their first settlement, then their first road.
-	// Player 2 places their first settlement, then their first road.
-	// Player 3 places their first settlement, then their first road.
-	// Player 3 places their first city, then their second road.
-	// Player 2 places their first city, then their second road.
-	// Player 1 places their first city, then their second road.
-	// Player 1 takes their turn.
 	CROW_ROUTE(app, "/next").methods("POST"_method)
 	([&gameState]() {
 		PhaseStateMachine phaseStateMachine;
@@ -78,6 +78,15 @@ int main() {
 
 	// POST /reset - reset both the database and in-memory game state.
 	// TODO: Save game state in database.
+	/* TODO: Resolve the following error.
+	thoma@DESKTOP - DEO3T6M MINGW64 ~
+		$ curl - X POST http ://localhost:5000/reset
+	{"error":"Resetting game failed."}
+
+	(2025-03-10 03:30:59) [INFO    ] Request: 127.0.0.1:55423 000001C2109BA0E0 HTTP/1.1 POST /reset
+Error: Table 'game.settlements' doesn't exist
+(2025-03-10 03:30:59) [INFO    ] Response: 000001C2109BA0E0 /reset 200 0
+	*/
 	CROW_ROUTE(app, "/reset").methods("POST"_method)
 	([&db, &gameState]() {
 		crow::json::wvalue result;
@@ -101,7 +110,15 @@ int main() {
 	});
 
 	// GET /roads - return a JSON list of roads.
-	// TODO: Resolve the error that occurs after a road is placed and this endpoint is queried where the response is `{"roads":null}`.
+	/* TODO: Resolve the following error.
+	thoma@DESKTOP - DEO3T6M MINGW64 ~
+		$ curl - X GET http ://localhost:5000/roads
+	500 Internal Server Error
+
+	(2025-03-10 03:31:32) [INFO    ] Request: 127.0.0.1:55425 000001C2109BF640 HTTP/1.1 GET /roads
+	(2025-03-10 03:31:32) [ERROR   ] An uncaught exception occurred: Table 'game.roads' doesn't exist
+	(2025-03-10 03:31:32) [INFO    ] Response: 000001C2109BF640 /roads 500 0
+	*/
 	CROW_ROUTE(app, "/roads")
 	([&db]() {
 		crow::json::wvalue result;
@@ -130,7 +147,15 @@ int main() {
 	});
 
 	// GET /settlements - return a JSON list of settlements.
-	// TODO: Resolve the error that occurs after a settlement is placed and this endpoint is queried where the response is `{"settlements":null}`.
+	/* TODO: Resolve the following error.
+	thoma@DESKTOP - DEO3T6M MINGW64 ~
+		$ curl - X GET http ://localhost:5000/settlements
+	500 Internal Server Error
+
+	(2025-03-10 03:32:13) [INFO    ] Request: 127.0.0.1:55431 000001C2109BF640 HTTP/1.1 GET /settlements
+	(2025-03-10 03:32:13) [ERROR   ] An uncaught exception occurred: Table 'game.settlements' doesn't exist
+	(2025-03-10 03:32:13) [INFO    ] Response: 000001C2109BF640 /settlements 500 0
+	*/
 	CROW_ROUTE(app, "/settlements")
 	([&db]() {
 		crow::json::wvalue result;

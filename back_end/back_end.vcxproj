@@ -141,6 +141,7 @@ xcopy /Y /I "$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="back_end.cpp" />
+    <ClCompile Include="db\database.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ai\mcts\node.hpp" />

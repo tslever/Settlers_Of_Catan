@@ -34,6 +34,8 @@ public:
         conn->setSchema(dbName);
     }
 
+    void initialize();
+
     std::vector<City> getCities() {
         std::vector<City> cities;
         std::unique_ptr<sql::Statement> stmt(conn->createStatement());
