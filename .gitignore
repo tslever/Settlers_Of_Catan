@@ -3,8 +3,8 @@ __pycache__
 aggregated_contents.txt
 
 back_end/.vs
-back_end/back_end/x64
 back_end/dependencies
+back_end/intermediate
 back_end/x64
 
 front_end/node_modules

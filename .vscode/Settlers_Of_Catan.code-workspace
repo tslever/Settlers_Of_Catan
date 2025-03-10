@@ -6,7 +6,7 @@
 	],
 	"settings": {
 		"explorer.confirmDelete": false,
-		"python.defaultInterpreterPath": "c:\\Users\\thoma\\Documents\\Settlers_Of_Catan\\back_end\\env\\Scripts\\python.exe",
+		"python.defaultInterpreterPath": "c:\\Users\\thoma\\Documents\\Settlers_Of_Catan\\env\\Scripts\\python.exe",
 			"terminal.integrated.profiles.windows": {
 				"PowerShell": {
 					"source": "PowerShell",
