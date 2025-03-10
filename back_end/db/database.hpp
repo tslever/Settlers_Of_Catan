@@ -68,6 +68,7 @@ public:
             ).execute();
         }
         catch (const mysqlx::Error& err) {
+            // TODO: Ensure that this is the appropriate error.
             std::cerr << "The following error occurred while the database was being initialized." << err.what() << std::endl;
             throw; // Rethrow to allow caller to handle the error.
         }
