@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-from back_end.settings import settings
+from Python_back_end.settings import settings
 import pymysql
 
 
