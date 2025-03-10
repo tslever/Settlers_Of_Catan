@@ -8,7 +8,7 @@ trains the network to predict both a value in [-1, 1] and a policy, a probabilit
 and saves trained model weights.
 """
 
-from ..board import Board
+from ..game.board import Board
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from ..ai.neural_network import SettlersPolicyValueNet

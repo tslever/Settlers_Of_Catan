@@ -1,5 +1,5 @@
 from flask import Blueprint
-from ..board import Board
+from ..game.board import Board
 from Python_back_end.game.phase import Phase
 from Python_back_end.game.phase_state_machine import PhaseStateMachine
 from ..db.database import State

@@ -6,7 +6,7 @@ This module defines two separate concerns:
 '''
 
 
-from ..board import Board
+from ..game.board import Board
 from .io_helper import load_model_weights
 import logging
 import math
