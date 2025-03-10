@@ -146,7 +146,7 @@ xcopy /Y /I "$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\
     <ClInclude Include="database.hpp" />
     <ClInclude Include="game_state.hpp" />
     <ClInclude Include="models.hpp" />
-    <ClInclude Include="mcts_node.hpp" />
+    <ClInclude Include="node.hpp" />
     <ClInclude Include="neural_network.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -13,6 +13,18 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\db">
+      <UniqueIdentifier>{e3bba1a4-4121-4d2f-9120-0fd8381f0343}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\game">
+      <UniqueIdentifier>{4c47872d-58b6-426e-8457-a06936809a18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ai">
+      <UniqueIdentifier>{c53f1463-86a6-43e5-b1ef-3f3ebbde6b20}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ai\mcts">
+      <UniqueIdentifier>{2bc780c3-21c7-472f-be80-06c5fdf4eeb6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="back_end.cpp">
@@ -21,19 +33,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="database.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\db</Filter>
     </ClInclude>
     <ClInclude Include="models.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="mcts_node.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\db</Filter>
     </ClInclude>
     <ClInclude Include="game_state.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\game</Filter>
     </ClInclude>
     <ClInclude Include="neural_network.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\ai</Filter>
+    </ClInclude>
+    <ClInclude Include="node.hpp">
+      <Filter>Header Files\ai\mcts</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

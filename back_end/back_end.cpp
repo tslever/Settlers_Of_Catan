@@ -6,7 +6,7 @@
 - $(SolutionDir)\dependencies\asio\asio\include;
 */
 
-#include "database.hpp"
+#include "db/database.hpp"
 
 //#include "db/models.hpp"
 
