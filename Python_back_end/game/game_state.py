@@ -1,4 +1,4 @@
-from back_end.phase import Phase
+from Python_back_end.game.phase import Phase
 
 
 class GameState:

@@ -33,8 +33,8 @@ paths_of_Python_back_end_files = [
     r'Python_back_end\app.py',
     r'Python_back_end\board.py',
     r'Python_back_end\logger.py',
-    r'Python_back_end\phase_state_machine.py',
-    r'Python_back_end\phase.py',
+    r'Python_back_end\game\phase_state_machine.py',
+    r'Python_back_end\game\phase.py',
     r'Python_back_end\requirements.txt',
     r'Python_back_end\settings.py'
 ]

@@ -1,5 +1,5 @@
 from abc import ABC
-from .phase import Phase
+from Python_back_end.game.phase import Phase
 from flask import abort
 from abc import abstractmethod
 from back_end.game.game_actions import compute_strengths

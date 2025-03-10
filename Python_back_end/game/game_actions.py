@@ -1,6 +1,6 @@
 from back_end.board import Board
 from back_end.db.database import City
-from back_end.phase import Phase
+from Python_back_end.game.phase import Phase
 from back_end.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
 from back_end.db.database import Road
 from back_end.db.database import Settlement
