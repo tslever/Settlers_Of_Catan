@@ -18,10 +18,11 @@ int main() {
 
     // Configure your database connection.
 	std::string dbName = "game";
-    std::string host = "tcp://127.0.0.1:3306";
+    std::string host = "127.0.0.1"; // Host address
 	std::string password = "settlers_of_catan";
+	unsigned int port = 33060; // Default port for MySQL X DevAPI
     std::string username = "administrator";
-    Database db(dbName, host, password, username);
+    Database db(dbName, host, password, port, username);
 
 	// Initialize the database schema (ensure tables exist).
 	try {
@@ -87,12 +88,7 @@ int main() {
 			gameState.phase = "phase to place first settlement";
 			gameState.currentPlayer = 1;
 			gameState.lastBuilding = "";
-			if (success) {
-				result["message"] = "Game has been reset to the initial state.";
-			}
-			else {
-				result["error"] = "Resetting game failed.";
-			}
+			result["message"] = success ? "Game has been reset to the initial state." : "Resetting game failed.";
 		}
 		catch (const std::exception& e) {
 			result["error"] = std::string("Resetting game failed with the following error.") + e.what();

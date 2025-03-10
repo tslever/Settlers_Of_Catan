@@ -30,9 +30,6 @@
     <ClCompile Include="back_end.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="db\database.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="db\database.hpp">
