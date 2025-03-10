@@ -47,16 +47,17 @@ paths_of_back_end_files = [
     r'back_end\back_end.vcxproj.filters',
     r'back_end\back_end.vcxproj.user',
 
-    r'back_end\database.hpp',
-    r'back_end\game_state.hpp',
-    r'back_end\mcts_node.hpp',
-    r'back_end\models.hpp',
-    r'back_end\neural_network.hpp'
+    r'back_end\ai\mcts\node.hpp',
+    r'back_end\ai\neural_network.hpp',
+
+    r'back_end\db\database.hpp',
+    r'back_end\db\models.hpp',
+
+    r'back_end\game\game_state.hpp'
 ]
 
 paths_of_configuration_files = [
-    r'.gitignore',
-    r'.vscode\Settlers_Of_Catan.code-workspace'
+    r'.gitignore'
 ]
 
 paths_of_files_to_alter_database = [
