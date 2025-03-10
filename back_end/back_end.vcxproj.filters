@@ -47,5 +47,8 @@
     <ClInclude Include="game\game_state.hpp">
       <Filter>Header Files\game</Filter>
     </ClInclude>
+    <ClInclude Include="game\phase_state_machine.hpp">
+      <Filter>Header Files\game</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

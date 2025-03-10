@@ -148,6 +148,7 @@ xcopy /Y /I "$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\
     <ClInclude Include="db\database.hpp" />
     <ClInclude Include="db\models.hpp" />
     <ClInclude Include="game\game_state.hpp" />
+    <ClInclude Include="game\phase_state_machine.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

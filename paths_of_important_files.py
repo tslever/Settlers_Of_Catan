@@ -53,7 +53,8 @@ paths_of_back_end_files = [
     r'back_end\db\database.hpp',
     r'back_end\db\models.hpp',
 
-    r'back_end\game\game_state.hpp'
+    r'back_end\game\game_state.hpp',
+    r'back_end\game\phase_state_machine.hpp'
 ]
 
 paths_of_configuration_files = [

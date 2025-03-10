@@ -8,6 +8,9 @@
 
 #include "db/database.hpp"
 
+#include "game/game_state.hpp"
+#include "game/phase_state_machine.hpp"
+
 
 int main() {
 
@@ -20,7 +23,23 @@ int main() {
     std::string username = "administrator";
     Database db(dbName, host, password, username);
 
+	// In-memory game state instance.
+	// TODO: Save game state in database.
+	GameState gameState;
+	gameState.phase = "phase to place first settlement";
+	gameState.currentPlayer = 1;
+	gameState.lastBuilding = "";
+
     // GET /cities - return a JSON list of cities.
+	/* TODO: Resolve the following error.
+	thoma@DESKTOP - DEO3T6M MINGW64 ~
+		$ curl - X GET http ://localhost:5000/cities
+	500 Internal Server Error
+	
+	(2025-03-10 03:29:46) [INFO    ] Request: 127.0.0.1:55418 000001C2109BA0E0 HTTP/1.1 GET /cities
+(2025-03-10 03:29:46) [ERROR   ] An uncaught exception occurred: Table 'game.cities' doesn't exist
+(2025-03-10 03:29:46) [INFO    ] Response: 000001C2109BA0E0 /cities 500 0
+	*/
     CROW_ROUTE(app, "/cities")
     ([&db]() {
         auto cities = db.getCities();
@@ -35,20 +54,33 @@ int main() {
         return result;
     });
 
-	// POST /next - a placeholder route to transition game state.
+	// POST /next - transition the game state using phase state machine.
 	CROW_ROUTE(app, "/next").methods("POST"_method)
-	([&db]() {
-		// TODO: Migrate `phase_state_machine.py` from Python to C++.
-		// TODO: Migrate C++ phase state logic here.
-		crow::json::wvalue result;
-		result["message"] = "Game state transitioned (placeholder)";
+	([&gameState]() {
+		PhaseStateMachine phaseStateMachine;
+		// TODO: Resolve the error 'incomplete type "PhaseStateMachine" is not allowed'.
+		auto result = phaseStateMachine.handle(gameState);
 		return result;
 	});
 
-	// POST /reset - reset the game to the initial state.
+	// POST /reset - reset both the database and in-memory game state.
+	// TODO: Save game state in database.
+	/* TODO: Resolve the following error.
+	thoma@DESKTOP - DEO3T6M MINGW64 ~
+		$ curl - X POST http ://localhost:5000/reset
+	{"error":"Resetting game failed."}
+
+	(2025-03-10 03:30:59) [INFO    ] Request: 127.0.0.1:55423 000001C2109BA0E0 HTTP/1.1 POST /reset
+Error: Table 'game.settlements' doesn't exist
+(2025-03-10 03:30:59) [INFO    ] Response: 000001C2109BA0E0 /reset 200 0
+	*/
 	CROW_ROUTE(app, "/reset").methods("POST"_method)
-	([&db]() {
+	([&db, &gameState]() {
 		bool success = db.resetGame();
+		gameState = GameState();
+		gameState.phase = "phase to place first settlement";
+		gameState.currentPlayer = 1;
+		gameState.lastBuilding = "";
 		crow::json::wvalue result;
 		if (success) {
 			result["message"] = "Game has been reset to the initial state.";
@@ -59,6 +91,15 @@ int main() {
 	});
 
 	// GET /roads - return a JSON list of roads.
+	/* TODO: Resolve the following error.
+	thoma@DESKTOP - DEO3T6M MINGW64 ~
+		$ curl - X GET http ://localhost:5000/roads
+	500 Internal Server Error
+
+	(2025-03-10 03:31:32) [INFO    ] Request: 127.0.0.1:55425 000001C2109BF640 HTTP/1.1 GET /roads
+	(2025-03-10 03:31:32) [ERROR   ] An uncaught exception occurred: Table 'game.roads' doesn't exist
+	(2025-03-10 03:31:32) [INFO    ] Response: 000001C2109BF640 /roads 500 0
+	*/
 	CROW_ROUTE(app, "/roads")
 	([&db]() {
 		auto roads = db.getRoads();
@@ -82,6 +123,15 @@ int main() {
 	});
 
 	// GET /settlements - return a JSON list of settlements.
+	/* TODO: Resolve the following error.
+	thoma@DESKTOP - DEO3T6M MINGW64 ~
+		$ curl - X GET http ://localhost:5000/settlements
+	500 Internal Server Error
+
+	(2025-03-10 03:32:13) [INFO    ] Request: 127.0.0.1:55431 000001C2109BF640 HTTP/1.1 GET /settlements
+	(2025-03-10 03:32:13) [ERROR   ] An uncaught exception occurred: Table 'game.settlements' doesn't exist
+	(2025-03-10 03:32:13) [INFO    ] Response: 000001C2109BF640 /settlements 500 0
+	*/
 	CROW_ROUTE(app, "/settlements")
 	([&db]() {
 		auto settlements = db.getSettlements();
