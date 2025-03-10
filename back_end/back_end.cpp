@@ -12,22 +12,20 @@
 #include "game/phase_state_machine.hpp"
 
 
+// TODO: Align this back end with the Python back end.
+
+
 struct CorsMiddleware {
 	struct context { };
 
 	void before_handle(crow::request& req, crow::response& res, context&) {
-		if (req.method == crow::HTTPMethod::OPTIONS) {
-			res.add_header("Access-Control-Allow-Origin", "http://localhost:3000");
-			res.add_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-			res.add_header("Access-Control-Allow-Headers", "Content-Type");
-			res.code = 200;
-			res.end();
-		}
+		// Do nothing.
 	}
 
 	template <typename AllContext>
 	void after_handle(const crow::request&, crow::response& res, context&, AllContext&) {
 		res.add_header("Access-Control-Allow-Origin", "http://localhost:3000");
+		res.add_header("Access-Control-Allow-Headers", "Content-Type");
 	}
 };
 
@@ -84,10 +82,7 @@ int main() {
 
 	// POST /next - transition the game state using phase state machine.
 	// 
-	// TODO: Resolve the following error.
-	//localhost / :1 Access to fetch at 'http://localhost:5000/next' from origin 'http://localhost:3000' has been blocked by CORS policy : Request header field content - type is not allowed by Access - Control - Allow - Headers in preflight response.
-	//	C : \Users\thoma\Documents\Settlers_Of_Catan\front_end\app\api.ts:18
-	//	POST http ://localhost:5000/next net::ERR_FAILED
+	// TODO: Resolve the error where querying next doesn't result in being able to see a new settlement or road on the board.
 	// 
 	// TODO: Resolve the error where querying next repeatedly doesn't result in the progression of players and phases in the Python back end.
 	// Player 1 places their first settlement, then their first road.
