@@ -11,12 +11,12 @@
 class MCTSNode {
 public:
     GameState gameState;
-    std::string move;      // e.g. vertex label or edge key
-    std::string moveType;  // "settlement", "road", etc.
-    int N;                 // visit count
-    double W;              // total value
-    double Q;              // mean value = W / N
-    double P;              // prior probability
+    std::string move; // e.g. vertex label or edge key
+    std::string moveType; // "settlement", "road", etc.
+    int N; // visit count
+    double W; // total value
+    double Q; // mean value = W / N
+    double P; // prior probability
     std::unordered_map<std::string, std::shared_ptr<MCTSNode>> children;
     std::shared_ptr<MCTSNode> parent;
 

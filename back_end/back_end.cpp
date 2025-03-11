@@ -35,7 +35,7 @@ int main() {
     crow::App<CorsMiddleware> app;
 	app.loglevel(crow::LogLevel::Info);
 
-    // Configure your database connection.
+    // Configure database connection.
 	std::string dbName = "game";
     std::string host = "127.0.0.1"; // Host address
 	std::string password = "settlers_of_catan";
@@ -60,7 +60,6 @@ int main() {
 	gameState.lastBuilding = "";
 
     // GET /cities - return a JSON list of cities.
-	// TODO: Resolve the error that occurs after a city is placed and this endpoint is queried where responding / loading hangs.
     CROW_ROUTE(app, "/cities").methods("GET"_method)
     ([&db]() {
 		crow::json::wvalue result;
