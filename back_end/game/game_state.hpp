@@ -5,6 +5,17 @@
 #include <vector>
 
 
+// Namespace Phase is a namespace for game state phase constants.
+// TODO: Consider whether an enum would be more appropriate.
+namespace Phase {
+	const std::string TO_PLACE_FIRST_SETTLEMENT = "phase to place first settlement";
+	const std::string TO_PLACE_FIRST_ROAD = "phase to place first road";
+    const std::string TO_PLACE_FIRST_CITY = "phase to place first city";
+	const std::string TO_PLACE_SECOND_ROAD = "phase to place second road";
+	const std::string TURN = "turn";
+}
+
+
 class GameState {
 public:
     int currentPlayer;
@@ -15,7 +26,7 @@ public:
     std::string lastBuilding;
 
     GameState()
-        : currentPlayer(1), phase("phase to place first settlement"), lastBuilding("")
+        : currentPlayer(1), phase(Phase::TO_PLACE_FIRST_SETTLEMENT), lastBuilding("")
     {
         settlements[1] = {};
         settlements[2] = {};
@@ -40,9 +51,12 @@ public:
         lastBuilding = vertex;
     }
 
-    // Add a city for the given player at the specified vertex.
+    /* Add a road for the given player at the specified edge.
+    * After a road is placed we clear `lastBuilding` so that subsequent moves don't reuse it.
+    */
     void placeRoad(int player, const std::string& edge) {
         roads[player].push_back(edge);
+        lastBuilding = "";
     }
 
     // Return a snapshot of the game state as a string.

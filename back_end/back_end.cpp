@@ -37,7 +37,7 @@ int main() {
 
     // Configure database connection.
 	std::string dbName = "game";
-    std::string host = "127.0.0.1"; // Host address
+    std::string host = "localhost"; // Host address
 	std::string password = "settlers_of_catan";
 	unsigned int port = 33060; // Default port for MySQL X DevAPI
     std::string username = "administrator";
@@ -52,6 +52,8 @@ int main() {
 		return 1;
 	}
 
+	static GameState globalGameState = db.getGameState();
+
     // GET /cities - return a JSON list of cities.
     CROW_ROUTE(app, "/cities").methods("GET"_method)
     ([&db]() {
@@ -59,20 +61,27 @@ int main() {
     });
 
 	// POST /next - transition the game state using phase state machine.
-	// TODO: Resolve the error where querying next doesn't result in being able to see a new settlement, city, or road on the board.
+	/* TODO: Resolve the error where querying next results in
+	* a random settlement of Player 1's color being displayed properly but no message,
+	* a random settlement being displayed instead of an edge of Player 1's color and no message,
+	* a random settlement being displayed of Player 1's color instead of Player 2's color and no message,
+	* a random settlement of Player 1's color being displayed instead of an edge of Player 2's color and no message,
+	* a random settlement being displayed of Player 1's color instead of Player 3's color and no message,
+	* a random settlement being displayed of Player 1's color instead of an edge of Player 3's color and no message,
+	* et cetera.
+	*/
 	CROW_ROUTE(app, "/next").methods("POST"_method)
 	([&db]() {
-		crow::json::wvalue result;
+		crow::json::wvalue response;
 		try {
-			GameState gameState = db.getGameState();
 			PhaseStateMachine phaseStateMachine;
-			auto result = phaseStateMachine.handle(gameState);
-			db.updateGameState(gameState);
-			return result;
+			response = phaseStateMachine.handle(globalGameState, db);
+			db.updateGameState(globalGameState);
+			return response;
 		}
 		catch (const std::exception& e) {
-			result["error"] = std::string("The following error occurred while transitioning the game state.") + e.what();
-			return result;
+			response["error"] = std::string("The following error occurred while transitioning the game state.") + e.what();
+			return response;
 		}
 	});
 
@@ -82,12 +91,14 @@ int main() {
 		crow::json::wvalue result;
 		try {
 			bool success = db.resetGame();
-			GameState defaultGameState;
-			defaultGameState.phase = "phase to place first settlement";
-			defaultGameState.currentPlayer = 1;
-			defaultGameState.lastBuilding = "";
-			db.updateGameState(defaultGameState);
-			result["message"] = success ? "Game has been reset to the initial state." : "Resetting game failed.";
+			globalGameState = GameState();
+			globalGameState.phase = Phase::TO_PLACE_FIRST_SETTLEMENT;
+			globalGameState.currentPlayer = 1;
+			globalGameState.lastBuilding = "";
+			db.updateGameState(globalGameState);
+			result["message"] = success
+				? "Game has been reset to the initial state."
+				: "Resetting game failed.";
 		}
 		catch (const std::exception& e) {
 			result["error"] = std::string("Resetting game failed with the following error.") + e.what();

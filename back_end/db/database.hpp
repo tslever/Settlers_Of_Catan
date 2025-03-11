@@ -76,6 +76,60 @@ public:
         }
     }
 
+    int addCity(int player, const std::string& vertex) {
+        // Create a new session and insert a city record.
+        mysqlx::Session session(host, port, username, password, dbName);
+        mysqlx::Schema schema = session.getSchema(dbName);
+        mysqlx::Table table = schema.getTable("cities");
+        table.insert("player", "vertex").values(player, vertex).execute();
+        // Query the city ID that was just inserted.
+        mysqlx::RowResult res = table
+            .select("id")
+            .where("player = " + std::to_string(player) + " AND vertex = " + vertex)
+            .execute();
+        mysqlx::Row row = res.fetchOne();
+        if (row) {
+            return row[0];
+        }
+        return -1;
+    }
+
+    int addSettlement(int player, const std::string& vertex) {
+        // Create a new session and insert a settlement record.
+		mysqlx::Session session(host, port, username, password, dbName);
+		mysqlx::Schema schema = session.getSchema(dbName);
+        mysqlx::Table table = schema.getTable("settlements");
+        table.insert("player", "vertex").values(player, vertex).execute();
+        // Query the settlement ID that was just inserted.
+        mysqlx::RowResult res = table
+            .select("id")
+            .where("player = " + std::to_string(player) + " AND vertex = " + vertex)
+            .execute();
+		mysqlx::Row row = res.fetchOne();
+		if (row) {
+			return row[0];
+		}
+        return -1;
+    }
+
+    int addRoad(int player, const std::string& edge) {
+		// Create a new session and insert a road record.
+        mysqlx::Session session(host, port, username, password, dbName);
+		mysqlx::Schema schema = session.getSchema(dbName);
+		mysqlx::Table table = schema.getTable("roads");
+		table.insert("player", "edge").values(player, edge).execute();
+		// Query the road ID that was just inserted.
+		mysqlx::RowResult res = table
+			.select("id")
+			.where("player = " + std::to_string(player) + " AND edge = " + edge)
+			.execute();
+		mysqlx::Row row = res.fetchOne();
+		if (row) {
+			return row[0];
+		}
+		return -1;
+    }
+
     std::vector<City> getCities() {
         std::vector<City> cities;
 		mysqlx::Session session(host, port, username, password, dbName);
