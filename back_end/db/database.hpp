@@ -16,8 +16,11 @@ xcopy /Y /I "$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\
 class Database {
 public:
 
-	mysqlx::Session session;
-	mysqlx::Schema schema;
+	std::string dbName;
+    std::string host;
+	std::string password;
+	unsigned int port;
+	std::string username;
 
     Database(
         const std::string& dbName,
@@ -25,16 +28,16 @@ public:
         const std::string& password,
         unsigned int port,
         const std::string& username
-	) : session(host, port, username, password, dbName),
-        schema(session.getSchema(dbName))
+	) : dbName(dbName), host(host), password(password), port(port), username(username)
     {
         // TODO: Consider setting additional session options if appropriate.
     }
 
-	// TODO: Migrate method initialize to use MySQL X DevAPI.
     void initialize() {
         try {
-            // Create cities table.
+            mysqlx::Session session(host, port, username, password, dbName);
+			mysqlx::Schema schema = session.getSchema(dbName);
+
             session.sql(
                 "CREATE TABLE IF NOT EXISTS cities ("
                 "id INT AUTO_INCREMENT PRIMARY KEY, "
@@ -42,7 +45,6 @@ public:
                 "vertex VARCHAR(50) NOT NULL)"
             ).execute();
 
-            // Create settlements table.
             session.sql(
                 "CREATE TABLE IF NOT EXISTS settlements ("
                 "id INT AUTO_INCREMENT PRIMARY KEY, "
@@ -50,7 +52,6 @@ public:
                 "vertex VARCHAR(50) NOT NULL)"
             ).execute();
 
-            // Create roads table.
             session.sql(
                 "CREATE TABLE IF NOT EXISTS roads ("
                 "id INT AUTO_INCREMENT PRIMARY KEY, "
@@ -58,7 +59,6 @@ public:
                 "edge VARCHAR(50) NOT NULL)"
             ).execute();
 
-            // Create state table.
             session.sql(
                 "CREATE TABLE IF NOT EXISTS state ("
                 "id INT PRIMARY KEY, "
@@ -74,54 +74,10 @@ public:
         }
     }
 
-    /* With the front end running, when I start the back end and get `localhost:3000`, I get the following output.
-       However, the front end displays, "Error: Failed to fetch" and the Chrome console outputs the following errors.
-       TODO: Resolve the CORS issue.
-       TODO: Address why there are so many requests.
-    
-    (2025 - 03 - 10 21:08 : 06)[INFO] Crow / 1.2.1 server is running at http ://0.0.0.0:5000 using 16 threads
-    (2025 - 03 - 10 21:08 : 06)[INFO] Call `app.loglevel(crow::LogLevel::Warning)` to hide Info level logs.
-        (2025 - 03 - 10 21:08 : 10)[INFO] Request: 127.0.0.1 : 59506 0000023F337667D0 HTTP / 1.1 GET / roads
-        (2025 - 03 - 10 21:08 : 10)[INFO] Request : 127.0.0.1 : 59505 0000023F33764ED0 HTTP / 1.1 GET / cities
-        (2025 - 03 - 10 21:08 : 10)[INFO] Request : 127.0.0.1 : 59504 0000023F337605B0 HTTP / 1.1 GET / settlements
-        (2025 - 03 - 10 21:08 : 10)[INFO] Response : 0000023F337605B0 / settlements 200 0
-        (2025 - 03 - 10 21:08 : 10)[INFO] Response : 0000023F337667D0 / roads 200 0
-        (2025 - 03 - 10 21:08 : 10)[INFO] Response : 0000023F33764ED0 / cities 200 0
-        (2025 - 03 - 10 21:08 : 11)[INFO] Request : 127.0.0.1 : 59506 0000023F337667D0 HTTP / 1.1 GET / roads(2025 - 03 - 10 21:08 : 11)[INFO] Request : 127.0.0.1 : 59505 0000023F33764ED0 HTTP / 1.1 GET / settlements
-
-        (2025 - 03 - 10 21:08 : 11)[INFO] Request : 127.0.0.1 : 59504 0000023F337605B0 HTTP / 1.1 GET / cities
-        (2025 - 03 - 10 21:08 : 11)[INFO] Response : 0000023F337667D0 / roads 200 0
-        (2025 - 03 - 10 21:08 : 11)[INFO] Response : 0000023F337605B0 / cities 200 0
-        (2025 - 03 - 10 21:08 : 11)[INFO] Response : 0000023F33764ED0 / settlements 200 0/
-
-
-    localhost/:1 Access to fetch at 'http://localhost:5000/settlements' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
-:5000/settlements:1
-           Failed to load resource: net::ERR_FAILED
-
-localhost/:1 Access to fetch at 'http://localhost:5000/roads' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
-:5000/roads:1
-           Failed to load resource: net::ERR_FAILED
-
-localhost/:1 Access to fetch at 'http://localhost:5000/cities' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
-:5000/cities:1
-           Failed to load resource: net::ERR_FAILED
-
-localhost/:1 Access to fetch at 'http://localhost:5000/roads' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
-:5000/roads:1
-           Failed to load resource: net::ERR_FAILED
-
-localhost/:1 Access to fetch at 'http://localhost:5000/cities' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
-:5000/cities:1
-           Failed to load resource: net::ERR_FAILED
-
-localhost/:1 Access to fetch at 'http://localhost:5000/settlements' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
-:5000/settlements:1
-           Failed to load resource: net::ERR_FAILED
-    */
-
     std::vector<City> getCities() {
         std::vector<City> cities;
+		mysqlx::Session session(host, port, username, password, dbName);
+		mysqlx::Schema schema = session.getSchema(dbName);
 		mysqlx::Table table = schema.getTable("cities");
 		mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
         for (mysqlx::Row row : rowResult) {
@@ -136,6 +92,8 @@ localhost/:1 Access to fetch at 'http://localhost:5000/settlements' from origin 
 
     std::vector<Road> getRoads() {
         std::vector<Road> roads;
+		mysqlx::Session session(host, port, username, password, dbName);
+		mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("roads");
         mysqlx::RowResult rowResult = table.select("id", "player", "edge").execute();
         for (mysqlx::Row row : rowResult) {
@@ -150,6 +108,8 @@ localhost/:1 Access to fetch at 'http://localhost:5000/settlements' from origin 
 
 	std::vector<Settlement> getSettlements() {
         std::vector<Settlement> settlements;
+		mysqlx::Session session(host, port, username, password, dbName);
+		mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("settlements");
         mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
         for (mysqlx::Row row : rowResult) {
@@ -165,6 +125,9 @@ localhost/:1 Access to fetch at 'http://localhost:5000/settlements' from origin 
 	// Reset game state (delete all settlements, cities, and roads and reset auto-increments).
     bool resetGame() {
         try {
+			mysqlx::Session session(host, port, username, password, dbName);
+			mysqlx::Schema schema = session.getSchema(dbName);
+
 			schema.getTable("settlements").remove().execute();
 			schema.getTable("cities").remove().execute();
 			schema.getTable("roads").remove().execute();

@@ -60,8 +60,8 @@ int main() {
 	gameState.lastBuilding = "";
 
     // GET /cities - return a JSON list of cities.
-	// TODO: Resolve the error that occurs after a city is placed and this endpoint is queried where the response is `{"cities":null}`.
-    CROW_ROUTE(app, "/cities")
+	// TODO: Resolve the error that occurs after a city is placed and this endpoint is queried where responding / loading hangs.
+    CROW_ROUTE(app, "/cities").methods("GET"_method)
     ([&db]() {
 		crow::json::wvalue result;
 		try {
@@ -119,8 +119,7 @@ int main() {
 	});
 
 	// GET /roads - return a JSON list of roads.
-	// TODO: Resolve the error that occurs after a road is placed and this endpoint is queried where the response is `{"roads":null}`.
-	CROW_ROUTE(app, "/roads")
+	CROW_ROUTE(app, "/roads").methods("GET"_method)
 	([&db]() {
 		crow::json::wvalue result;
 		try {
@@ -148,8 +147,7 @@ int main() {
 	});
 
 	// GET /settlements - return a JSON list of settlements.
-	// TODO: Resolve the error that occurs after a settlement is placed and this endpoint is queried where the response is `{"settlements":null}`.
-	CROW_ROUTE(app, "/settlements")
+	CROW_ROUTE(app, "/settlements").methods("GET"_method)
 	([&db]() {
 		crow::json::wvalue result;
 		try {
