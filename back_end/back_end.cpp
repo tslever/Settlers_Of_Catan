@@ -59,17 +59,7 @@ int main() {
     });
 
 	// POST /next - transition the game state using phase state machine.
-	// 
-	// TODO: Resolve the error where querying next doesn't result in being able to see a new settlement or road on the board.
-	// 
-	// TODO: Resolve the error where querying next repeatedly doesn't result in the progression of players and phases in the Python back end.
-	// Player 1 places their first settlement, then their first road.
-	// Player 2 places their first settlement, then their first road.
-	// Player 3 places their first settlement, then their first road.
-	// Player 3 places their first city, then their second road.
-	// Player 2 places their first city, then their second road.
-	// Player 1 places their first city, then their second road.
-	// Player 1 takes their turn.
+	// TODO: Resolve the error where querying next doesn't result in being able to see a new settlement, city, or road on the board.
 	CROW_ROUTE(app, "/next").methods("POST"_method)
 	([&db]() {
 		crow::json::wvalue result;

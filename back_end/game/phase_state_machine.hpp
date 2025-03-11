@@ -12,28 +12,31 @@ public:
 };
 
 
-// Class PlaceFirstSettlementState is a concrete class that represents the state for placing the first settlement.
+/* Class PlaceFirstSettlementState is a concrete class
+* that represents the state for placing the first settlement.
+*/
 class PlaceFirstSettlementState : public PhaseState {
 public:
 	crow::json::wvalue handle(GameState& state) override {
 		crow::json::wvalue result;
-		// For now we pick a hardcoded vertex.
+		// For demonstration, we use a hardcoded vertex label.
 		// TODO: Replace with AI / board logic.
 		std::string chosen_vertex = "V01";
-		state.placeSettlement(state.currentPlayer, chosen_vertex);
-		state.phase = "phase to place first road";
+		int player = state.currentPlayer;
+		state.placeSettlement(player, chosen_vertex);
 		state.lastBuilding = chosen_vertex;
-		result["message"] = "Player " + std::to_string(state.currentPlayer) + " placed a settlement at " + chosen_vertex + ".";
-		/* TODO: After loading the board for the first time, pressing the next button, and
-		   expecting a settlement to be placed for Player 1, I don't see the settlement placed.
-		*/
+		// Transition to road phase.
+		state.phase = "phase to place first road";
+		result["message"] = "Player " + std::to_string(player) + " placed a settlement at " + chosen_vertex + ".";
 		result["moveType"] = "settlement";
 		return result;
 	}
 };
 
 
-// Class PlaceFirstRoadState is a concrete class that represents the state for placing the first road.
+/* Class PlaceFirstRoadState is a concrete class
+* that represents the state for placing the first road.
+*/
 class PlaceFirstRoadState : public PhaseState {
 public:
 	crow::json::wvalue handle(GameState& state) override {
@@ -41,20 +44,29 @@ public:
 		// For now we pick a hardcoded edge.
 		// TODO: Replace with AI / board logic.
 		std::string chosen_edge = "E01";
-		state.placeRoad(state.currentPlayer, chosen_edge);
-		state.phase = "phase to place first city";
-		result["message"] = "Player " + std::to_string(state.currentPlayer) + " placed a road at " + chosen_edge + ".";
-		/* TODO: After expecting a settlement to be placed for Player 1, pressing the next button, and
-		   expecting a road to be placed for Player 1, I don't see a road placed.
-		   After Player 1 places their first road, Player 2 places their first settlement.
+		int player = state.currentPlayer;
+		state.placeRoad(player, chosen_edge);
+		/* Transition logic:
+		* If player is Player 1 or Player 2, finish road and move to next player's settlement.
+		* If player is Player 3, transition to the city phase.
 		*/
+		if (player < 3) {
+			state.currentPlayer = player + 1;
+			state.phase = "phase to place first settlement";
+		}
+		else {
+			state.phase = "phase to place first city";
+		}
+		result["message"] = "Player " + std::to_string(player) + " placed a road at " + chosen_edge + ".";
 		result["moveType"] = "road";
 		return result;
 	}
 };
 
 
-// Class PlaceFirstCityState is a concrete class that represents the state for placing the first city.
+/* Class PlaceFirstCityState is a concrete class
+that represents the state for placing the first city. 
+*/
 class PlaceFirstCityState : public PhaseState {
 public:
 	crow::json::wvalue handle(GameState& state) override {
@@ -62,20 +74,24 @@ public:
 		// For now we pick a hardcoded vertex.
 		// TODO: Replace with AI / board logic.
 		std::string chosen_vertex = "V02";
-		state.placeCity(state.currentPlayer, chosen_vertex);
-		state.phase = "phase to place second road";
+		int player = state.currentPlayer;
+		state.placeCity(player, chosen_vertex);
 		state.lastBuilding = chosen_vertex;
-		result["message"] = "Player " + std::to_string(state.currentPlayer) + " placed a city at " + chosen_vertex + ".";
-		/* TODO: A city should not be placed immediately after Player 1 places their first road.
-		* Even if we expect a city to be placed for Player 3, I don't see a city placed. 
+		/* After placing the first city,
+		* remain with the same player and move to the second road phase.
 		*/
+		state.phase = "phase to place second road";
+		result["message"] = "Player " + std::to_string(player) + " placed a city at " + chosen_vertex + ".";
 		result["moveType"] = "city";
 		return result;
 	}
 };
 
 
-// Class PlaceSecondRoadState is a concrete class that represents the state for placing the second road.
+/* Class PlaceSecondRoadState is a concrete class
+* that represents the state for placing the second road
+* during the second road in which player order descends.
+*/
 class PlaceSecondRoadState : public PhaseState {
 public:
 	crow::json::wvalue handle(GameState& state) override {
@@ -83,47 +99,49 @@ public:
 		// For now we pick a hardcoded edge.
 		// TODO: Replace with AI / board logic.
 		std::string chosen_edge = "E02";
-		state.placeRoad(state.currentPlayer, chosen_edge);
-		state.phase = "turn";
-		/* TODO: After expecting a city to be placed for Player 3, pressing the next button, and
-		   expecting a road to be placed for Player 3, I don't see a road placed.
+		int player = state.currentPlayer;
+		state.placeRoad(player, chosen_edge);
+		/* If not yet at Player 1, decrement player number and transition to the city phase.
+		* Otherwise, if Player 1 finished their city, transition to turn.
 		*/
-		result["message"] = "Player " + std::to_string(state.currentPlayer) + " placed a road placed at " + chosen_edge + ".";
-		// Cycle to the next player (assuming 3 players).
-		/* TODO: Change player according to the following rules.
-			Player 1 places their first settlement, then their first road.
-			Player 2 places their first settlement, then their first road.
-			Player 3 places their first settlement, then their first road.
-			Player 3 places their first city, then their second road.
-			Player 2 places their first city, then their second road.
-			Player 1 places their first city, then their second road.
-			Player 1 takes their turn.
-		*/
-		state.currentPlayer = (state.currentPlayer % 3) + 1;
+		if (player > 1) {
+			state.currentPlayer = player - 1;
+			state.phase = "phase to place first city";
+		}
+		else {
+			state.phase = "turn";
+		}
+		result["message"] = "Player " + std::to_string(player) + " placed a road at " + chosen_edge + ".";
 		result["moveType"] = "road";
 		return result;
 	}
 };
 
 
-// Class TurnState is a concrete class that represents the state for taking a turn.
+/* Class TurnState is a concrete class that represents
+* the state for when the game has finished the setup and
+* the active player takes their turn.
+*/
 class TurnState : public PhaseState {
 public:
 	crow::json::wvalue handle(GameState& state) override {
 		crow::json::wvalue result;
-		result["message"] = "Player " + std::to_string(state.currentPlayer) + " is taking their turn.";
+		int player = state.currentPlayer;
+		result["message"] = "Player " + std::to_string(player) + " is taking their turn.";
 		result["moveType"] = "turn";
 		return result;
 	}
 };
 
 
+/* Class PhaseStateMachine represents a phase state machine
+* that dispatches the current phase to the appropriate handler.
+*/
 class PhaseStateMachine {
 private:
 	std::unordered_map<std::string, std::shared_ptr<PhaseState>> stateHandlers;
 public:
 	PhaseStateMachine() {
-		// Initialize handlers corresponding to each phase.
 		stateHandlers["phase to place first settlement"] = std::make_shared<PlaceFirstSettlementState>();
 		stateHandlers["phase to place first road"] = std::make_shared<PlaceFirstRoadState>();
 		stateHandlers["phase to place first city"] = std::make_shared<PlaceFirstCityState>();
@@ -131,7 +149,6 @@ public:
 		stateHandlers["turn"] = std::make_shared<TurnState>();
 	}
 
-	// Handle the current phase. If the phase is unrecognized, return an error.
 	crow::json::wvalue handle(GameState& state) {
 		auto handler = stateHandlers[state.phase];
 		if (handler) {
