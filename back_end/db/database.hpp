@@ -85,7 +85,7 @@ public:
         // Query the city ID that was just inserted.
         mysqlx::RowResult res = table
             .select("id")
-            .where("player = " + std::to_string(player) + " AND vertex = " + vertex)
+            .where("player = " + std::to_string(player) + " AND vertex = '" + vertex + "'")
             .execute();
         mysqlx::Row row = res.fetchOne();
         if (row) {
@@ -103,7 +103,7 @@ public:
         // Query the settlement ID that was just inserted.
         mysqlx::RowResult res = table
             .select("id")
-            .where("player = " + std::to_string(player) + " AND vertex = " + vertex)
+            .where("player = " + std::to_string(player) + " AND vertex = '" + vertex + "'")
             .execute();
 		mysqlx::Row row = res.fetchOne();
 		if (row) {
@@ -121,7 +121,7 @@ public:
 		// Query the road ID that was just inserted.
 		mysqlx::RowResult res = table
 			.select("id")
-			.where("player = " + std::to_string(player) + " AND edge = " + edge)
+			.where("player = " + std::to_string(player) + " AND edge = '" + edge + "'")
 			.execute();
 		mysqlx::Row row = res.fetchOne();
 		if (row) {
