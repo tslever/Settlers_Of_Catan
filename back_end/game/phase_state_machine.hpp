@@ -98,7 +98,7 @@ public:
 	crow::json::wvalue handle(GameState& state, Database& db) override {
 		crow::json::wvalue result;
 
-		// TODO: Replace with AI / board logic.
+		// TODO: First road should be placed on an edge adjacent to first settlement.
 		std::string chosenEdge;
 		try {
 			chosenEdge = getRandomEdgeKey();
@@ -177,7 +177,7 @@ public:
 	crow::json::wvalue handle(GameState& state, Database& db) override {
 		crow::json::wvalue result;
 
-		// TODO: Replace with AI / board logic.
+		// TODO: Second road should be placed on an edge adjacent to first city.
 		std::string chosenEdge;
 		try {
 			chosenEdge = getRandomEdgeKey();

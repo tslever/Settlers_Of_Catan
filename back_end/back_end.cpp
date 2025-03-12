@@ -61,29 +61,8 @@ int main() {
     });
 
 	// POST /next - transition the game state using phase state machine.
-	/* TODO: Resolve the following error by transitioning edge keys from the Python back end.
-	1 of 1 error
-		Next.js(15.1.6) out of date(learn more)
-
-		Unhandled Runtime Error
-
-		TypeError : Cannot read properties of undefined(reading 'split')
-
-		Source
-		app\page.tsx(189:65) @ split
-
-		187 | const [firstPart, secondPart] = road.edge.split('_');
-	188 | const [x1, y1] = firstPart.split('-').map(Number);
-> 189 | const [x2, y2] = secondPart.split('-').map(Number);
-| ^
-190 | const colorMapping : Record<number, string> = {
-191 | 1: "red",
-192 | 2 : "orange",
-Array.map
-<anonymous>(0:0)
-map
-app\page.tsx(186:40)
-Show ignored frames*/
+	// TODO: Resolve the error that occurs where no message is displayed until
+	// the message "Player 1 is taking their turn." is displayed when Player 1 takes their turn.
 	CROW_ROUTE(app, "/next").methods("POST"_method)
 	([&db]() {
 		crow::json::wvalue response;
