@@ -5,6 +5,46 @@
 #include <random>
 
 
+// Function `getRandomEdgeKey` is a helper function that loads board geometry and selects a random edge key.
+std::string getRandomEdgeKey() {
+	std::ifstream file("../board_geometry.json");
+	if (!file.is_open()) {
+		throw std::runtime_error("Board geometry file could not be opened.");
+	}
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	auto jsonVal = crow::json::load(buffer.str());
+	if (!jsonVal) {
+		throw std::runtime_error("Board geometry file could not be parsed.");
+	}
+	auto edges = jsonVal["edges"];
+	if (!edges || edges.size() == 0) {
+		throw std::runtime_error("Board geometry file does not contain edges.");
+	}
+
+	// Select a random edge.
+	std::random_device dev;
+	std::mt19937 rng(dev());
+	std::uniform_int_distribution<> dist(0, edges.size() - 1); // [0, edges.size() - 1]
+	int index = dist(rng);
+	auto edge = edges[index];
+	double x1 = edge["x1"].d();
+	double y1 = edge["y1"].d();
+	double x2 = edge["x2"].d();
+	double y2 = edge["y2"].d();
+
+	// Format the edge key: sort endpoints so that order is consistent.
+	char buf[50];
+	if ((x1 < x2) || (std::abs(x1 - x2) < 1e-2 && y1 <= y2)) {
+		std::snprintf(buf, sizeof(buf), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
+	}
+	else {
+		std::snprintf(buf, sizeof(buf), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
+	}
+	return std::string(buf);
+}
+
+
 // Class PhaseState is a base abstract class that represents a phase handler / state.
 class PhaseState {
 public:
@@ -58,20 +98,18 @@ public:
 	crow::json::wvalue handle(GameState& state, Database& db) override {
 		crow::json::wvalue result;
 
-		// For demonstration, we use a random edge name.
 		// TODO: Replace with AI / board logic.
-		std::random_device dev;
-		std::mt19937 rng(dev());
-		std::uniform_int_distribution<> dist(1, 72); // [1, 72]
-		int edgeIndex = dist(rng);
-		std::string chosenEdge = (edgeIndex < 10)
-			? "E0" + std::to_string(edgeIndex)
-			: "E" + std::to_string(edgeIndex);
+		std::string chosenEdge;
+		try {
+			chosenEdge = getRandomEdgeKey();
+		}
+		catch (const std::exception& e) {
+			result["error"] = std::string("The following error occurred when generating road edge key.") + e.what();
+			return result;
+		}
 
 		int player = state.currentPlayer;
 		state.placeRoad(player, chosenEdge);
-		int roadId = db.addRoad(player, chosenEdge);
-
 		// For players 1 and 2, move to next settlement; for player 3, transition to city.
 		if (player < 3) {
 			state.currentPlayer = player + 1;
@@ -80,6 +118,7 @@ public:
 		else {
 			state.phase = Phase::TO_PLACE_FIRST_CITY;
 		}
+		int roadId = db.addRoad(player, chosenEdge);
 
 		result["message"] = "Player " + std::to_string(player) + " placed a road at " + chosenEdge + ".";
 		result["moveType"] = "road";
@@ -130,7 +169,7 @@ public:
 };
 
 
-/* Class PlaceFirstCityState is a concrete class
+/* Class PlaceSecondRoadState is a concrete class
 * that represents a handler of the phase / state to place the second road.
 */
 class PlaceSecondRoadState : public PhaseState {
@@ -138,20 +177,18 @@ public:
 	crow::json::wvalue handle(GameState& state, Database& db) override {
 		crow::json::wvalue result;
 
-		// For demonstration, we use a random edge name.
 		// TODO: Replace with AI / board logic.
-		std::random_device dev;
-		std::mt19937 rng(dev());
-		std::uniform_int_distribution<> dist(1, 72); // [1, 72]
-		int edgeIndex = dist(rng);
-		std::string chosenEdge = (edgeIndex < 10)
-			? "E0" + std::to_string(edgeIndex)
-			: "E" + std::to_string(edgeIndex);
+		std::string chosenEdge;
+		try {
+			chosenEdge = getRandomEdgeKey();
+		}
+		catch (const std::exception& e) {
+			result["error"] = std::string("The following error occurred when generating road edge key.") + e.what();
+			return result;
+		}
 
 		int player = state.currentPlayer;
 		state.placeRoad(player, chosenEdge);
-		int roadId = db.addRoad(player, chosenEdge);
-
 		/* Transition logic:
 		* If player number is greater than 1, decrement player number and reset phase for city.
 		* If player number is 1, transition to turn.
@@ -163,6 +200,7 @@ public:
 		else {
 			state.phase = Phase::TURN;
 		}
+		int roadId = db.addRoad(player, chosenEdge);
 
 		result["message"] = "Player " + std::to_string(player) + " placed a road at " + chosenEdge + ".";
 		result["moveType"] = "road";

@@ -61,15 +61,29 @@ int main() {
     });
 
 	// POST /next - transition the game state using phase state machine.
-	/* TODO: Resolve the error where querying next results in
-	* a random settlement of Player 1's color being displayed properly but no message,
-	* a random settlement being displayed instead of an edge of Player 1's color and no message,
-	* a random settlement being displayed of Player 1's color instead of Player 2's color and no message,
-	* a random settlement of Player 1's color being displayed instead of an edge of Player 2's color and no message,
-	* a random settlement being displayed of Player 1's color instead of Player 3's color and no message,
-	* a random settlement being displayed of Player 1's color instead of an edge of Player 3's color and no message,
-	* et cetera.
-	*/
+	/* TODO: Resolve the following error by transitioning edge keys from the Python back end.
+	1 of 1 error
+		Next.js(15.1.6) out of date(learn more)
+
+		Unhandled Runtime Error
+
+		TypeError : Cannot read properties of undefined(reading 'split')
+
+		Source
+		app\page.tsx(189:65) @ split
+
+		187 | const [firstPart, secondPart] = road.edge.split('_');
+	188 | const [x1, y1] = firstPart.split('-').map(Number);
+> 189 | const [x2, y2] = secondPart.split('-').map(Number);
+| ^
+190 | const colorMapping : Record<number, string> = {
+191 | 1: "red",
+192 | 2 : "orange",
+Array.map
+<anonymous>(0:0)
+map
+app\page.tsx(186:40)
+Show ignored frames*/
 	CROW_ROUTE(app, "/next").methods("POST"_method)
 	([&db]() {
 		crow::json::wvalue response;
