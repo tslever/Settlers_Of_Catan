@@ -52,8 +52,6 @@ int main() {
 		return 1;
 	}
 
-	static GameState globalGameState = db.getGameState();
-
     // GET /cities - return a JSON list of cities.
     CROW_ROUTE(app, "/cities").methods("GET"_method)
     ([&db]() {
@@ -61,15 +59,14 @@ int main() {
     });
 
 	// POST /next - transition the game state using phase state machine.
-	// TODO: Resolve the error that occurs where no message is displayed until
-	// the message "Player 1 is taking their turn." is displayed when Player 1 takes their turn.
 	CROW_ROUTE(app, "/next").methods("POST"_method)
 	([&db]() {
 		crow::json::wvalue response;
 		try {
+			GameState currentGameState = db.getGameState();
 			PhaseStateMachine phaseStateMachine;
-			response = phaseStateMachine.handle(globalGameState, db);
-			db.updateGameState(globalGameState);
+			response = phaseStateMachine.handle(currentGameState, db);
+			db.updateGameState(currentGameState);
 			return response;
 		}
 		catch (const std::exception& e) {
@@ -84,11 +81,11 @@ int main() {
 		crow::json::wvalue result;
 		try {
 			bool success = db.resetGame();
-			globalGameState = GameState();
-			globalGameState.phase = Phase::TO_PLACE_FIRST_SETTLEMENT;
-			globalGameState.currentPlayer = 1;
-			globalGameState.lastBuilding = "";
-			db.updateGameState(globalGameState);
+			GameState defaultGameState = GameState();
+			defaultGameState.phase = Phase::TO_PLACE_FIRST_SETTLEMENT;
+			defaultGameState.currentPlayer = 1;
+			defaultGameState.lastBuilding = "";
+			db.updateGameState(defaultGameState);
 			result["message"] = success
 				? "Game has been reset to the initial state."
 				: "Resetting game failed.";
