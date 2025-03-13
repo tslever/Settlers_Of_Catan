@@ -108,7 +108,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\dependencies\Crow_1_2_1_2\include;$(SolutionDir)\dependencies\asio\asio\include;$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\include;$(SolutionDir)\dependencies\libtorch\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\dependencies\Crow_1_2_1_2\include;$(SolutionDir)\dependencies\asio\include;$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\include;$(SolutionDir)\dependencies\libtorch\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
