@@ -5,8 +5,7 @@
 #include <random>
 
 
-// Function `getRandomEdgeKey` is a helper function that loads board geometry and selects a random edge key.
-std::string getRandomEdgeKey() {
+std::string getRandomEdgeKeyAdjacentTo(const std::string& lastBuilding) {
 	std::ifstream file("../board_geometry.json");
 	if (!file.is_open()) {
 		throw std::runtime_error("Board geometry file could not be opened.");
@@ -17,25 +16,69 @@ std::string getRandomEdgeKey() {
 	if (!jsonVal) {
 		throw std::runtime_error("Board geometry file could not be parsed.");
 	}
+
+	// Look up vertex with label equal to given vertex of last building.
+	auto vertices = jsonVal["vertices"];
+	if (!vertices || vertices.size() == 0) {
+		throw std::runtime_error("Board geometry file does not contain vertices.");
+	}
+	double last_x = 0.0;
+	double last_y = 0.0;
+	bool found = false;
+	for (size_t i = 0; i < vertices.size(); i++) {
+		auto vertex = vertices[i];
+		std::string label = vertex["label"].s();
+		if (label == lastBuilding) {
+			last_x = vertex["x"].d();
+			last_y = vertex["y"].d();
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		throw std::runtime_error("Last building vertex was not found in board geometry.");
+	}
+
+	// Filter edges that are adjacent to vertex with label of last building.
 	auto edges = jsonVal["edges"];
 	if (!edges || edges.size() == 0) {
 		throw std::runtime_error("Board geometry file does not contain edges.");
 	}
+	std::vector<crow::json::rvalue> adjacentEdges;
+	const double tolerance = 1e-2;
+	for (size_t i = 0; i < edges.size(); i++) {
+		auto edge = edges[i];
+		double x1 = edge["x1"].d();
+		double y1 = edge["y1"].d();
+		double x2 = edge["x2"].d();
+		double y2 = edge["y2"].d();
+		if ((std::abs(x1 - last_x) < tolerance && std::abs(y1 - last_y) < tolerance) ||
+			(std::abs(x2 - last_x) < tolerance && std::abs(y2 - last_y) < tolerance)) {
+			adjacentEdges.push_back(edge);
+		}
+	}
+	if (adjacentEdges.empty()) {
+		throw std::runtime_error("No edges are adjacent to last building found.");
+	}
 
-	// Select a random edge.
+	// Randomly select one of the adjacent edges.
+	/* TODO: Let an edge terminate at vertex with label `lastBuilding` and vertex with label `label_of_vertex_opposite_last_building`.
+	* Chose the edge with the strongest vertex with label `label_of_vertex_opposite_last_building`.
+	*/
 	std::random_device dev;
 	std::mt19937 rng(dev());
-	std::uniform_int_distribution<> dist(0, edges.size() - 1); // [0, edges.size() - 1]
+	std::uniform_int_distribution<> dist(0, adjacentEdges.size() - 1);
 	int index = dist(rng);
-	auto edge = edges[index];
-	double x1 = edge["x1"].d();
-	double y1 = edge["y1"].d();
-	double x2 = edge["x2"].d();
-	double y2 = edge["y2"].d();
+	auto chosenEdge = adjacentEdges[index];
 
-	// Format the edge key: sort endpoints so that order is consistent.
+	double x1 = chosenEdge["x1"].d();
+	double y1 = chosenEdge["y1"].d();
+	double x2 = chosenEdge["x2"].d();
+	double y2 = chosenEdge["y2"].d();
+
+	// Format the edge key so that the order of endpoints is consistent.
 	char buf[50];
-	if ((x1 < x2) || (std::abs(x1 - x2) < 1e-2 && y1 <= y2)) {
+	if ((x1 < x2) || (std::abs(x1 - x2) < tolerance && y1 <= y2)) {
 		std::snprintf(buf, sizeof(buf), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
 	}
 	else {
@@ -98,18 +141,14 @@ public:
 	crow::json::wvalue handle(GameState& state, Database& db) override {
 		crow::json::wvalue result;
 
-		// TODO: First road should be placed on an edge adjacent to first settlement.
-		std::string chosenEdge;
-		try {
-			chosenEdge = getRandomEdgeKey();
+		if (state.lastBuilding.empty()) {
+			throw std::runtime_error("No last building was set for road placement.");
 		}
-		catch (const std::exception& e) {
-			result["error"] = std::string("The following error occurred when generating road edge key.") + e.what();
-			return result;
-		}
+		std::string chosenEdge = getRandomEdgeKeyAdjacentTo(state.lastBuilding);
 
 		int player = state.currentPlayer;
 		state.placeRoad(player, chosenEdge);
+		state.lastBuilding = "";
 		// For players 1 and 2, move to next settlement; for player 3, transition to city.
 		if (player < 3) {
 			state.currentPlayer = player + 1;
@@ -177,18 +216,14 @@ public:
 	crow::json::wvalue handle(GameState& state, Database& db) override {
 		crow::json::wvalue result;
 
-		// TODO: Second road should be placed on an edge adjacent to first city.
-		std::string chosenEdge;
-		try {
-			chosenEdge = getRandomEdgeKey();
+		if (state.lastBuilding.empty()) {
+			throw std::runtime_error("No last building was set for road placement.");
 		}
-		catch (const std::exception& e) {
-			result["error"] = std::string("The following error occurred when generating road edge key.") + e.what();
-			return result;
-		}
+		std::string chosenEdge = getRandomEdgeKeyAdjacentTo(state.lastBuilding);
 
 		int player = state.currentPlayer;
 		state.placeRoad(player, chosenEdge);
+		state.lastBuilding = "";
 		/* Transition logic:
 		* If player number is greater than 1, decrement player number and reset phase for city.
 		* If player number is 1, transition to turn.

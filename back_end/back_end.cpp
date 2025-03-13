@@ -22,6 +22,7 @@ struct CorsMiddleware {
 		// Do nothing.
 	}
 
+	// Add headers after handling.
 	template <typename AllContext>
 	void after_handle(const crow::request&, crow::response& res, context&, AllContext&) {
 		res.add_header("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -32,6 +33,7 @@ struct CorsMiddleware {
 
 int main() {
 
+	// Create Crow app with CORS middleware.
     crow::App<CorsMiddleware> app;
 	app.loglevel(crow::LogLevel::Info);
 
@@ -43,7 +45,7 @@ int main() {
     std::string username = "administrator";
     Database db(dbName, host, password, port, username);
 
-	// Initialize the database schema (ensure tables exist).
+	// Initialize the database schema.
 	try {
 		db.initialize();
 	}
