@@ -18,7 +18,7 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\asmjit.dll" "$(OutDir)"
 #include <torch/torch.h>
 // Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include\torch\csrc\api\include;`.
 
-#include <tracer.h>
+//#include <tracer.h>
 // Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include\torch\csrc\jit\frontend;`.
 
 // Define the default neural network as a torch module.
@@ -49,7 +49,7 @@ struct SettlersPolicyValueNetImpl : torch::nn::Module {
 
 TORCH_MODULE(SettlersPolicyValueNet);
 
-// Create a default model by instantiating the network, tracing it, and returning a scripted module.
+// Create a default model by instantiating the network, scripting it, and returning a `TorchScript` module.
 torch::jit::script::Module createDefaultModel() {
     // Use default dimensions.
     // TODO: Read from configuration file.
@@ -60,37 +60,32 @@ torch::jit::script::Module createDefaultModel() {
     auto model = SettlersPolicyValueNet(input_dim, hidden_dim);
     model->eval(); // Set the model to evaluation mode.
 
-    // Create a dummy input tensor of shape {1, input_dim} for tracing.
-    torch::Tensor dummy_input = torch::zeros({ 1, input_dim });
-    // Convert dummy input into a vector of `IValue` (i.e., a Stack).
-    torch::jit::Stack inputs;
-    inputs.push_back(dummy_input);
+    // Create a new TorchScript module.
+    torch::jit::script::Module script_module("SettlersPolicyValueNet");
 
-    // Define a lambda that wraps the model's forward pass.
-    std::function<torch::jit::Stack(const torch::jit::Stack&)> fn =
-        [model](const torch::jit::Stack& stack) -> torch::jit::Stack {
-        // Extract the input tensor from the stack.
-        torch::Tensor x = stack[0].toTensor();
-        // Call the model's forward pass.
-        auto outputs = model->forward(x);
-        // Package the outputs (value, policy) into a Stack.
-        torch::jit::Stack result;
-        for (const auto& t : outputs) {
-            result.push_back(t);
-        }
-        return result;
-    };
+    // Manually register the parameters from the model's linear layers.
+    script_module.register_parameter("fc1_weight", model->fc1->weight, /*is_buffer=*/false);
+    script_module.register_parameter("fc1_bias", model->fc1->bias,   /*is_buffer=*/false);
+    script_module.register_parameter("fc2_weight", model->fc2->weight, /*is_buffer=*/false);
+    script_module.register_parameter("fc2_bias", model->fc2->bias,   /*is_buffer=*/false);
+    script_module.register_parameter("fc_value_weight", model->fc_value->weight, /*is_buffer=*/false);
+    script_module.register_parameter("fc_value_bias", model->fc_value->bias,   /*is_buffer=*/false);
+    script_module.register_parameter("fc_policy_weight", model->fc_policy->weight, /*is_buffer=*/false);
+    script_module.register_parameter("fc_policy_bias", model->fc_policy->bias,   /*is_buffer=*/false);
 
-    // Define a dummy function for tracing.
-    std::function<std::string(const torch::Tensor&)> var_fn =
-        [](const torch::Tensor& x) { return ""; };
+    // Define the forward method in TorchScript.
+    // We mimic the linear layers with torch.addmm: out = bias + x * weight.t()
+    std::string method = R"JIT(
+def forward(self, x):
+    x = torch.relu(torch.addmm(self.fc1_bias, x, self.fc1_weight.t()))
+    x = torch.relu(torch.addmm(self.fc2_bias, x, self.fc2_weight.t()))
+    value = torch.tanh(torch.addmm(self.fc_value_bias, x, self.fc_value_weight.t()))
+    policy = torch.sigmoid(torch.addmm(self.fc_policy_bias, x, self.fc_policy_weight.t()))
+    return value, policy
+)JIT";
 
-    torch::jit::script::Module traced_module("traced_module");
-
-    // Trace the model using the given inputs, lambda, and additional parameters.
-    torch::jit::tracer::trace(inputs, fn, var_fn, true, false, &traced_module);
-    // Return the traced scripted module.
-    return traced_module;
+    script_module.define(method);
+    return script_module;
 }
 
 class SettlersNeuralNet {
@@ -100,7 +95,7 @@ private:
 public:
     torch::jit::script::Module module;
 
-    // Constructor `SettlersNeuralNet` loads model and stores time model was modified.
+    // Constructor `SettlersNeuralNet` loads model from disk or creates a default one if missing.
     SettlersNeuralNet(const std::string& modelPath) : modelPath(modelPath) {
         // Check if a model exists before attempting to load it.
         // TODO: Consider using a default model and creating a model file after first training if the model file doesn't exist.
@@ -147,9 +142,9 @@ public:
     // Evaluate a settlement move given a feature vector.
     std::pair<double, double> evaluateSettlement(const std::vector<float>& features) {
         torch::Tensor input = torch::tensor(features).unsqueeze(0);
-        auto output = module.forward({ input }).toList();
-        double value = output.get(0).toTensor().item<double>();
-        double policy = output.get(1).toTensor().item<double>();
+        auto output = module.forward({ input }).toTuple();
+        double value = output->elements()[0].toTensor().item<double>();
+        double policy = output->elements()[1].toTensor().item<double>();
         return { value, policy };
     }
     // TODO: Similarly implement evaluateCity, evaluateRoad, etc.
