@@ -103,6 +103,15 @@ public:
             std::clog << "[WARNING] Model file not found at " << modelPath << ". Creating a default model file." << std::endl;
             // Create a default model.
             torch::jit::script::Module defaultModel = createDefaultModel();
+
+            // Ensure the parent directory exists. If not, create it.
+            std::filesystem::path modelFilePath(modelPath);
+            std::filesystem::path parentDir = modelFilePath.parent_path();
+            if (!parentDir.empty() && !std::filesystem::exists(parentDir)) {
+                std::filesystem::create_directories(parentDir);
+                std::clog << "[INFO] Directory " << parentDir << " was created." << std::endl;
+            }
+
             try {
                 // Save the default model to disk so that subsequent launches will load the default model.
                 defaultModel.save(modelPath);
