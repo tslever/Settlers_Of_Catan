@@ -12,9 +12,12 @@
 #include "game/phase_state_machine.hpp"
 
 
-// TODO: Align this back end with the Python back end.
+/* TODO: Align this back end with the Python back end.
+* Migrate continuous training, model reloading, MCTS, and neural network evaluation.
+*/
 
 
+// Structure CorsMiddleware is a simple middleware to add CORS headers.
 struct CorsMiddleware {
 	struct context { };
 
@@ -22,7 +25,7 @@ struct CorsMiddleware {
 		// Do nothing.
 	}
 
-	// Add headers after handling.
+	// After handling, add CORS headers.
 	template <typename AllContext>
 	void after_handle(const crow::request&, crow::response& res, context&, AllContext&) {
 		res.add_header("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -37,34 +40,36 @@ int main() {
     crow::App<CorsMiddleware> app;
 	app.loglevel(crow::LogLevel::Info);
 
-    // Configure database connection.
+    // Configure database.
 	std::string dbName = "game";
-    std::string host = "localhost"; // Host address
+    std::string host = "localhost";
 	std::string password = "settlers_of_catan";
-	unsigned int port = 33060; // Default port for MySQL X DevAPI
+	unsigned int port = 33060;
     std::string username = "administrator";
     Database db(dbName, host, password, port, username);
 
 	// Initialize the database schema.
 	try {
 		db.initialize();
+		std::clog << "[INFO] Database was initialized successfully." << std::endl;
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Database initialized failed with the following error." << e.what() << std::endl;
+		std::cerr << "Database initialization failed with the following error." << e.what() << std::endl;
 		return 1;
 	}
 
-    // GET /cities - return a JSON list of cities.
+    // Get a JSON list of cities.
     CROW_ROUTE(app, "/cities").methods("GET"_method)
     ([&db]() {
 		return db.getCitiesJson();
     });
 
-	// POST /next - transition the game state using phase state machine.
+	// Transition game state.
 	CROW_ROUTE(app, "/next").methods("POST"_method)
 	([&db]() {
 		crow::json::wvalue response;
 		try {
+			std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
 			GameState currentGameState = db.getGameState();
 			PhaseStateMachine phaseStateMachine;
 			response = phaseStateMachine.handle(currentGameState, db);
@@ -73,38 +78,39 @@ int main() {
 		}
 		catch (const std::exception& e) {
 			response["error"] = std::string("The following error occurred while transitioning the game state.") + e.what();
+			std::cerr << "[ERROR] " << std::string("The following error occurred while transitioning the game state.") + e.what() << std::endl;
 			return response;
 		}
 	});
 
-	// POST /reset - reset both database and game state.
+	// Reset game state and database.
 	CROW_ROUTE(app, "/reset").methods("POST"_method)
 	([&db]() {
-		crow::json::wvalue result;
+		crow::json::wvalue response;
 		try {
+			std::clog << "[INFO] A user posted to endpoint reset. Game state and database will be reset." << std::endl;
 			bool success = db.resetGame();
 			GameState defaultGameState = GameState();
 			defaultGameState.phase = Phase::TO_PLACE_FIRST_SETTLEMENT;
 			defaultGameState.currentPlayer = 1;
 			defaultGameState.lastBuilding = "";
 			db.updateGameState(defaultGameState);
-			result["message"] = success
-				? "Game has been reset to the initial state."
-				: "Resetting game failed.";
+			response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
 		}
 		catch (const std::exception& e) {
-			result["error"] = std::string("Resetting game failed with the following error.") + e.what();
+			response["error"] = std::string("Resetting game failed with the following error.") + e.what();
+			std::cerr << "[ERROR] " << std::string("Resetting game failed with the following error.") + e.what() << std::endl;
 		}
-		return result;
+		return response;
 	});
 
-	// GET /roads - return a JSON list of roads.
+	// Get a JSON list of roads.
 	CROW_ROUTE(app, "/roads").methods("GET"_method)
 	([&db]() {
 		return db.getRoadsJson();
 	});
 
-	// GET / - simple route endpoint
+	// Get a welcome message.
 	CROW_ROUTE(app, "/")
 	([]() {
 		crow::json::wvalue result;
@@ -112,12 +118,13 @@ int main() {
 		return result;
 	});
 
-	// GET /settlements - return a JSON list of settlements.
+	// GET a JSON list of settlements.
 	CROW_ROUTE(app, "/settlements").methods("GET"_method)
 	([&db]() {
 		return db.getSettlementsJson();
 	});
 
+	std::clog << "[INFO] The back end will be started on port 5000." << std::endl;
     app.port(5000).multithreaded().run();
     return 0;
 }
