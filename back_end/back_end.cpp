@@ -1,3 +1,5 @@
+// Solution `back_end` is a C++ back end for playing Settlers of Catan.
+
 // Change C++ Language Standard to ISO C++17 Standard (/std:c++17).
 
 #include "crow.h"
@@ -5,6 +7,8 @@
 - $(SolutionDir)\dependencies\Crow_1_2_1_2\include;
 - $(SolutionDir)\dependencies\asio\asio\include;
 */
+
+#include "ai/neural_network.hpp"
 
 #include "db/database.hpp"
 
@@ -34,6 +38,18 @@ struct CorsMiddleware {
 };
 
 
+// Atomic `stopAiWatcher` is a global flag for model reloading.
+std::atomic<bool> stopAiWatcher{ false };
+
+static void modelWatcher(SettlersNeuralNet* neuralNet) {
+	while (!stopAiWatcher.load()) {
+		neuralNet->reloadIfUpdated();
+		// TODO: Implement method `reloadIfUpdated`.
+		std::this_thread::sleep_for(std::chrono::seconds(10));
+	}
+}
+
+
 int main() {
 
 	// Create Crow app with CORS middleware.
@@ -58,22 +74,47 @@ int main() {
 		return 1;
 	}
 
-    // Get a JSON list of cities.
+	// Create a global neural network using libtorch.
+	SettlersNeuralNet neuralNet("back_end/ai/neural_network.pt");
+
+	// Start a background thread to watch for updated model weights.
+	std::thread aiWatcher(modelWatcher, &neuralNet);
+
+    // Endpoint `/cities` allows getting a JSON list of cities.
     CROW_ROUTE(app, "/cities").methods("GET"_method)
     ([&db]() {
 		return db.getCitiesJson();
     });
 
-	// Transition game state.
+	// Endpoint `/next` allows transitioning game state.
 	CROW_ROUTE(app, "/next").methods("POST"_method)
-	([&db]() {
+	([&db, &neuralNet](const crow::request& req) {
 		crow::json::wvalue response;
 		try {
 			std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
+			// Retrieve current game state from database.
 			GameState currentGameState = db.getGameState();
+
+			// Create phase state machine to transition state.
 			PhaseStateMachine phaseStateMachine;
 			response = phaseStateMachine.handle(currentGameState, db);
+
+			if (currentGameState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+				// For demonstration, use a dummy feature vector.
+				// TODO: Consider using a feature vector based on the game state / board features.
+				std::vector<float> features = { 0.5f, 0.5f, 0.5f, 0.5f, 1.0f };
+				auto evalResult = neuralNet.evaluateSettlement(features);
+				auto value = evalResult.first;
+				// TODO: Use value to determine where to place settlement.
+				auto policy = evalResult.second;
+				// TODO: Use value to determine where to place settlement.
+				// TODO: Integrate full MCTS based move selection using `neuralNet` and AI / MCTS functions.
+			}
+			// TODO: Consider evaluating placing first road, placing first settlement, and placing second road.
+
+			// Update game state in database.
 			db.updateGameState(currentGameState);
+
 			return response;
 		}
 		catch (const std::exception& e) {
@@ -126,5 +167,12 @@ int main() {
 
 	std::clog << "[INFO] The back end will be started on port 5000." << std::endl;
     app.port(5000).multithreaded().run();
+
+	// On shutdown, signal the AI watcher thread to stop and join the AI watcher thread with the main thread.
+	stopAiWatcher.store(true);
+	if (aiWatcher.joinable()) {
+		aiWatcher.join();
+	}
+
     return 0;
 }

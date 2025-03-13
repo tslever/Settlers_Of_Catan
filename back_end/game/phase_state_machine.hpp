@@ -105,6 +105,7 @@ public:
 		crow::json::wvalue result;
 		
 		// For demonstration, we use a random vertex label.
+		// TODO: Ensure that a settlement is not placed on a vertex adjacent to a vertex with an existing settlement.
 		// TODO: Replace with AI / board logic.
 		std::random_device dev;
 		std::mt19937 rng(dev());
@@ -180,6 +181,7 @@ public:
 		crow::json::wvalue result;
 
 		// For demonstration, we use a random vertex label.
+		// TODO: Ensure that a settlement is not placed on a vertex adjacent to a vertex with an existing settlement.
 		// TODO: Replace with AI / board logic.
 		std::random_device dev;
 		std::mt19937 rng(dev());
