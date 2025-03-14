@@ -3,6 +3,7 @@ __pycache__
 aggregated_contents.txt
 
 back_end/.vs
+back_end/ai/neural_network.pt
 back_end/dependencies
 back_end/intermediate
 back_end/x64
