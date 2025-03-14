@@ -92,19 +92,17 @@ class SettlersNeuralNet {
 private:
     std::string modelPath;
     std::filesystem::file_time_type lastModified;
+    torch::Device device;
 public:
     torch::jit::script::Module module;
 
     // Constructor `SettlersNeuralNet` loads model from disk or creates a default one if missing.
-    SettlersNeuralNet(const std::string& modelPath) : modelPath(modelPath) {
-        // Check if a model exists before attempting to load it.
-        // TODO: Consider using a default model and creating a model file after first training if the model file doesn't exist.
+    SettlersNeuralNet(const std::string& modelPath) : modelPath(modelPath), device(torch::kCPU) {
+        // If model doesn't exist, create default model.
+        // TODO: Train model.
         if (!std::filesystem::exists(modelPath)) {
             std::clog << "[WARNING] Model file not found at " << modelPath << ". Creating a default model file." << std::endl;
-            // Create a default model.
             torch::jit::script::Module defaultModel = createDefaultModel();
-
-            // Ensure the parent directory exists. If not, create it.
             std::filesystem::path modelFilePath(modelPath);
             std::filesystem::path parentDir = modelFilePath.parent_path();
             if (!parentDir.empty() && !std::filesystem::exists(parentDir)) {
@@ -113,7 +111,6 @@ public:
             }
 
             try {
-                // Save the default model to disk so that subsequent launches will load the default model.
                 defaultModel.save(modelPath);
                 std::clog << "[INFO] Default model was created and saved to " << modelPath << "." << std::endl;
             }
@@ -123,24 +120,14 @@ public:
             }
         }
         try {
-            // Attempt to load model.
+
+            std::clog << "[INFO] CUDA " << (torch::cuda::is_available() ? "is" : "is not") << " available." << std::endl;
+            device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
             module = torch::jit::load(modelPath);
-            // Determine the device by attempting to allocate a dummy tensor on CUDA.
-            // TODO: Consider whether a more elegant way of determining whether GPU is available exists.
-            torch::Device device(torch::kCPU);
-            try {
-                auto dummy = torch::zeros({ 1 }, torch::device(torch::kCUDA));
-                device = torch::kCUDA;
-            }
-            catch (const c10::Error&) {
-                // If CUDA allocation fails, remain on CPU.
-                device = torch::kCPU;
-            }
             module.to(device);
             module.eval();
-            // Record the last modified time for future reloads.
             lastModified = std::filesystem::last_write_time(modelPath);
-            std::clog << "[INFO] Model was successfully loaded from " << modelPath << " on device " << (device == torch::kCUDA ? "CUDA" : "CPU") << std::endl;
+            std::clog << "[INFO] Model was successfully loaded from " << modelPath << " on device " << (device == torch::kCUDA ? "CUDA" : "CPU") << "." << std::endl;
         }
         catch (const c10::Error& e) {
             std::cerr << "[ERROR] The following exception occurred while loading model. " << e.what() << std::endl;
@@ -150,7 +137,7 @@ public:
 
     // Evaluate a settlement move given a feature vector.
     std::pair<double, double> evaluateSettlement(const std::vector<float>& features) {
-        torch::Tensor input = torch::tensor(features).unsqueeze(0);
+        torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
         auto output = module.forward({ input }).toTuple();
         double value = output->elements()[0].toTensor().item<double>();
         double policy = output->elements()[1].toTensor().item<double>();
@@ -165,8 +152,7 @@ public:
             if (currentModTime > lastModified) {
                 std::clog << "[INFO] Updated model weights were detected. Model will be reloaded from " << modelPath << std::endl;
                 module = torch::jit::load(modelPath);
-                module.to(torch::kCPU);
-                // TODO: Allow use of GPU if GPU is available.
+                module.to(device);
                 module.eval();
                 lastModified = currentModTime;
             }
