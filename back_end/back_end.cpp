@@ -75,7 +75,7 @@ int main() {
 	}
 
 	// Create a global neural network using libtorch.
-	SettlersNeuralNet neuralNet("back_end/ai/neural_network.pt");
+	SettlersNeuralNet neuralNet("ai/neural_network.pt");
 
 	// Start a background thread to watch for updated model weights.
 	std::thread aiWatcher(modelWatcher, &neuralNet);

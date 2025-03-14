@@ -27,10 +27,8 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cudnn64_9.dll" "$(OutDir)"
 #include <torch/torch.h>
 // Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include\torch\csrc\api\include;`.
 
-/* TODO: Try again to get `tracer.trace` working to avoid the below implementation of function `createDefaultModel`.
-* #include <tracer.h>
-* Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include\torch\csrc\jit\frontend;`.
-*/
+#include <torch/csrc/jit/frontend/tracer.h>
+
 
 
 // Define the default neural network as a torch module.
@@ -61,43 +59,53 @@ struct SettlersPolicyValueNetImpl : torch::nn::Module {
 
 TORCH_MODULE(SettlersPolicyValueNet);
 
-// Create a default model by instantiating the network, scripting it, and returning a `TorchScript` module.
+std::vector<torch::jit::IValue> tracedFunction(std::vector<torch::jit::IValue> stack) {
+    // Use default dimensions.
+    // TODO: Read from configuration file.
+    const int64_t inputDim = 5;
+    const int64_t hiddenDim = 128;
+
+    // Create an instance of the default model.
+    auto model = SettlersPolicyValueNet(inputDim, hiddenDim);
+    model->eval(); // Set the model to evaluation mode.
+
+    torch::Tensor inputTensor = stack[0].toTensor();
+    auto outputVectorOfTensors = model->forward(inputTensor);
+    return { outputVectorOfTensors[0], outputVectorOfTensors[1] };
+}
+
+/* Create a default model by instantiating the network, tracing its forward pass, and
+* returning a `TorchScript` module by injecting the traced graph via `create_method_from_graph`.
+*/
 torch::jit::script::Module createDefaultModel() {
     // Use default dimensions.
     // TODO: Read from configuration file.
-    const int64_t input_dim = 5;
-    const int64_t hidden_dim = 128;
+    const int64_t inputDim = 5;
 
-    // Create an instance of the default model.
-    auto model = SettlersPolicyValueNet(input_dim, hidden_dim);
-    model->eval(); // Set the model to evaluation mode.
+    // Create vector with dummy tensor to run through model.
+    at::Tensor dummyTensor = torch::rand({ 1, inputDim });
+    std::vector<torch::jit::IValue> vectorWithDummyTensor = { dummyTensor };
 
-    // Create a new TorchScript module.
-    torch::jit::script::Module script_module("SettlersPolicyValueNet");
+    // Define dummy variable name lookup function.
+    auto variableNameLookupFunction = [](const at::Tensor& tensor) -> std::string {
+        return "dummy_variable_name";
+    };
 
-    // Manually register the parameters from the model's linear layers.
-    script_module.register_parameter("fc1_weight", model->fc1->weight, /*is_buffer=*/false);
-    script_module.register_parameter("fc1_bias", model->fc1->bias,   /*is_buffer=*/false);
-    script_module.register_parameter("fc2_weight", model->fc2->weight, /*is_buffer=*/false);
-    script_module.register_parameter("fc2_bias", model->fc2->bias,   /*is_buffer=*/false);
-    script_module.register_parameter("fc_value_weight", model->fc_value->weight, /*is_buffer=*/false);
-    script_module.register_parameter("fc_value_bias", model->fc_value->bias,   /*is_buffer=*/false);
-    script_module.register_parameter("fc_policy_weight", model->fc_policy->weight, /*is_buffer=*/false);
-    script_module.register_parameter("fc_policy_bias", model->fc_policy->bias,   /*is_buffer=*/false);
+    // Trace the forward computation.
+    std::pair<std::shared_ptr<torch::jit::tracer::TracingState>, torch::jit::Stack> pair =
+        torch::jit::tracer::trace(vectorWithDummyTensor, tracedFunction, variableNameLookupFunction);
+    std::shared_ptr<torch::jit::tracer::TracingState> pointerToTracingState = pair.first;
 
-    // Define the forward method in TorchScript.
-    // We mimic the linear layers with torch.addmm: out = bias + x * weight.t()
-    std::string method = R"JIT(
-def forward(self, x):
-    x = torch.relu(torch.addmm(self.fc1_bias, x, self.fc1_weight.t()))
-    x = torch.relu(torch.addmm(self.fc2_bias, x, self.fc2_weight.t()))
-    value = torch.tanh(torch.addmm(self.fc_value_bias, x, self.fc_value_weight.t()))
-    policy = torch.sigmoid(torch.addmm(self.fc_policy_bias, x, self.fc_policy_weight.t()))
-    return value, policy
-)JIT";
+    // Obtain the traced graph.
+    auto graph = pointerToTracingState->graph;
 
-    script_module.define(method);
-    return script_module;
+    // Create a new `TorchScript` module.
+    torch::jit::script::Module tracedModule("SettlersPolicyValueNet");
+
+    // Create method forward from the traced graph.
+    tracedModule._ivalue()->compilation_unit()->create_function("forward", graph);
+
+    return tracedModule;
 }
 
 class SettlersNeuralNet {
