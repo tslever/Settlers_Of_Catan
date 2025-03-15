@@ -94,20 +94,23 @@ int main() {
 			std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
 			// Retrieve current game state from database.
 			GameState currentGameState = db.getGameState();
+			// Capture the original phase before any transition.
+			std::string originalPhase = currentGameState.phase;
 
 			// Create phase state machine to transition state.
 			PhaseStateMachine phaseStateMachine;
 			response = phaseStateMachine.handle(currentGameState, db);
 
-			if (currentGameState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+			// TODO: Consider moving into class `PlaceFirstSettlementState`.
+			if (originalPhase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
 				// For demonstration, use a dummy feature vector.
 				// TODO: Consider using a feature vector based on the game state / board features.
 				std::vector<float> features = { 0.5f, 0.5f, 0.5f, 0.5f, 1.0f };
 				auto evalResult = neuralNet.evaluateSettlement(features);
-				auto value = evalResult.first;
+				double value = evalResult.first;
 				// TODO: Use value to determine where to place settlement.
-				auto policy = evalResult.second;
-				// TODO: Use value to determine where to place settlement.
+				double policy = evalResult.second;
+				// TODO: Use policy to determine where to place settlement.
 				// TODO: Integrate full MCTS based move selection using `neuralNet` and AI / MCTS functions.
 			}
 			// TODO: Consider evaluating placing first road, placing first settlement, and placing second road.

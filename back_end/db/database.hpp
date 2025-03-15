@@ -181,10 +181,10 @@ public:
         }
         else {
             gameState = GameState();
-            gameState.phase = "phase to place first settlement";
-            gameState.currentPlayer = 1;
-            gameState.lastBuilding = "";
-            table.insert("id", "current_player", "phase", "last_building").values(1, gameState.currentPlayer, gameState.phase, gameState.lastBuilding).execute();
+            table
+                .insert("id", "current_player", "phase", "last_building")
+                .values(1, gameState.currentPlayer, gameState.phase, gameState.lastBuilding)
+                .execute();
         }
         return gameState;
     }
