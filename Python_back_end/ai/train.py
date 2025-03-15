@@ -15,12 +15,12 @@ from ..ai.neural_network import SettlersPolicyValueNet
 from .io_helper import load_training_data
 import logging
 import os
-from back_end.settings import settings
+from Python_back_end.settings import settings
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from .io_helper import save_model_weights
-from back_end.logger import set_up_logging
+from Python_back_end.logger import set_up_logging
 
 
 set_up_logging()

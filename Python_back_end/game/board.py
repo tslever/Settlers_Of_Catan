@@ -5,7 +5,7 @@ from typing import Tuple
 import json
 import math
 import numpy as np
-from back_end.settings import settings
+from Python_back_end.settings import settings
 
 
 RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX = math.tan(math.pi / 6)

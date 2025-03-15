@@ -13,12 +13,12 @@ TODO: Include multi-step rollouts for deeper evaluation.
 '''
 
 from .mcts.node import MCTS_Node
-from back_end.ai.mcts.backpropagation import backpropagate
-from back_end.ai.mcts.expansion import expand_node
+from Python_back_end.ai.mcts.backpropagation import backpropagate
+from Python_back_end.ai.mcts.expansion import expand_node
 import numpy as np
-from back_end.ai.mcts.selection import select_child
-from back_end.settings import settings
-from back_end.ai.mcts.simulation import simulate_rollout
+from Python_back_end.ai.mcts.selection import select_child
+from Python_back_end.settings import settings
+from Python_back_end.ai.mcts.simulation import simulate_rollout
 
 
 def inject_dirichlet_noise(root, epsilon: float = 0.25, alpha: float = 0.03) -> None:

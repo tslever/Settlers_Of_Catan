@@ -1,5 +1,5 @@
-from back_end.board import Board
-from back_end.ai.neural_network import SettlersNeuralNet
+from Python_back_end.game.board import Board
+from Python_back_end.ai.neural_network import SettlersNeuralNet
 import copy
 import random
 

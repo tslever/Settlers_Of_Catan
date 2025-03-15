@@ -17,7 +17,7 @@ import threading
 from .io_helper import save_training_data
 from .train import train_model
 from .io_helper import update_training_data
-from back_end.ai.neural_network import neural_network
+from Python_back_end.ai.neural_network import neural_network
 
 
 logger = logging.getLogger(__name__)

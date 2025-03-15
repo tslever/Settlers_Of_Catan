@@ -1,20 +1,20 @@
-from back_end.board import Board
-from back_end.db.database import City
+from Python_back_end.game.board import Board
+from Python_back_end.db.database import City
 from Python_back_end.game.phase import Phase
-from back_end.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
-from back_end.db.database import Road
-from back_end.db.database import Settlement
-from back_end.board import TOKEN_DOT_MAPPING
-from back_end.board import TOKEN_MAPPING
-from back_end.board import WIDTH_OF_HEX
+from Python_back_end.game.board import RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
+from Python_back_end.db.database import Road
+from Python_back_end.db.database import Settlement
+from Python_back_end.game.board import TOKEN_DOT_MAPPING
+from Python_back_end.game.board import TOKEN_MAPPING
+from Python_back_end.game.board import WIDTH_OF_HEX
 from flask import abort
 import logging
 import math
-from back_end.ai.neural_network import neural_network
-from back_end.ai.strategy import predict_best_settlement
-from back_end.ai.strategy import predict_best_city
-from back_end.ai.strategy import predict_best_road
-from back_end.settings import settings
+from Python_back_end.ai.neural_network import neural_network
+from Python_back_end.ai.strategy import predict_best_settlement
+from Python_back_end.ai.strategy import predict_best_city
+from Python_back_end.ai.strategy import predict_best_road
+from Python_back_end.settings import settings
 
 
 THRESHOLD_TO_DETERMINE_WHETHER_TWO_VERTICES_ARE_ADJACENT = RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX * WIDTH_OF_HEX + settings.margin_of_error

@@ -11,7 +11,7 @@ from .io_helper import load_model_weights
 import logging
 import math
 import os
-from back_end.settings import settings
+from Python_back_end.settings import settings
 import threading
 import time
 import torch

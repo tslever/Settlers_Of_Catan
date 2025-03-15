@@ -16,11 +16,11 @@ from .routes import blueprint_for_route_settlements
 from flask import jsonify
 from .db.database import initialize_database
 import logging
-from back_end.ai.neural_network import neural_network
-from back_end.logger import set_up_logging
-from back_end.settings import settings
+from Python_back_end.ai.neural_network import neural_network
+from Python_back_end.logger import set_up_logging
+from Python_back_end.settings import settings
 from .ai.continuous_training import start_continuous_training_in_background
-from back_end.ai.neural_network import start_model_watcher
+from Python_back_end.ai.neural_network import start_model_watcher
 import threading
 
 

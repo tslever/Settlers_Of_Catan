@@ -25,7 +25,7 @@ from sqlalchemy.orm import declarative_base
 import logging
 import os
 from sqlalchemy.orm import sessionmaker
-from back_end.settings import settings
+from Python_back_end.settings import settings
 
 
 logger = logging.getLogger(__name__)

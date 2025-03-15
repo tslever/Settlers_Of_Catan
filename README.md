@@ -18,25 +18,23 @@ To start the back end,
 
 7. Execute configuration.
 
-8. Change directory to `back_end`.
+8. Change MySQL password in `back_end/settings.py`.
 
-9. Change MySQL password in `settings.py`.
+9. Install Python 3.13.2.
 
-10. Install Python 3.13.2.
+10. Change directory to root.
 
 11. Create a virtual environment using `python -m venv env`.
 
 12. Activate the environment using `source env/Scripts/activate`.
 
-10. Run `python -m pip install --upgrade pip`.
+13. Run `python -m pip install --upgrade pip`.
 
-13. Run `pip install -r requirements.txt`.
+14. Run `pip install -r Python_back_end/requirements.txt`.
 
-14. Run `python -m back_end.db.set_up_or_tear_down_game_database --set_up`.
+15. Run `python -m set_up_or_tear_down_game_database --set_up`.
 
-15. Run `cd ..`.
-
-16. Run `python -m back_end.app`.
+16. Run `python -m Python_back_end.app`.
 
 To start the front end,
 

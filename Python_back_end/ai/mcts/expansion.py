@@ -1,4 +1,4 @@
-from back_end.ai.mcts.node import MCTS_Node
+from Python_back_end.ai.mcts.node import MCTS_Node
 
 
 def expand_node(

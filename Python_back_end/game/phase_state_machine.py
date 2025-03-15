@@ -2,10 +2,10 @@ from abc import ABC
 from Python_back_end.game.phase import Phase
 from flask import abort
 from abc import abstractmethod
-from back_end.game.game_actions import compute_strengths
-from back_end.game.game_actions import create_city
-from back_end.game.game_actions import create_road
-from back_end.game.game_actions import create_settlement
+from Python_back_end.game.game_actions import compute_strengths
+from Python_back_end.game.game_actions import create_city
+from Python_back_end.game.game_actions import create_road
+from Python_back_end.game.game_actions import create_settlement
 import json
 import logging
 

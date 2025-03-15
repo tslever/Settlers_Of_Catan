@@ -2,7 +2,7 @@ from filelock import FileLock
 import logging
 import numpy as np
 import os
-from back_end.settings import settings
+from Python_back_end.settings import settings
 import torch
 
 

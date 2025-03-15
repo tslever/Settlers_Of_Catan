@@ -1,18 +1,18 @@
-from back_end.board import Board
-from back_end.game.game_state import GameState
-from back_end.ai.mcts.node import MCTS_Node
-from back_end.board import TOKEN_DOT_MAPPING
-from back_end.board import TOKEN_MAPPING
-from back_end.ai.strategy import backpropagate
+from Python_back_end.game.board import Board
+from Python_back_end.game.game_state import GameState
+from Python_back_end.ai.mcts.node import MCTS_Node
+from Python_back_end.game.board import TOKEN_DOT_MAPPING
+from Python_back_end.game.board import TOKEN_MAPPING
+from Python_back_end.ai.strategy import backpropagate
 import copy
-from back_end.ai.strategy import expand_node
+from Python_back_end.ai.strategy import expand_node
 import logging
 import math
 import numpy as np
-from back_end.ai.strategy import select_child
-from back_end.ai.strategy import simulate_rollout
-from back_end.logger import set_up_logging
-from back_end.settings import settings
+from Python_back_end.ai.strategy import select_child
+from Python_back_end.ai.strategy import simulate_rollout
+from Python_back_end.logger import set_up_logging
+from Python_back_end.settings import settings
 
 
 set_up_logging()

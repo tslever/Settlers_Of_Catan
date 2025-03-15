@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
-from back_end.db.database import State, Settlement, City, Road
-from back_end.db.database import get_db_session
+from Python_back_end.db.database import State, Settlement, City, Road
+from Python_back_end.db.database import get_db_session
 from Python_back_end.game.phase import Phase
 import logging
 from sqlalchemy import text
