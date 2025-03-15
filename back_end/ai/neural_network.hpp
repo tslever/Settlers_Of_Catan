@@ -27,9 +27,6 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cudnn64_9.dll" "$(OutDir)"
 #include <torch/torch.h>
 // Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include\torch\csrc\api\include;`.
 
-#include <torch/csrc/jit/frontend/tracer.h>
-
-
 
 // Define the default neural network as a torch module.
 struct SettlersPolicyValueNetImpl : torch::nn::Module {
@@ -59,94 +56,57 @@ struct SettlersPolicyValueNetImpl : torch::nn::Module {
 
 TORCH_MODULE(SettlersPolicyValueNet);
 
-std::vector<torch::jit::IValue> tracedFunction(std::vector<torch::jit::IValue> stack) {
-    // Use default dimensions.
-    // TODO: Read from configuration file.
-    const int64_t inputDim = 5;
-    const int64_t hiddenDim = 128;
-
-    // Create an instance of the default model.
-    auto model = SettlersPolicyValueNet(inputDim, hiddenDim);
-    model->eval(); // Set the model to evaluation mode.
-
-    torch::Tensor inputTensor = stack[0].toTensor();
-    auto outputVectorOfTensors = model->forward(inputTensor);
-    return { outputVectorOfTensors[0], outputVectorOfTensors[1] };
-}
-
-/* Create a default model by instantiating the network, tracing its forward pass, and
-* returning a `TorchScript` module by injecting the traced graph via `create_method_from_graph`.
-*/
-torch::jit::script::Module createDefaultModel() {
-    // Use default dimensions.
-    // TODO: Read from configuration file.
-    const int64_t inputDim = 5;
-
-    // Create vector with dummy tensor to run through model.
-    at::Tensor dummyTensor = torch::rand({ 1, inputDim });
-    std::vector<torch::jit::IValue> vectorWithDummyTensor = { dummyTensor };
-
-    // Define dummy variable name lookup function.
-    auto variableNameLookupFunction = [](const at::Tensor& tensor) -> std::string {
-        return "dummy_variable_name";
-    };
-
-    // Trace the forward computation.
-    std::pair<std::shared_ptr<torch::jit::tracer::TracingState>, torch::jit::Stack> pair =
-        torch::jit::tracer::trace(vectorWithDummyTensor, tracedFunction, variableNameLookupFunction);
-    std::shared_ptr<torch::jit::tracer::TracingState> pointerToTracingState = pair.first;
-
-    // Obtain the traced graph.
-    auto graph = pointerToTracingState->graph;
-
-    // Create a new `TorchScript` module.
-    torch::jit::script::Module tracedModule("SettlersPolicyValueNet");
-
-    // Create method forward from the traced graph.
-    tracedModule._ivalue()->compilation_unit()->create_function("forward", graph);
-
-    return tracedModule;
-}
-
 class SettlersNeuralNet {
 private:
     std::string modelPath;
     std::filesystem::file_time_type lastModified;
     torch::Device device;
 public:
-    torch::jit::script::Module module;
+    SettlersPolicyValueNet model = nullptr;
 
-    // Constructor `SettlersNeuralNet` loads model from disk or creates a default one if missing.
+    // Constructor `SettlersNeuralNet` instantiates model, then loads parameters from disk or saves default parameters if missing.
     SettlersNeuralNet(const std::string& modelPath) : modelPath(modelPath), device(torch::kCPU) {
-        // If model doesn't exist, create default model.
-        // TODO: Train model.
-        if (!std::filesystem::exists(modelPath)) {
-            std::clog << "[WARNING] Model file not found at " << modelPath << ". Creating a default model file." << std::endl;
-            torch::jit::script::Module defaultModel = createDefaultModel();
-            std::filesystem::path modelFilePath(modelPath);
-            std::filesystem::path parentDir = modelFilePath.parent_path();
-            if (!parentDir.empty() && !std::filesystem::exists(parentDir)) {
-                std::filesystem::create_directories(parentDir);
-                std::clog << "[INFO] Directory " << parentDir << " was created." << std::endl;
-            }
+        // Define default dimensions.
+        const int64_t inputDim = 5;
+        const int64_t hiddenDim = 128;
+        
+        // Initialize the model.
+        model = SettlersPolicyValueNet(inputDim, hiddenDim);
+        model->eval();
 
+        // If the parameter file doesn't exist, save the default model parameters.
+        if (!std::filesystem::exists(modelPath)) {
+            std::clog << "[WARNING] Model file not found at " << modelPath << ". Creating default parameter file." << std::endl;
+            auto parameters = model->parameters();
             try {
-                defaultModel.save(modelPath);
-                std::clog << "[INFO] Default model was created and saved to " << modelPath << "." << std::endl;
+                torch::save(parameters, modelPath);
+                std::clog << "[INFO] Default model parameters saved to " << modelPath << "." << std::endl;
             }
             catch (const c10::Error& e) {
-                std::cerr << "[ERROR] Saving default model failed with the following error. " << e.what() << std::endl;
-                throw std::runtime_error("Saving default model to " + modelPath + "failed.");
+                std::cerr << "[ERROR] Saving default model parameters failed with the following error. " << e.what() << std::endl;
+                throw std::runtime_error("Saving default model parameters failed.");
             }
         }
+
         try {
             std::clog << "[INFO] CUDA " << (torch::cuda::is_available() ? "is" : "is not") << " available." << std::endl;
             device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
-            module = torch::jit::load(modelPath);
-            module.to(device);
-            module.eval();
+            model->to(device);
+
+            // Load the parameters from file.
+            std::vector<torch::Tensor> parameters;
+            torch::load(parameters, modelPath);
+            auto modelParameters = model->parameters();
+            if (modelParameters.size() != parameters.size()) {
+                std::cerr << "[ERROR] A mismatch in parameter count occurred. " << modelParameters.size() << " parameters were expected. There are " << parameters.size() << " parameters." << std::endl;
+                throw std::runtime_error("A mismatch in parameter count occurred.");
+            }
+            torch::NoGradGuard noGrad; // Disable gradient tracking during parameter copy.
+            for (size_t i = 0; i < parameters.size(); i++) {
+                modelParameters[i].data().copy_(parameters[i].data());
+            }
             lastModified = std::filesystem::last_write_time(modelPath);
-            std::clog << "[INFO] Model was successfully loaded from " << modelPath << " on device " << (device == torch::kCUDA ? "CUDA" : "CPU") << "." << std::endl;
+            std::clog << "[INFO] Model parameters were successfully loaded from " << modelPath << " on device " << (device == torch::kCUDA ? "CUDA" : "CPU") << "." << std::endl;
         }
         catch (const c10::Error& e) {
             std::cerr << "[ERROR] The following exception occurred while loading model. " << e.what() << std::endl;
@@ -156,10 +116,11 @@ public:
 
     // Evaluate a settlement move given a feature vector.
     std::pair<double, double> evaluateSettlement(const std::vector<float>& features) {
+        torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
         torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
-        auto output = module.forward({ input }).toTuple();
-        double value = output->elements()[0].toTensor().item<double>();
-        double policy = output->elements()[1].toTensor().item<double>();
+        auto output = model->forward(input);
+        double value = output[0].item<double>();
+        double policy = output[1].item<double>();
         return { value, policy };
     }
     // TODO: Similarly implement evaluateCity, evaluateRoad, etc.
@@ -169,10 +130,18 @@ public:
         try {
             auto currentModTime = std::filesystem::last_write_time(modelPath);
             if (currentModTime > lastModified) {
-                std::clog << "[INFO] Updated model weights were detected. Model will be reloaded from " << modelPath << std::endl;
-                module = torch::jit::load(modelPath);
-                module.to(device);
-                module.eval();
+                std::clog << "[INFO] Updated model parameters were detected. Model will be reloaded from " << modelPath << std::endl;
+                std::vector<torch::Tensor> parameters;
+                torch::load(parameters, modelPath);
+                auto modelParameters = model->parameters();
+                if (modelParameters.size() != parameters.size()) {
+                    std::cerr << "[ERROR] A mismatch in parameter count occurred during reload." << std::endl;
+                    throw std::runtime_error("A mismatch in parameter count occurred during reload.");
+                }
+                torch::NoGradGuard noGrad;
+                for (size_t i = 0; i < parameters.size(); i++) {
+                    modelParameters[i].data().copy_(parameters[i].data());
+                }
                 lastModified = currentModTime;
             }
         }
