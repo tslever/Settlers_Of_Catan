@@ -153,8 +153,14 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cudnn64_9.dll" "$(OutDir)"
     <ClCompile Include="back_end.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ai\mcts\backpropagation.hpp" />
+    <ClInclude Include="ai\mcts\expansion.hpp" />
     <ClInclude Include="ai\mcts\node.hpp" />
+    <ClInclude Include="ai\mcts\selection.hpp" />
+    <ClInclude Include="ai\mcts\simulation.hpp" />
     <ClInclude Include="ai\neural_network.hpp" />
+    <ClInclude Include="ai\self_play.hpp" />
+    <ClInclude Include="ai\training.hpp" />
     <ClInclude Include="db\database.hpp" />
     <ClInclude Include="db\models.hpp" />
     <ClInclude Include="game\game_state.hpp" />

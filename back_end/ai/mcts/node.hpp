@@ -33,15 +33,3 @@ public:
         return children.empty();
     }
 };
-
-// Backpropagation: propagate the rollout value up the tree.
-void backpropagate(std::shared_ptr<MCTSNode> node, double value) {
-    while (node != nullptr) {
-        node->N += 1;
-        node->W += value;
-        node->Q = node->W / node->N;
-        node = node->parent;
-    }
-}
-
-// TODO: Define selection, expansion and simulation functions similarly.

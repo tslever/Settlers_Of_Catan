@@ -47,8 +47,14 @@ paths_of_back_end_files = [
     r'back_end\back_end.vcxproj.filters',
     r'back_end\back_end.vcxproj.user',
 
+    r'back_end\ai\mcts\backpropagation.hpp',
+    r'back_end\ai\mcts\expansion.hpp',
     r'back_end\ai\mcts\node.hpp',
+    r'back_end\ai\mcts\selection.hpp',
+    r'back_end\ai\mcts\simulation.hpp',
     r'back_end\ai\neural_network.hpp',
+    r'back_end\ai\self_play.hpp',
+    r'back_end\ai\training.hpp',
 
     r'back_end\db\database.hpp',
     r'back_end\db\models.hpp',

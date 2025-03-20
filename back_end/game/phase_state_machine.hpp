@@ -7,16 +7,16 @@
 
 // Function `getOccupiedVertices` gets a list of occupied vertex labels by querying the database.
 std::vector<std::string> getOccupiedVertices(Database& db) {
-	std::vector<std::string> occupied;
+	std::vector<std::string> listOfLabelsOfOccupiedVertices;
 	auto settlements = db.getSettlements();
 	for (const auto& s : settlements) {
-		occupied.push_back(s.vertex);
+		listOfLabelsOfOccupiedVertices.push_back(s.vertex);
 	}
 	auto cities = db.getCities();
 	for (const auto& c : cities) {
-		occupied.push_back(c.vertex);
+		listOfLabelsOfOccupiedVertices.push_back(c.vertex);
 	}
-	return occupied;
+	return listOfLabelsOfOccupiedVertices;
 }
 
 
@@ -24,7 +24,7 @@ std::vector<std::string> getOccupiedVertices(Database& db) {
 * `getAvailableVertices` reads the board geometry and filters out any vertex that is either occupied
 * or is too close (i.e. adjacent) to any occupied vertex.
 */
-std::vector<std::string> getAvailableVertices(const std::vector<std::string>& occupied) {
+std::vector<std::string> getAvailableVertices(const std::vector<std::string>& addressOfListOfLabelsOfOccupiedVertices) {
 	std::ifstream file("../board_geometry.json");
 	if (!file.is_open()) {
 		throw std::runtime_error("Board geometry file could not be opened.");
@@ -65,12 +65,18 @@ std::vector<std::string> getAvailableVertices(const std::vector<std::string>& oc
 		double y1 = pair.second.second;
 
 		// Skip if the vertex is already occupied.
-		if (std::find(occupied.begin(), occupied.end(), label) != occupied.end())
+		if (
+			std::find(
+				addressOfListOfLabelsOfOccupiedVertices.begin(),
+				addressOfListOfLabelsOfOccupiedVertices.end(),
+				label
+			) != addressOfListOfLabelsOfOccupiedVertices.end()
+		)
 			continue;
 
 		bool tooClose = false;
 		// Check the distance to every occupied vertex.
-		for (const auto& occLabel : occupied) {
+		for (const auto& occLabel : addressOfListOfLabelsOfOccupiedVertices) {
 			auto it = vertexCoords.find(occLabel);
 			if (it != vertexCoords.end()) {
 				double x2 = it->second.first;
@@ -191,10 +197,10 @@ public:
 		crow::json::wvalue result;
 
 		// Get the up-to-date list of occupied vertices from the database.
-		std::vector<std::string> occupied = getOccupiedVertices(db);
+		std::vector<std::string> listOfLabelsOfOccupiedVertices = getOccupiedVertices(db);
 
 		// Determine which vertices are available (not occupied and not adjacent to any occupied vertex).
-		auto vectorOfLabelsOfAvailableVertices = getAvailableVertices(occupied);
+		auto vectorOfLabelsOfAvailableVertices = getAvailableVertices(listOfLabelsOfOccupiedVertices);
 		if (vectorOfLabelsOfAvailableVertices.empty()) {
 			throw std::runtime_error("No vertices are available for placing settlement.");
 		}
@@ -272,10 +278,10 @@ public:
 		crow::json::wvalue result;
 
 		// Get the up-to-date list of occupied vertices from the database.
-		std::vector<std::string> occupied = getOccupiedVertices(db);
+		std::vector<std::string> listOfLabelsOfOccupiedVertices = getOccupiedVertices(db);
 
 		// Determine which vertices are available (not occupied and not adjacent to any occupied vertex).
-		auto vectorOfLabelsOfAvailableVertices = getAvailableVertices(occupied);
+		auto vectorOfLabelsOfAvailableVertices = getAvailableVertices(listOfLabelsOfOccupiedVertices);
 		if (vectorOfLabelsOfAvailableVertices.empty()) {
 			throw std::runtime_error("No vertices are available for placing settlement.");
 		}
