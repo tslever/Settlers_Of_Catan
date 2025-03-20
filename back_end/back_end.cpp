@@ -27,7 +27,6 @@
 * Migrate MCTS, continuous self play, training, and neural network evaluation from the Python back end.
 */
 
-
 // Structure CorsMiddleware is a simple middleware to add CORS headers.
 struct CorsMiddleware {
 	struct context { };
@@ -91,7 +90,8 @@ std::pair<std::string, double> runMcts(GameState& currentState, Database& db, Se
 	expandNode(root, db, neuralNet);
 
 	// If no children were generated, try a fallback strategy.
-	/* TODO: Determine whether it should never be the case that no children are generated.
+	/* TODO: Determine whether it should never be the case that no children are generated
+	* when running MCTS to place the first settlement.
 	* If so, ensure that this case never occurs and delete this block of code.
 	*/
 	if (root->children.empty()) {

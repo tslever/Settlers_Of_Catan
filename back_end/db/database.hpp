@@ -263,13 +263,25 @@ public:
 			mysqlx::Session session(host, port, username, password, dbName);
 			mysqlx::Schema schema = session.getSchema(dbName);
 
+            // Clear settlements, cities, and roads.
 			schema.getTable("settlements").remove().execute();
 			schema.getTable("cities").remove().execute();
 			schema.getTable("roads").remove().execute();
 			session.sql("ALTER TABLE settlements AUTO_INCREMENT = 1").execute();
 			session.sql("ALTER TABLE cities AUTO_INCREMENT = 1").execute();
 			session.sql("ALTER TABLE roads AUTO_INCREMENT = 1").execute();
-			return true;
+
+            // Reset the game state to its initial values.
+            GameState initialState;
+            mysqlx::Table stateTable = schema.getTable("state");
+            stateTable.update()
+                .set("current_player", initialState.currentPlayer)
+                .set("phase", initialState.phase)
+                .set("last_building", initialState.lastBuilding)
+                .where("id = 1")
+                .execute();
+
+            return true;
 		}
         catch (const mysqlx::Error& err) {
             std::cerr << "MySQL X DevAPI Error: " << err.what() << std::endl;
