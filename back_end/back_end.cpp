@@ -89,25 +89,6 @@ std::pair<std::string, double> runMcts(GameState& currentState, Database& db, Se
 	// Initially expand the root node using the new expansion function.
 	expandNode(root, db, neuralNet);
 
-	// If no children were generated, try a fallback strategy.
-	/* TODO: Determine whether it should never be the case that no children are generated
-	* when running MCTS to place the first settlement.
-	* If so, ensure that this case never occurs and delete this block of code.
-	*/
-	if (root->children.empty()) {
-		std::vector<std::string> occupied = getOccupiedVertices(db);
-		auto available = getAvailableVertices(occupied);
-		if (!available.empty()) {
-			// Choose a random available move as fallback.
-			int randomIndex = std::rand() % available.size();
-			return { available[randomIndex], 0.0 };
-		}
-		else {
-			// No moves are available at all.
-			return { "", 0.0 };
-		}
-	}
-
 	// Run MCTS simulations.
 	for (int i = 0; i < numberOfSimulations; i++) {
 		auto node = root;
