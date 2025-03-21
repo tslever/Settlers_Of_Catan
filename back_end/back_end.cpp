@@ -26,6 +26,7 @@
 /* TODO: Align this back end with the Python back end.
 * Migrate MCTS, continuous self play, training, and neural network evaluation from the Python back end.
 */
+// TODO: Consider whether database driven state management needs to be implemented more.
 
 // Structure CorsMiddleware is a simple middleware to add CORS headers.
 struct CorsMiddleware {
@@ -44,14 +45,13 @@ struct CorsMiddleware {
 };
 
 
-// Atomic `stopModelWatcher` is a global flag to signal the model reloader thread to stop.
+// Atomic `stopModelWatcher` is a global flag to stop thread for reloading parameters for neural network.
+// Atomic `stopTraining` is a global flag to top training neural network.
 std::atomic<bool> stopModelWatcher{ false };
-
-// Atomic `stopTraining` is a global flag to signal model training to stop.
 std::atomic<bool> stopTraining{ false };
 
-/* Function `modelWatcher` is a background thread function
-* to periodically check and reload updated model weights.
+/* Function `modelWatcher` runs on a background thread and periodically checks
+* whether file of parameters for neural network is updated and reloads parameters.
 */
 // TODO: Consider whether function `modelWatcher` belongs in another file.
 static void modelWatcher(SettlersNeuralNet* neuralNet) {
@@ -61,8 +61,8 @@ static void modelWatcher(SettlersNeuralNet* neuralNet) {
 	}
 }
 
-/* Function `trainingLoop` is a background thread function
-* to continuously run self play and trigger training updates.
+/* Function `trainingLoop` runs on a background thread and
+* continuously runs self play and updates neural network.
 */
 // TODO: Consider whether function `trainingLoop` belongs in another file.
 static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
@@ -70,23 +70,23 @@ static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
 		// Run one self play game to generate training examples.
 		// TODO: Consider whether running more than one game is important.
 		auto trainingExamples = runSelfPlayGame(*neuralNet, *db);
-		// TODO: Implement `runSelfPlayGame`.
-		// If enough new examples have been generated, trigger a training update.
+		// Train neural network if enough new examples have been generated.
 		trainNeuralNetworkIfNeeded(trainingExamples, neuralNet);
-		// TODO: Implement `trainNeuralNetworkIfNeeded`.
-		// Wait a short interval before starting the next self play game.
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 	}
 }
 
-// Function `runMcts` runs MCTS by creating a root node from the current game state, running a number of simulations, and returning the best move.
+/* Function `runMcts` runs MCTS by creating a root node from the current game state,
+* running a number of simulations, and returning the best move.
+*/
 // TODO: Consider whether function `runMcts` belongs in another file.
 std::pair<std::string, double> runMcts(GameState& currentState, Database& db, SettlersNeuralNet& neuralNet) {
-	// Create a root node based on the current game state.
+	// Create root node based on current game state.
 	auto root = std::make_shared<MCTSNode>(currentState, "", nullptr, "settlement");
-	const int numberOfSimulations = 50; // Use a value in a configuration file.
+	const int numberOfSimulations = 50;
+	// TODO: Use a value in a configuration file.
 
-	// Initially expand the root node using the new expansion function.
+	// Initially expand the root node.
 	expandNode(root, db, neuralNet);
 
 	// Run MCTS simulations.
@@ -94,7 +94,7 @@ std::pair<std::string, double> runMcts(GameState& currentState, Database& db, Se
 		auto node = root;
 		// Selection: Descend / traverse down the tree until a leaf node is reached.
 		while (!node->isLeaf()) {
-			node = selectChild(node);
+			node = selectChild(node, 1.0, 1e-6);
 		}
 		// Expansion: If the node was visited before, expand the node.
 		if (node->N > 0) {
@@ -102,15 +102,15 @@ std::pair<std::string, double> runMcts(GameState& currentState, Database& db, Se
 		}
 		// Simulation: Evaluate the leaf node via a rollout.
 		double value = simulateRollout(node, db, neuralNet);
-		// Backpropagation: Update statistics up the tree.
+		// Backpropagation: Update statistics up the tree / all nodes along the path.
 		backpropagate(node, value);
 	}
 
 	// Select the child move with the highest visit count.
-	// TODO: Consider whether selecting moves based on visit count and/or other properties might be better.
+	// TODO: Consider whether selecting moves based on visit count and/or other criteria might be better.
 	std::shared_ptr<MCTSNode> bestChild = nullptr;
 	int bestVisits = -1;
-	for (auto& pair : root->children) {
+	for (const auto& pair : root->children) {
 		auto child = pair.second;
 		if (child->N > bestVisits) {
 			bestVisits = child->N;
@@ -124,8 +124,8 @@ std::pair<std::string, double> runMcts(GameState& currentState, Database& db, Se
 }
 
 
-/* Function main sets up
-* the Crow app, database, neural network, routes, model watcher thread, and continuous training thread.
+/* Function main sets up the Crow app, database, neural network, routes, model watcher thread, and
+* continuous training thread.
 */
 int main() {
 
@@ -151,13 +151,11 @@ int main() {
 		return 1;
 	}
 
-	// Create a neural network using libtorch.
 	SettlersNeuralNet neuralNet("ai/neural_network.pt");
 
-	// Start a thread to watch for updated model weights.
+	// Start a thread to watch for updated parameters for neural network.
+	// Start a thread to train neural network.
 	std::thread modelWatcherThread(modelWatcher, &neuralNet);
-
-	// Start a thread to train.
 	std::thread trainingThread(trainingLoop, &db, &neuralNet);
 
     // Endpoint `/cities` allows getting a JSON list of cities.
@@ -172,11 +170,7 @@ int main() {
 		crow::json::wvalue response;
 		try {
 			std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
-			
-			// Retrieve current game state from database.
 			GameState currentGameState = db.getGameState();
-			
-			// Capture the original phase before any transition.
 			std::string originalPhase = currentGameState.phase;
 
 			// TODO: Consider moving into class `PlaceFirstSettlementState`.
@@ -185,19 +179,13 @@ int main() {
 				if (mctsResult.first.empty()) {
 					throw std::runtime_error("MCTS failed to determine a settlement move.");
 				}
-				// Apply the chosen settlement move.
 				currentGameState.placeSettlement(currentGameState.currentPlayer, mctsResult.first);
 			}
-			// TODO: Consider running Monte Carlo Tree Search to
-			// place first settlement, placing first road, place first city, and placing second road.
+			// TODO: Consider running Monte Carlo Tree Search to place first road, place first city, and place second road.
 
-			// Create phase state machine to transition state.
 			PhaseStateMachine phaseStateMachine;
 			response = phaseStateMachine.handle(currentGameState, db);
-
-			// Update game state in database.
 			db.updateGameState(currentGameState);
-
 			return response;
 		}
 		catch (const std::exception& e) {
@@ -252,9 +240,7 @@ int main() {
 	// On shutdown, join the Crow app thread with the main thread.
 	appThread.join();
 
-	/* On shutdown, signal the model watcher thread and the training thread to stop and
-	* join these threads with the main thread.
-	*/
+	// On shutdown, stop model watcher and training threads and join these threads with the main thread.
 	stopModelWatcher.store(true);
 	stopTraining.store(true);
 	if (modelWatcherThread.joinable()) {

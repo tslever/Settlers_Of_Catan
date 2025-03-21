@@ -123,6 +123,8 @@ public:
         }
     }
 
+    // TODO: Consider whether functions `evaluateSettlement`, `evaluateCity`, and `evaluateRoad` should be different.
+
     // Evaluate a settlement move given a feature vector.
     std::pair<double, double> evaluateSettlement(const std::vector<float>& features) {
         torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
@@ -132,7 +134,26 @@ public:
         double policy = output[1].item<double>();
         return { value, policy };
     }
-    // TODO: Similarly implement evaluateCity, evaluateRoad, etc.
+
+    // Evaluate a city move given a feature vector.
+    std::pair<double, double> evaluateCity(const std::vector<float>& features) {
+        torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
+        torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
+        auto output = model->forward(input);
+        double value = output[0].item<double>();
+        double policy = output[1].item<double>();
+        return { value, policy };
+    }
+
+    // Evaluate a road move given a feature vector.
+    std::pair<double, double> evaluateRoad(const std::vector<float>& features) {
+        torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
+        torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
+        auto output = model->forward(input);
+        double value = output[0].item<double>();
+        double policy = output[1].item<double>();
+        return { value, policy };
+    }
 
     // Reload model if weights have been updated on disk.
     void reloadIfUpdated() {
