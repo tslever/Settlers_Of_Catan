@@ -12,7 +12,7 @@
 * Add to command line `/INCLUDE:"?warp_size@cuda@at@@YAHXZ"`.
 * See https://github.com/pytorch/pytorch/issues/31611 .
 * 
-* Add the following string of newline separated commands to Post - Build Event.
+* For a PC with CUDA, add the following string of newline separated commands to Post - Build Event.
 * xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\c10.dll" "$(OutDir)"
 xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\torch_cpu.dll" "$(OutDir)"
 xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\fbgemm.dll" "$(OutDir)"
@@ -22,6 +22,15 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\asmjit.dll" "$(OutDir)"
 xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\torch_cuda.dll" "$(OutDir)"
 xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\c10_cuda.dll" "$(OutDir)"
 xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cudnn64_9.dll" "$(OutDir)"
+*
+* For a PC without a GPU, add the additional string of newline separated commands to Post - Build Event.
+* xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cusparse64_12.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cufft64_11.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cusolver64_11.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cublas64_12.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cublasLt64_12.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cudart64_12.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\nvJitLink_120_0.dll" "$(OutDir)"
 */
 
 #include <torch/torch.h>
