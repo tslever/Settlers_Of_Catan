@@ -21,22 +21,42 @@
 // Configuration struct
 // TODO: Load from `config.json`.
 struct Config {
-	std::string dbName = "game";
-	std::string dbHost = "localhost";
-	std::string dbPassword = "settlers_of_catan";
-	unsigned int dbPort = 33060;
-	std::string dbUsername = "administrator";
-	std::string modelPath = "ai/neural_network.pt";
-	int modelWatcherInterval = 10; // seconds
-	int trainingThreshold = 20; // training examples before triggering training
-	int backEndPort = 5000;
+	std::string dbName;
+	std::string dbHost;
+	std::string dbPassword;
+	unsigned int dbPort;
+	std::string dbUsername;
+	std::string modelPath;
+	int modelWatcherInterval;
+	int trainingThreshold;
+	int backEndPort;
 };
 
 
-// Dummy `loadConfig` function.
-// TODO: Replace with function to load `config.json`.
+// Function `loadConfig` reads `config.json`.
 Config loadConfig() {
 	Config config;
+	std::ifstream file("config.json");
+	if (!file.is_open()) {
+		std::clog << "[ERROR] config.json could not be opened." << std::endl;
+		throw std::runtime_error("config.json could not be opened.");
+	}
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	auto configJson = crow::json::load(buffer.str());
+	if (!configJson) {
+		throw std::runtime_error("Parsing config.json failed.");
+	}
+	config.dbName = configJson["dbName"].s();
+	config.dbHost = configJson["dbHost"].s();
+	config.dbPassword = configJson["dbPassword"].s();
+	config.dbPort = configJson["dbPort"].i();
+	config.dbUsername = configJson["dbUsername"].s();
+	config.modelPath = configJson["modelPath"].s();
+	config.modelWatcherInterval = configJson["modelWatcherInterval"].i();
+	config.trainingThreshold = configJson["trainingThreshold"].i();
+	config.backEndPort = configJson["backEndPort"].i();
+	std::clog << "[INFO] Configuration loaded from config.json." << std::endl;
 	return config;
 }
 
@@ -108,7 +128,14 @@ static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet, int trainin
 int main() {
 
 	// Load settings.
-	Config config = loadConfig();
+	Config config;
+	try {
+		config = loadConfig();
+	}
+	catch (const std::exception& e) {
+		std::cerr << "[ERROR] Loading configuration failed with the following error. " << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
 
 	// Create Crow app with CORS middleware.
     crow::App<CorsMiddleware> app;
@@ -169,8 +196,8 @@ int main() {
 			response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
 		}
 		catch (const std::exception& e) {
-			response["error"] = std::string("Resetting game failed with the following error.") + e.what();
-			std::cerr << "[ERROR] " << std::string("Resetting game failed with the following error.") + e.what() << std::endl;
+			response["error"] = std::string("Resetting game failed with the following error. ") + e.what();
+			std::cerr << "[ERROR] " << std::string("Resetting game failed with the following error. ") + e.what() << std::endl;
 		}
 		return response;
 	});
@@ -196,7 +223,7 @@ int main() {
 	});
 
 	// Run the Crow app in its own thread.
-	std::clog << "[INFO] The back end will be started on port " << config.backEndPort << "\n";
+	std::clog << "[INFO] The back end will be started on port " << config.backEndPort << std::endl;
 	app.port(config.backEndPort).multithreaded().run();
 
 	// On shutdown, stop model watcher and training threads and join these threads with the main thread.

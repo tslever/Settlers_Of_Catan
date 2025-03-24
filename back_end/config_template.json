@@ -1,0 +1,11 @@
+{
+    "dbName": "name of database",
+    "dbHost": "localhost or other host",
+    "dbPassword": "password",
+    "dbPort": 12345,
+    "dbUsername": "username",
+    "modelPath": "ai/neural_network.pt",
+    "modelWatcherInterval": 10,
+    "trainingThreshold": 500,
+    "backEndPort": 12345
+}
