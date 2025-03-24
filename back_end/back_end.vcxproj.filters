@@ -68,5 +68,8 @@
     <ClInclude Include="ai\training.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ai\strategy.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

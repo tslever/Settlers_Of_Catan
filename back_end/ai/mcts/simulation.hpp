@@ -1,4 +1,4 @@
-#pragma once;
+#pragma once
 
 /* Function `simulateRollout` conducts a rollout with one step
 * that uses the neural network to evaluate the leaf node.

@@ -2,7 +2,11 @@
 
 #include "crow.h"
 #include "game_state.hpp"
+#include "../ai/strategy.hpp"
 #include <random>
+
+
+// TODO: Consider running Monte Carlo Tree Search to place first road, place first city, and place second road.
 
 
 // Function `getOccupiedVertices` gets a list of occupied vertex labels by querying the database.
@@ -184,7 +188,7 @@ std::string getRandomEdgeKeyAdjacentTo(const std::string& lastBuilding) {
 class PhaseState {
 public:
 	virtual ~PhaseState() = default;
-	virtual crow::json::wvalue handle(GameState& state, Database& db) = 0;
+	virtual crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) = 0;
 };
 
 
@@ -193,7 +197,7 @@ public:
 */
 class PlaceFirstSettlementState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db) override {
+	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
 		crow::json::wvalue result;
 
 		// Get the up-to-date list of occupied vertices from the database.
@@ -205,25 +209,24 @@ public:
 			throw std::runtime_error("No vertices are available for placing settlement.");
 		}
 
-		// Randomly select one available vertex.
-		// TODO: Replace with AI / board logic.
-		std::random_device dev;
-		std::mt19937 rng(dev());
-		std::uniform_int_distribution<> dist(0, vectorOfLabelsOfAvailableVertices.size() - 1);
-		std::string chosenVertex = vectorOfLabelsOfAvailableVertices.at(dist(rng));
+		int currentPlayer = state.currentPlayer;
+		auto mctsResult = runMcts(state, db, neuralNet);
+		if (mctsResult.first.empty()) {
+			throw std::runtime_error("MCTS failed to determine a move.");
+		}
+		std::string chosenVertex = mctsResult.first;
+		state.placeSettlement(currentPlayer, chosenVertex);
 
-		int player = state.currentPlayer;
-		state.placeSettlement(player, chosenVertex);
 		// Transition to road phase.
 		state.phase = Phase::TO_PLACE_FIRST_ROAD;
 		// Persist settlement in database.
-		int settlementId = db.addSettlement(player, chosenVertex);
+		int settlementId = db.addSettlement(currentPlayer, chosenVertex);
 
-		result["message"] = "Player " + std::to_string(player) + " placed a settlement at " + chosenVertex + ".";
+		result["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + chosenVertex + ".";
 		result["moveType"] = "settlement";
 		crow::json::wvalue settlementJson;
 		settlementJson["id"] = settlementId;
-		settlementJson["player"] = player;
+		settlementJson["player"] = currentPlayer;
 		settlementJson["vertex"] = chosenVertex;
 		result["settlement"] = std::move(settlementJson);
 		return result;
@@ -236,7 +239,7 @@ public:
 */
 class PlaceFirstRoadState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db) override {
+	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
 		crow::json::wvalue result;
 
 		if (state.lastBuilding.empty()) {
@@ -274,7 +277,7 @@ public:
 */
 class PlaceFirstCityState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db) override {
+	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
 		crow::json::wvalue result;
 
 		// Get the up-to-date list of occupied vertices from the database.
@@ -317,7 +320,7 @@ public:
 */
 class PlaceSecondRoadState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db) override {
+	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
 		crow::json::wvalue result;
 
 		if (state.lastBuilding.empty()) {
@@ -356,7 +359,7 @@ public:
 // Class PlaceFirstCityState is a concrete class that represents a handler of a turn.
 class TurnState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db) override {
+	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
 		crow::json::wvalue result;
 		int player = state.currentPlayer;
 		result["message"] = "Player " + std::to_string(player) + " is taking their turn.";
@@ -381,10 +384,10 @@ public:
 		stateHandlers[Phase::TURN] = std::make_shared<TurnState>();
 	}
 
-	crow::json::wvalue handle(GameState& state, Database& db) {
+	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) {
 		auto handler = stateHandlers[state.phase];
 		if (handler) {
-			return handler->handle(state, db);
+			return handler->handle(state, db, neuralNet);
 		}
 		else {
 			crow::json::wvalue result;

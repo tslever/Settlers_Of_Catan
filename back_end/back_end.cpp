@@ -8,11 +8,6 @@
 - $(SolutionDir)\dependencies\asio\asio\include;
 */
 
-#include "ai/mcts/backpropagation.hpp"
-#include "ai/mcts/expansion.hpp"
-#include "ai/mcts/node.hpp"
-#include "ai/mcts/selection.hpp"
-#include "ai/mcts/simulation.hpp"
 #include "ai/neural_network.hpp"
 #include "ai/self_play.hpp"
 #include "ai/training.hpp"
@@ -68,107 +63,30 @@ static void modelWatcher(SettlersNeuralNet* neuralNet) {
 // TODO: Consider whether function `trainingLoop` belongs in another file.
 static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
 	std::vector<TrainingExample> trainingData;
+	const size_t trainingThreshold = 500; // TODO: Use value from configuration file.
 	while (!stopTraining.load()) {
-		// Run one self play game to generate training examples.
-		// TODO: Consider whether running more than one game is important.
-		auto trainingExamples = runSelfPlayGame(*neuralNet, *db);
-		trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
-		// If we have reached the training threshold, perform training and clear the accumulated examples.
-		if (trainingData.size() >= 500) { // TODO: Use value from configuration file.
-			trainNeuralNetworkIfNeeded(trainingData, neuralNet);
-			trainingData.clear();
+		try {
+			// Run one self play game to generate training examples.
+			// TODO: Consider whether running more than one game is important.
+			auto trainingExamples = runSelfPlayGame(*neuralNet, *db);
+			trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
+			std::clog << "[TRAINING] Collected " << trainingData.size() << " training examples." << std::endl;
+			// When we reach the training threshold, perform training and clear the accumulated examples.
+			if (trainingData.size() >= trainingThreshold) {
+				std::clog << "[TRAINING] Triggered training with " << trainingData.size() << " examples." << std::endl;
+				trainNeuralNetworkIfNeeded(trainingData, neuralNet);
+				trainingData.clear();
+			}
+		}
+		catch (const std::exception& e) {
+			std::cerr << "[ERROR] Exception in training loop: " << e.what() << std::endl;
 		}
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 	}
 }
 
-// TODO: Consider whether function `injectDirichletNoise` belongs in another file.
-void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double epsilon = 0.25, double alpha = 0.03) {
-	if (root->children.empty()) {
-		return;
-	}
-	// Prepare noise: Sample gamma variables and normalize them.
-	std::vector<double> noise;
-	std::default_random_engine generator(std::random_device{}());
-	std::gamma_distribution<double> gammaDist(alpha, 1.0);
-	double sum = 0.0;
-	for (size_t i = 0; i < root->children.size(); i++) {
-		double n = gammaDist(generator);
-		noise.push_back(n);
-		sum += n;
-	}
-	for (auto& n : noise) {
-		n /= sum;
-	}
-	size_t index = 0;
-	for (auto& childPair : root->children) {
-		auto child = childPair.second;
-		// Adjust the prior using a weighted mix of the original prior and the injected noise.
-		child->P = (1 - epsilon) * child->P + epsilon * noise[index++];
-	}
-}
 
-/* Function `runMcts` runs MCTS by creating a root node from the current game state,
-* running a number of simulations, and returning the best move.
-*/
-// TODO: Consider whether function `runMcts` belongs in another file.
-std::pair<std::string, int> runMcts(
-	GameState& currentState,
-	Database& db,
-	SettlersNeuralNet& neuralNet,
-	int numberOfSimulations = 50, // TODO: Use a value in a configuration file.
-	double c_puct = 1.0, // TODO: Use a value in a configuration file.
-	double tolerance = 1e-6 // TODO: Use a value in a configuration file.
-) {
-	// Create root node for the current phase.
-	// TODO: Avoid assuming settlement phase.
-	auto root = std::make_shared<MCTSNode>(currentState, "", nullptr, "settlement");
-
-	// Initially expand the root node based on available moves.
-	expandNode(root, db, neuralNet);
-
-	// Inject Dirichlet noise at the root to encourage exploration.
-	injectDirichletNoise(root);
-
-	// Run MCTS simulations.
-	for (int i = 0; i < numberOfSimulations; i++) {
-		auto node = root;
-		// Selection: Descend / traverse down the tree until a leaf node is reached.
-		while (!node->isLeaf()) {
-			node = selectChild(node, c_puct, tolerance);
-		}
-		// Expansion: If this leaf node was visited before, expand the node.
-		if (node->N > 0) {
-			expandNode(node, db, neuralNet);
-		}
-		// Simulation: Evaluate the leaf node via a rollout.
-		// TODO: Consider extending to multi-step rollouts.
-		double value = simulateRollout(node, db, neuralNet);
-		// Backpropagation: Update statistics up the tree / all nodes along the path.
-		backpropagate(node, value);
-	}
-
-	// Select the child move with the highest visit count.
-	// TODO: Consider whether selecting moves based on visit count and/or other criteria might be better.
-	std::shared_ptr<MCTSNode> bestChild = nullptr;
-	int bestVisits = -1;
-	for (const auto& pair : root->children) {
-		auto child = pair.second;
-		if (child->N > bestVisits) {
-			bestVisits = child->N;
-			bestChild = child;
-		}
-	}
-	if (bestChild) {
-		return { bestChild->move, bestChild->N };
-	}
-	return { "", 0 };
-}
-
-
-/* Function main sets up the Crow app, database, neural network, routes, model watcher thread, and
-* continuous training thread.
-*/
+// Function main sets up Crow app, database, neural network, model watcher thread, continuous training thread, and endpoints.
 int main() {
 
 	// Create Crow app with CORS middleware.
@@ -195,8 +113,10 @@ int main() {
 
 	SettlersNeuralNet neuralNet("ai/neural_network.pt");
 
-	// Start a thread to watch for updated parameters and reload parameters for neural network.
-	// Start a thread to train neural network.
+	/* Start background threads.
+	* 1. Model watcher: Reload parameters for neural network if file of parameters has been updated.
+	* 2. Continuous training: Run self play games to accumulate training data and update neural network.
+	*/
 	std::thread modelWatcherThread(modelWatcher, &neuralNet);
 	std::thread trainingThread(trainingLoop, &db, &neuralNet);
 
@@ -213,20 +133,8 @@ int main() {
 		try {
 			std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
 			GameState currentGameState = db.getGameState();
-			std::string originalPhase = currentGameState.phase;
-
-			// TODO: Consider moving into class `PlaceFirstSettlementState`.
-			if (originalPhase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
-				auto mctsResult = runMcts(currentGameState, db, neuralNet);
-				if (mctsResult.first.empty()) {
-					throw std::runtime_error("MCTS failed to determine a settlement move.");
-				}
-				currentGameState.placeSettlement(currentGameState.currentPlayer, mctsResult.first);
-			}
-			// TODO: Consider running Monte Carlo Tree Search to place first road, place first city, and place second road.
-
 			PhaseStateMachine phaseStateMachine;
-			response = phaseStateMachine.handle(currentGameState, db);
+			response = phaseStateMachine.handle(currentGameState, db, neuralNet);
 			db.updateGameState(currentGameState);
 			return response;
 		}

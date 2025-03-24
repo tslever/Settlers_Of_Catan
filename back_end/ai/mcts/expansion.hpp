@@ -1,10 +1,16 @@
-#pragma once;
+#pragma once
 
 
 #include "../../db/database.hpp"
 #include "../neural_network.hpp"
 #include "node.hpp"
 #include "../../game/phase_state_machine.hpp"
+
+
+// Forward declarations so that functions `getOccupiedVertices` and `getAvailableVertices` are found.
+// TODO: Consider eliminating forward declarations by decoupling.
+std::vector<std::string> getOccupiedVertices(Database& db);
+std::vector<std::string> getAvailableVertices(const std::vector<std::string>& occupiedVertices);
 
 
 /* Function `expandNode`, for each move determined to be available by board geometry and current state,

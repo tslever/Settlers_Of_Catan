@@ -1,4 +1,9 @@
-#pragma once;
+#pragma once
+
+
+#include "../db/Database.hpp"
+#include "neural_network.hpp"
+
 
 class TrainingExample {
     // TODO: Implement.

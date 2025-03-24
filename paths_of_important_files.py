@@ -54,6 +54,7 @@ paths_of_back_end_files = [
     r'back_end\ai\mcts\simulation.hpp',
     r'back_end\ai\neural_network.hpp',
     r'back_end\ai\self_play.hpp',
+    r'back_end\ai\strategy.hpp',
     r'back_end\ai\training.hpp',
 
     r'back_end\db\database.hpp',

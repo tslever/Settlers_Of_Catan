@@ -1,4 +1,4 @@
-#pragma once;
+#pragma once
 
 // Function `selectChild` is a selection function that using PUCT.
 std::shared_ptr<MCTSNode> selectChild(
