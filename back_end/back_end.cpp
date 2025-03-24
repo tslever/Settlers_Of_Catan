@@ -18,6 +18,29 @@
 #include "game/phase_state_machine.hpp"
 
 
+// Configuration struct
+// TODO: Load from `config.json`.
+struct Config {
+	std::string dbName = "game";
+	std::string dbHost = "localhost";
+	std::string dbPassword = "settlers_of_catan";
+	unsigned int dbPort = 33060;
+	std::string dbUsername = "administrator";
+	std::string modelPath = "ai/neural_network.pt";
+	int modelWatcherInterval = 10; // seconds
+	int trainingThreshold = 20; // training examples before triggering training
+	int backEndPort = 5000;
+};
+
+
+// Dummy `loadConfig` function.
+// TODO: Replace with function to load `config.json`.
+Config loadConfig() {
+	Config config;
+	return config;
+}
+
+
 /* TODO: Align this back end with the Python back end.
 * Migrate self play and training logic.
 */
@@ -45,25 +68,22 @@ struct CorsMiddleware {
 std::atomic<bool> stopModelWatcher{ false };
 std::atomic<bool> stopTraining{ false };
 
-/* Function `modelWatcher` runs on a background thread and periodically checks
-* whether file of parameters for neural network is updated and reloads parameters.
-*/
+// Function `modelWatcher` periodically reloads neural network parameters.
 // TODO: Consider whether function `modelWatcher` belongs in another file.
-static void modelWatcher(SettlersNeuralNet* neuralNet) {
+static void modelWatcher(SettlersNeuralNet* neuralNet, int modelWatcherInterval) {
 	while (!stopModelWatcher.load()) {
 		neuralNet->reloadIfUpdated();
-		std::this_thread::sleep_for(std::chrono::seconds(10));
+		std::this_thread::sleep_for(std::chrono::seconds(modelWatcherInterval));
 	}
 }
 
 /* Function `trainingLoop` runs on a background thread and
-* continuously generates self play training examples and
-* triggers training when enough examples are collected.
+* continuously runs self play games to collect training examples and
+* triggers training when enough examples have been collected.
 */
 // TODO: Consider whether function `trainingLoop` belongs in another file.
-static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
+static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet, int trainingThreshold) {
 	std::vector<TrainingExample> trainingData;
-	const size_t trainingThreshold = 20; // TODO: Use value from configuration file.
 	while (!stopTraining.load()) {
 		try {
 			// Run one self play game to generate training examples.
@@ -72,7 +92,7 @@ static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
 			trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
 			std::clog << "[TRAINING] Collected " << trainingData.size() << " training examples." << std::endl;
 			if (trainingData.size() >= trainingThreshold) {
-				std::clog << "[TRAINING] Triggered training with " << trainingData.size() << " examples." << std::endl;
+				std::clog << "[TRAINING] Training neural network with " << trainingData.size() << " examples." << std::endl;
 				trainNeuralNetworkIfNeeded(trainingData, neuralNet);
 				trainingData.clear();
 			}
@@ -80,7 +100,6 @@ static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
 		catch (const std::exception& e) {
 			std::cerr << "[TRAINING] The following exception occurred." << e.what() << std::endl;
 		}
-		std::this_thread::sleep_for(std::chrono::seconds(5));
 	}
 }
 
@@ -88,35 +107,32 @@ static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
 // Function main sets up Crow app, database, neural network, model watcher thread, continuous training thread, and endpoints.
 int main() {
 
+	// Load settings.
+	Config config = loadConfig();
+
 	// Create Crow app with CORS middleware.
     crow::App<CorsMiddleware> app;
 	app.loglevel(crow::LogLevel::Info);
 
-    // Configure database.
-	// TODO: Use values from configuration file.
-	std::string dbName = "game";
-    std::string host = "localhost";
-	std::string password = "settlers_of_catan";
-	unsigned int port = 33060;
-    std::string username = "administrator";
-    Database db(dbName, host, password, port, username);
+    // Initialize database.
+    Database db(config.dbName, config.dbHost, config.dbPassword, config.dbPort, config.dbUsername);
 	try {
 		db.initialize();
-		std::clog << "[INFO] Database was initialized." << std::endl;
+		std::clog << "[INFO] Database was initialized.\n";
 	}
 	catch (const std::exception& e) {
 		std::cerr << "[ERROR] Database initialization failed with the following error." << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
 
-	SettlersNeuralNet neuralNet("ai/neural_network.pt");
+	SettlersNeuralNet neuralNet(config.modelPath);
 
 	/* Start background threads.
 	* 1. Model watcher: Reload parameters for neural network if file of parameters has been updated.
 	* 2. Continuous training: Run self play games to accumulate training data and update neural network.
 	*/
-	std::thread modelWatcherThread(modelWatcher, &neuralNet);
-	std::thread trainingThread(trainingLoop, &db, &neuralNet);
+	std::thread modelWatcherThread(modelWatcher, &neuralNet, config.modelWatcherInterval);
+	std::thread trainingThread(trainingLoop, &db, &neuralNet, config.trainingThreshold);
 
     // Endpoint `/cities` allows getting a JSON list of cities.
     CROW_ROUTE(app, "/cities").methods("GET"_method)
@@ -148,7 +164,7 @@ int main() {
 	([&db]() {
 		crow::json::wvalue response;
 		try {
-			std::clog << "[INFO] A user posted to endpoint reset. Game state and database will be reset." << std::endl;
+			std::clog << "[INFO] A user posted to endpoint reset. Game state and database will be reset.\n";
 			bool success = db.resetGame();
 			response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
 		}
@@ -180,13 +196,8 @@ int main() {
 	});
 
 	// Run the Crow app in its own thread.
-	std::clog << "[INFO] The back end will be started on port 5000." << std::endl;
-	std::thread appThread([&app]() {
-		app.port(5000).multithreaded().run();
-	});
-
-	// On shutdown, join the Crow app thread with the main thread.
-	appThread.join();
+	std::clog << "[INFO] The back end will be started on port " << config.backEndPort << "\n";
+	app.port(config.backEndPort).multithreaded().run();
 
 	// On shutdown, stop model watcher and training threads and join these threads with the main thread.
 	stopModelWatcher.store(true);
