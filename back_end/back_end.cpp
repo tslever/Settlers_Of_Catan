@@ -19,7 +19,7 @@
 
 
 /* TODO: Align this back end with the Python back end.
-* Migrate MCTS, continuous self play, training, neural network evaluation, and logging from the Python back end.
+* Migrate self play and training logic.
 */
 // TODO: Consider whether database driven state management needs to be implemented more.
 
@@ -63,7 +63,7 @@ static void modelWatcher(SettlersNeuralNet* neuralNet) {
 // TODO: Consider whether function `trainingLoop` belongs in another file.
 static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
 	std::vector<TrainingExample> trainingData;
-	const size_t trainingThreshold = 500; // TODO: Use value from configuration file.
+	const size_t trainingThreshold = 20; // TODO: Use value from configuration file.
 	while (!stopTraining.load()) {
 		try {
 			// Run one self play game to generate training examples.
