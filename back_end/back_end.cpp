@@ -71,6 +71,7 @@ static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
 			auto trainingExamples = runSelfPlayGame(*neuralNet, *db);
 			trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
 			std::clog << "[TRAINING] Collected " << trainingData.size() << " training examples." << std::endl;
+			// TODO: Resolve the error that occurs when the message "[TRAINING] Collected 0 training examples." is logged.
 			// When we reach the training threshold, perform training and clear the accumulated examples.
 			if (trainingData.size() >= trainingThreshold) {
 				std::clog << "[TRAINING] Triggered training with " << trainingData.size() << " examples." << std::endl;
