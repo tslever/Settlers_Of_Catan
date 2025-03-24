@@ -67,11 +67,11 @@ TORCH_MODULE(SettlersPolicyValueNet);
 
 class SettlersNeuralNet {
 private:
-    std::string modelPath;
     std::filesystem::file_time_type lastModified;
     torch::Device device;
 public:
     SettlersPolicyValueNet model = nullptr;
+    std::string modelPath;
 
     // Constructor `SettlersNeuralNet` instantiates model, then loads parameters from disk or saves default parameters if missing.
     SettlersNeuralNet(const std::string& modelPath) : modelPath(modelPath), device(torch::kCPU) {

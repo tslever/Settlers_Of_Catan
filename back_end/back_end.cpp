@@ -40,8 +40,8 @@ struct CorsMiddleware {
 };
 
 
-// Atomic `stopModelWatcher` is a global flag to stop thread for reloading parameters for neural network.
-// Atomic `stopTraining` is a global flag to top training neural network.
+// Atomic `stopModelWatcher` is a global flag to stop thread for reloading parameters for neural network on shutdown.
+// Atomic `stopTraining` is a global flag to top training neural network on shutdown.
 std::atomic<bool> stopModelWatcher{ false };
 std::atomic<bool> stopTraining{ false };
 
@@ -57,8 +57,8 @@ static void modelWatcher(SettlersNeuralNet* neuralNet) {
 }
 
 /* Function `trainingLoop` runs on a background thread and
-* continuously runs self play to accumulate training examples and
-* triggers training when a threshold is reached.
+* continuously generates self play training examples and
+* triggers training when enough examples are collected.
 */
 // TODO: Consider whether function `trainingLoop` belongs in another file.
 static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
@@ -71,8 +71,6 @@ static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
 			auto trainingExamples = runSelfPlayGame(*neuralNet, *db);
 			trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
 			std::clog << "[TRAINING] Collected " << trainingData.size() << " training examples." << std::endl;
-			// TODO: Resolve the error that occurs when the message "[TRAINING] Collected 0 training examples." is logged.
-			// When we reach the training threshold, perform training and clear the accumulated examples.
 			if (trainingData.size() >= trainingThreshold) {
 				std::clog << "[TRAINING] Triggered training with " << trainingData.size() << " examples." << std::endl;
 				trainNeuralNetworkIfNeeded(trainingData, neuralNet);
@@ -80,7 +78,7 @@ static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet) {
 			}
 		}
 		catch (const std::exception& e) {
-			std::cerr << "[ERROR] Exception in training loop: " << e.what() << std::endl;
+			std::cerr << "[TRAINING] The following exception occurred." << e.what() << std::endl;
 		}
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 	}
@@ -102,14 +100,13 @@ int main() {
 	unsigned int port = 33060;
     std::string username = "administrator";
     Database db(dbName, host, password, port, username);
-
 	try {
 		db.initialize();
-		std::clog << "[INFO] Database was initialized successfully." << std::endl;
+		std::clog << "[INFO] Database was initialized." << std::endl;
 	}
 	catch (const std::exception& e) {
 		std::cerr << "[ERROR] Database initialization failed with the following error." << e.what() << std::endl;
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	SettlersNeuralNet neuralNet("ai/neural_network.pt");
@@ -201,5 +198,5 @@ int main() {
 		trainingThread.join();
 	}
 
-    return 0;
+    return EXIT_SUCCESS;
 }
