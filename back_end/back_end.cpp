@@ -21,6 +21,8 @@
 // Configuration struct
 // TODO: Load from `config.json`.
 struct Config {
+	int backEndPort;
+	double cPuct;
 	std::string dbName;
 	std::string dbHost;
 	std::string dbPassword;
@@ -28,8 +30,9 @@ struct Config {
 	std::string dbUsername;
 	std::string modelPath;
 	int modelWatcherInterval;
+	int numberOfSimulations;
+	double tolerance;
 	int trainingThreshold;
-	int backEndPort;
 };
 
 
@@ -46,6 +49,8 @@ Config loadConfig() {
 	if (!configJson) {
 		throw std::runtime_error("Parsing config.json failed.");
 	}
+	config.backEndPort = configJson["backEndPort"].i();
+	config.cPuct = configJson["cPuct"].d();
 	config.dbName = configJson["dbName"].s();
 	config.dbHost = configJson["dbHost"].s();
 	config.dbPassword = configJson["dbPassword"].s();
@@ -53,8 +58,9 @@ Config loadConfig() {
 	config.dbUsername = configJson["dbUsername"].s();
 	config.modelPath = configJson["modelPath"].s();
 	config.modelWatcherInterval = configJson["modelWatcherInterval"].i();
+	config.numberOfSimulations = configJson["numberOfSimulations"].i();
+	config.tolerance = configJson["tolerance"].d();
 	config.trainingThreshold = configJson["trainingThreshold"].i();
-	config.backEndPort = configJson["backEndPort"].i();
 	std::clog << "[INFO] Configuration loaded from config.json." << std::endl;
 	return config;
 }
@@ -87,7 +93,8 @@ struct CorsMiddleware {
 std::atomic<bool> stopModelWatcher{ false };
 std::atomic<bool> stopTraining{ false };
 
-// Function `modelWatcher` periodically reloads neural network parameters.
+
+// Function `modelWatcher` periodically reloads neural network parameters if file of parameters was updated.
 // TODO: Consider whether function `modelWatcher` belongs in another file.
 static void modelWatcher(SettlersNeuralNet* neuralNet, int modelWatcherInterval) {
 	while (!stopModelWatcher.load()) {
@@ -106,13 +113,21 @@ static void modelWatcher(SettlersNeuralNet* neuralNet, int modelWatcherInterval)
 * triggers training when enough examples have been collected.
 */
 // TODO: Consider whether function `trainingLoop` belongs in another file.
-static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet, int trainingThreshold) {
+// TODO: Consider simulating full game trajectories and computing game outcomes.
+static void trainingLoop(
+	Database* db,
+	SettlersNeuralNet* neuralNet,
+	int trainingThreshold,
+	int numberOfSimulations,
+	double cPuct,
+	double tolerance
+) {
 	std::vector<TrainingExample> trainingData;
 	while (!stopTraining.load()) {
 		try {
 			// Run one self play game to generate training examples.
 			// TODO: Consider whether running more than one game is important.
-			auto trainingExamples = runSelfPlayGame(*neuralNet, *db);
+			auto trainingExamples = runSelfPlayGame(*neuralNet, *db, numberOfSimulations, cPuct, tolerance);
 			trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
 			std::clog << "[TRAINING] Collected " << trainingData.size() << " training examples." << std::endl;
 			if (trainingData.size() >= trainingThreshold) {
@@ -164,7 +179,15 @@ int main() {
 	* 2. Continuous training: Run self play games to accumulate training data and update neural network.
 	*/
 	std::thread modelWatcherThread(modelWatcher, &neuralNet, config.modelWatcherInterval);
-	std::thread trainingThread(trainingLoop, &db, &neuralNet, config.trainingThreshold);
+	std::thread trainingThread(
+		trainingLoop,
+		&db,
+		&neuralNet,
+		config.trainingThreshold,
+		config.numberOfSimulations,
+		config.cPuct,
+		config.tolerance
+	);
 
 
     CROW_ROUTE(app, "/cities").methods("GET"_method)
@@ -181,13 +204,13 @@ int main() {
 
 
 	CROW_ROUTE(app, "/next").methods("POST"_method)
-	([&db, &neuralNet]() -> crow::json::wvalue {
+	([&db, &neuralNet, &config]() -> crow::json::wvalue {
 		crow::json::wvalue response;
 		try {
 			std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
 			GameState currentGameState = db.getGameState();
 			PhaseStateMachine phaseStateMachine;
-			response = phaseStateMachine.handle(currentGameState, db, neuralNet);
+			response = phaseStateMachine.handle(currentGameState, db, neuralNet, config.numberOfSimulations, config.cPuct, config.tolerance);
 			db.updateGameState(currentGameState);
 		}
 		catch (const std::exception& e) {
@@ -247,7 +270,7 @@ int main() {
 		}
 	});
 
-
+	
 	std::clog << "[INFO] The back end will be started on port " << config.backEndPort << std::endl;
 	app.port(config.backEndPort).multithreaded().run();
 

@@ -1,4 +1,6 @@
 {
+    "backEndPort": 12345,
+    "cPuct": 1.0,
     "dbName": "name of database",
     "dbHost": "localhost or other host",
     "dbPassword": "password",
@@ -6,6 +8,7 @@
     "dbUsername": "username",
     "modelPath": "ai/neural_network.pt",
     "modelWatcherInterval": 10,
-    "trainingThreshold": 500,
-    "backEndPort": 12345
+    "numberOfSimulations": 50,
+    "tolerance": 0.000001,
+    "trainingThreshold": 500
 }

@@ -44,9 +44,9 @@ std::pair<std::string, int> runMcts(
 	GameState& currentState,
 	Database& db,
 	SettlersNeuralNet& neuralNet,
-	int numberOfSimulations = 50, // TODO: Use a value in a configuration file.
-	double c_puct = 1.0, // TODO: Use a value in a configuration file.
-	double tolerance = 1e-6 // TODO: Use a value in a configuration file.
+	int numberOfSimulations,
+	double c_puct,
+	double tolerance
 ) {
 	// Create root node for the current phase.
 	// TODO: Avoid assuming settlement phase.

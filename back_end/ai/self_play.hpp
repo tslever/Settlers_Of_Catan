@@ -15,14 +15,20 @@ struct TrainingExample {
     double policy; // policy represents target probability (e.g., derived from MCTS visit counts).
 };
 
-std::vector<TrainingExample> runSelfPlayGame(SettlersNeuralNet& neuralNet, Database& db) {
+std::vector<TrainingExample> runSelfPlayGame(
+    SettlersNeuralNet& neuralNet,
+    Database& db,
+    int numberOfSimulations,
+    double cPuct,
+    double tolerance
+) {
     std::vector<TrainingExample> vectorOfTrainingExamples;
     // Initialize game state using default settings.
     GameState gameState;
     // For simplicity, we assume the current phase is phase to place first settlement.
     // TODO: Allow current phase to be phase to place first road, second city, or second road.
     // Consider using MCTS function to pick move.
-    auto mctsResult = runMcts(gameState, db, neuralNet);
+    auto mctsResult = runMcts(gameState, db, neuralNet, numberOfSimulations, cPuct, tolerance);
     if (mctsResult.first.empty()) {
         // If MCTS fails (which should be rare), return an empty vector.
         return vectorOfTrainingExamples;

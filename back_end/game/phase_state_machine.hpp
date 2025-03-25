@@ -97,7 +97,14 @@ std::string getRandomEdgeKeyAdjacentTo(const std::string& lastBuilding) {
 class PhaseState {
 public:
 	virtual ~PhaseState() = default;
-	virtual crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) = 0;
+	virtual crow::json::wvalue handle(
+		GameState& state,
+		Database& db,
+		SettlersNeuralNet& neuralNet,
+		int numberOfSimulations,
+		double cPuct,
+		double tolerance
+	) = 0;
 };
 
 
@@ -106,7 +113,14 @@ public:
 */
 class PlaceFirstSettlementState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
+	crow::json::wvalue handle(
+		GameState& state,
+		Database& db,
+		SettlersNeuralNet& neuralNet,
+		int numberOfSimulations,
+		double cPuct,
+		double tolerance
+	) override {
 		crow::json::wvalue result;
 
 		// Get the up-to-date list of occupied vertices from the database.
@@ -119,7 +133,7 @@ public:
 		}
 
 		int currentPlayer = state.currentPlayer;
-		auto mctsResult = runMcts(state, db, neuralNet);
+		auto mctsResult = runMcts(state, db, neuralNet, numberOfSimulations, cPuct, tolerance);
 		if (mctsResult.first.empty()) {
 			throw std::runtime_error("MCTS failed to determine a move.");
 		}
@@ -148,7 +162,14 @@ public:
 */
 class PlaceFirstRoadState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
+	crow::json::wvalue handle(
+		GameState& state,
+		Database& db,
+		SettlersNeuralNet& neuralNet,
+		int numberOfSimulations,
+		double cPuct,
+		double tolerance
+	) override {
 		crow::json::wvalue result;
 
 		if (state.lastBuilding.empty()) {
@@ -186,7 +207,14 @@ public:
 */
 class PlaceFirstCityState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
+	crow::json::wvalue handle(
+		GameState& state,
+		Database& db,
+		SettlersNeuralNet& neuralNet,
+		int numberOfSimulations,
+		double cPuct,
+		double tolerance
+	) override {
 		crow::json::wvalue result;
 
 		// Get the up-to-date list of occupied vertices from the database.
@@ -229,7 +257,14 @@ public:
 */
 class PlaceSecondRoadState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
+	crow::json::wvalue handle(
+		GameState& state,
+		Database& db,
+		SettlersNeuralNet& neuralNet,
+		int numberOfSimulations,
+		double cPuct,
+		double tolerance
+	) override {
 		crow::json::wvalue result;
 
 		if (state.lastBuilding.empty()) {
@@ -268,7 +303,14 @@ public:
 // Class PlaceFirstCityState is a concrete class that represents a handler of a turn.
 class TurnState : public PhaseState {
 public:
-	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) override {
+	crow::json::wvalue handle(
+		GameState& state,
+		Database& db,
+		SettlersNeuralNet& neuralNet,
+		int numberOfSimulations,
+		double cPuct,
+		double tolerance
+	) override {
 		crow::json::wvalue result;
 		int player = state.currentPlayer;
 		result["message"] = "Player " + std::to_string(player) + " is taking their turn.";
@@ -293,10 +335,17 @@ public:
 		stateHandlers[Phase::TURN] = std::make_shared<TurnState>();
 	}
 
-	crow::json::wvalue handle(GameState& state, Database& db, SettlersNeuralNet& neuralNet) {
+	crow::json::wvalue handle(
+		GameState& state,
+		Database& db,
+		SettlersNeuralNet& neuralNet,
+		int numberOfSimulations,
+		double cPuct,
+		double tolerance
+	) {
 		auto handler = stateHandlers[state.phase];
 		if (handler) {
-			return handler->handle(state, db, neuralNet);
+			return handler->handle(state, db, neuralNet, numberOfSimulations, cPuct, tolerance);
 		}
 		else {
 			crow::json::wvalue result;
