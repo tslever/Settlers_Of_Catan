@@ -160,7 +160,6 @@ public:
         try {
             auto currentModTime = std::filesystem::last_write_time(modelPath);
             if (currentModTime > lastModified) {
-                std::clog << "[INFO] Updated model parameters were detected. Model will be reloaded from " << modelPath << std::endl;
                 std::vector<torch::Tensor> parameters;
                 torch::load(parameters, modelPath);
                 auto modelParameters = model->parameters();
@@ -173,6 +172,7 @@ public:
                     modelParameters[i].data().copy_(parameters[i].data());
                 }
                 lastModified = currentModTime;
+                std::clog << "[INFO] Updated model parameters were detected. Model was reloaded." << std::endl;
             }
         }
         catch (const std::exception& e) {

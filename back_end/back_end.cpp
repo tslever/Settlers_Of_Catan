@@ -33,7 +33,6 @@ struct Config {
 };
 
 
-// Function `loadConfig` reads `config.json`.
 Config loadConfig() {
 	Config config;
 	std::ifstream file("config.json");
@@ -92,7 +91,12 @@ std::atomic<bool> stopTraining{ false };
 // TODO: Consider whether function `modelWatcher` belongs in another file.
 static void modelWatcher(SettlersNeuralNet* neuralNet, int modelWatcherInterval) {
 	while (!stopModelWatcher.load()) {
-		neuralNet->reloadIfUpdated();
+		try {
+			neuralNet->reloadIfUpdated();
+		}
+		catch (const std::exception& e) {
+			std::cerr << "[MODEL WATCHER ERROR] " << e.what() << std::endl;
+		}
 		std::this_thread::sleep_for(std::chrono::seconds(modelWatcherInterval));
 	}
 }
@@ -127,7 +131,6 @@ static void trainingLoop(Database* db, SettlersNeuralNet* neuralNet, int trainin
 // Function main sets up Crow app, database, neural network, model watcher thread, continuous training thread, and endpoints.
 int main() {
 
-	// Load settings.
 	Config config;
 	try {
 		config = loadConfig();
@@ -137,11 +140,11 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
-	// Create Crow app with CORS middleware.
+
     crow::App<CorsMiddleware> app;
 	app.loglevel(crow::LogLevel::Info);
 
-    // Initialize database.
+
     Database db(config.dbName, config.dbHost, config.dbPassword, config.dbPort, config.dbUsername);
 	try {
 		db.initialize();
@@ -152,7 +155,9 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
+
 	SettlersNeuralNet neuralNet(config.modelPath);
+
 
 	/* Start background threads.
 	* 1. Model watcher: Reload parameters for neural network if file of parameters has been updated.
@@ -161,15 +166,22 @@ int main() {
 	std::thread modelWatcherThread(modelWatcher, &neuralNet, config.modelWatcherInterval);
 	std::thread trainingThread(trainingLoop, &db, &neuralNet, config.trainingThreshold);
 
-    // Endpoint `/cities` allows getting a JSON list of cities.
+
     CROW_ROUTE(app, "/cities").methods("GET"_method)
-    ([&db]() {
-		return db.getCitiesJson();
+    ([&db]() -> crow::json::wvalue {
+		try {
+			return db.getCitiesJson();
+		}
+		catch (const std::exception& e) {
+			crow::json::wvalue error;
+			error["error"] = std::string("Getting cities failed with the following error. ") + e.what();
+			return error;
+		}
     });
 
-	// Endpoint `/next` allows transitioning game state.
+
 	CROW_ROUTE(app, "/next").methods("POST"_method)
-	([&db, &neuralNet]() {
+	([&db, &neuralNet]() -> crow::json::wvalue {
 		crow::json::wvalue response;
 		try {
 			std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
@@ -177,21 +189,20 @@ int main() {
 			PhaseStateMachine phaseStateMachine;
 			response = phaseStateMachine.handle(currentGameState, db, neuralNet);
 			db.updateGameState(currentGameState);
-			return response;
 		}
 		catch (const std::exception& e) {
 			response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
 			std::cerr << "[ERROR] " << std::string("The following error occurred while transitioning the game state. ") + e.what() << std::endl;
-			return response;
 		}
+		return response;
 	});
 
-	// Reset game state and database.
+
 	CROW_ROUTE(app, "/reset").methods("POST"_method)
-	([&db]() {
+	([&db]() -> crow::json::wvalue {
 		crow::json::wvalue response;
 		try {
-			std::clog << "[INFO] A user posted to endpoint reset. Game state and database will be reset.\n";
+			std::clog << "[INFO] A user posted to endpoint reset. Game state and database will be reset." << std::endl;
 			bool success = db.resetGame();
 			response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
 		}
@@ -202,29 +213,44 @@ int main() {
 		return response;
 	});
 
-	// Get a JSON list of roads.
+
 	CROW_ROUTE(app, "/roads").methods("GET"_method)
-	([&db]() {
-		return db.getRoadsJson();
+	([&db]() -> crow::json::wvalue {
+		try {
+			return db.getRoadsJson();
+		}
+		catch (const std::exception& e) {
+			crow::json::wvalue error;
+			error["error"] = std::string("Getting roads failed with the following error. ") + e.what();
+			return error;
+		}
 	});
 
-	// Get a welcome message.
+
 	CROW_ROUTE(app, "/")
-	([]() {
+	([]() -> crow::json::wvalue {
 		crow::json::wvalue result;
 		result["message"] = "Welcome to the Settlers of Catan API!";
 		return result;
 	});
 
-	// GET a JSON list of settlements.
+
 	CROW_ROUTE(app, "/settlements").methods("GET"_method)
-	([&db]() {
-		return db.getSettlementsJson();
+	([&db]() -> crow::json::wvalue {
+		try {
+			return db.getSettlementsJson();
+		}
+		catch (const std::exception& e) {
+			crow::json::wvalue error;
+			error["error"] = std::string("Getting settlements failed with the following error. ") + e.what();
+			return error;
+		}
 	});
 
-	// Run the Crow app in its own thread.
+
 	std::clog << "[INFO] The back end will be started on port " << config.backEndPort << std::endl;
 	app.port(config.backEndPort).multithreaded().run();
+
 
 	// On shutdown, stop model watcher and training threads and join these threads with the main thread.
 	stopModelWatcher.store(true);
