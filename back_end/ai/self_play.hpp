@@ -95,7 +95,7 @@ std::vector<TrainingExample> runSelfPlayGame(
         trainingExample.gameState = gameState; // snapshot after move
         trainingExample.move = mctsResult.first;
         trainingExample.value = 0.0; // temporary dummy value that will be updated once game outcome is known
-        trainingExample.policy = mctsResult.second; // raw visit count or normalized probability
+        trainingExample.policy = static_cast<double>(mctsResult.second) / static_cast<double>(numberOfSimulations);
         vectorOfTrainingExamples.push_back(trainingExample);
         updatePhase(gameState);
         steps++;

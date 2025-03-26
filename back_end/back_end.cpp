@@ -42,13 +42,13 @@ Config loadConfig() {
 	Config config;
 	std::ifstream file("config.json");
 	if (!file.is_open()) {
-		throw std::runtime_error("config.json could not be opened.");
+		throw std::runtime_error("Configuration file could not be opened.");
 	}
 	std::stringstream buffer;
 	buffer << file.rdbuf();
 	auto configJson = crow::json::load(buffer.str());
 	if (!configJson) {
-		throw std::runtime_error("Parsing config.json failed.");
+		throw std::runtime_error("Parsing configuration file failed.");
 	}
 	config.backEndPort = configJson["backEndPort"].i();
 	config.cPuct = configJson["cPuct"].d();
@@ -113,7 +113,6 @@ static void modelWatcher(SettlersNeuralNet* neuralNet, int modelWatcherInterval)
 * triggers training when enough examples have been collected.
 */
 // TODO: Consider whether function `trainingLoop` belongs in another file.
-// TODO: Consider simulating full game trajectories and computing game outcomes.
 static void trainingLoop(
 	Database* db,
 	SettlersNeuralNet* neuralNet,
@@ -126,7 +125,6 @@ static void trainingLoop(
 	while (!stopTraining.load()) {
 		try {
 			// Run one full self play game to generate training examples.
-			// TODO: Consider whether running more than one game is important.
 			auto trainingExamples = runSelfPlayGame(*neuralNet, *db, numberOfSimulations, cPuct, tolerance);
 			trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
 			std::clog << "[TRAINING] " << trainingData.size() << " training examples were collected." << std::endl;
@@ -136,13 +134,12 @@ static void trainingLoop(
 			}
 		}
 		catch (const std::exception& e) {
-			std::cerr << "[TRAINING] The following exception occurred." << e.what() << std::endl;
+			std::cerr << "[TRAINING] The following exception occurred. " << e.what() << std::endl;
 		}
 	}
 }
 
 
-// Function main sets up Crow app, database, neural network, model watcher thread, continuous training thread, and endpoints.
 int main() {
 
 	Config config;
@@ -175,7 +172,7 @@ int main() {
 
 	/* Start background threads.
 	* 1. Model watcher: Reload parameters for neural network if file of parameters has been updated.
-	* 2. Continuous training: Run self play games to accumulate training data and update neural network.
+	* 2. Continuous training: Run full self play games to accumulate training data and update neural network.
 	*/
 	std::thread modelWatcherThread(modelWatcher, &neuralNet, config.modelWatcherInterval);
 	std::thread trainingThread(

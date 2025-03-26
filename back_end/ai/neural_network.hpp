@@ -1,5 +1,8 @@
 #pragma once
 
+
+#include "../game/board.hpp"
+
 #include <torch/script.h>
 /* Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include;`.
 * 
@@ -72,9 +75,10 @@ private:
 public:
     SettlersPolicyValueNet model = nullptr;
     std::string modelPath;
+    Board board;
 
     // Constructor `SettlersNeuralNet` instantiates model, then loads parameters from disk or saves default parameters if missing.
-    SettlersNeuralNet(const std::string& modelPath) : modelPath(modelPath), device(torch::kCPU) {
+    SettlersNeuralNet(const std::string& modelPath) : modelPath(modelPath), device(torch::kCPU), board() {
         // Define default dimensions.
         const int64_t inputDim = 5;
         const int64_t hiddenDim = 128;
@@ -135,6 +139,11 @@ public:
         return { value, policy };
     }
 
+    std::pair<double, double> evaluateSettlementFromVertex(const std::string& labelOfVertex) {
+        std::vector<float> featureVector = board.getFeatureVector(labelOfVertex);
+        return evaluateSettlement(featureVector);
+    }
+
     // Evaluate a city move given a feature vector.
     std::pair<double, double> evaluateCity(const std::vector<float>& features) {
         torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
@@ -145,6 +154,11 @@ public:
         return { value, policy };
     }
 
+    std::pair<double, double> evaluateCityFromVertex(const std::string& labelOfVertex) {
+        std::vector<float> featureVector = board.getFeatureVector(labelOfVertex);
+        return evaluateCity(featureVector);
+    }
+
     // Evaluate a road move given a feature vector.
     std::pair<double, double> evaluateRoad(const std::vector<float>& features) {
         torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
@@ -153,6 +167,29 @@ public:
         double value = output[0].item<double>();
         double policy = output[1].item<double>();
         return { value, policy };
+    }
+
+    /* Evaluate a road move given the last builiding vertex and an edge key.
+    * Parse the edge key with format "x1-y1_x2-y2" and determine which endpoint is not the last building.
+    */
+    std::pair<double, double> evaluateRoadFromEdge(const std::string& labelOfVertexOfLastBuilding, const std::string& edgeKey) {
+        float x1, y1, x2, y2;
+        if (sscanf_s(edgeKey.c_str(), "%f-%f_%f-%f", &x1, &y1, &x2, &y2) != 4) {
+            throw std::runtime_error("Edge key " + edgeKey + " has invalid format.");
+        }
+        std::string otherVertex;
+        // Here, for simplicity, we assume that the "other" endpoint is the one with larger x.
+        // TODO: Replace the following if else block with logic that compares coordinates to determine which vertex is not the vertex of the last building.
+        if (x1 < x2) {
+            otherVertex = board.getVertexLabelByCoordinates(x2, y2);
+        }
+        else {
+            otherVertex = board.getVertexLabelByCoordinates(x1, y1);
+        }
+        if (otherVertex.empty()) {
+            throw std::runtime_error("Other endpoint for road edge " + edgeKey + " cannot be determined.");
+        }
+        return evaluateSettlementFromVertex(otherVertex);
     }
 
     // Reload model if weights have been updated on disk.

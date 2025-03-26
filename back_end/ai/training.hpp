@@ -4,15 +4,19 @@
 // Dummy implementation of training function
 // TODO: Replace the following implementation with an actual training loop using libtorch and optimizer and loss function.
 void trainNeuralNetworkIfNeeded(const std::vector<TrainingExample>& vectorOfTrainingExamples, SettlersNeuralNet* neuralNet) {
-    std::clog << "[TRAINING] Neural network will be trained on " << vectorOfTrainingExamples.size() << " training examples." << std::endl;
-    // For now, we simulate training by simply saving the current model parameters.
+    std::clog << "[TRAINING] Neural network will be trained on " << vectorOfTrainingExamples.size() << " examples." << std::endl;
+    Board board;
 
     // For simplicity, we assume that each training example corresponds to a settlement move.
-    // In this example we compute a dummy feature vector.
-    // TODO: Train based on actual move.
-    auto getFeatures = [](const std::string& move) -> std::vector<float> {
-        // TODO: Replace with a proper feature extraction function using board geometry.
-        return { 0.5f, 0.5f, 0.5f, 0.5f, 1.0f };
+    // TODO: Consider allowing training examples corresponding to first road, city, and second road moves.
+    auto getFeatures = [&](const std::string& move) -> std::vector<float> {
+        try {
+            return board.getFeatureVector(move);
+        }
+        catch (...) {
+            std::cerr << "[TRAINING] Getting feature vector failed." << std::endl;
+            throw std::runtime_error("[TRAINING] Getting feature vector failed.");
+        }
     };
 
     std::vector<torch::Tensor> inputList;
@@ -79,7 +83,6 @@ void trainNeuralNetworkIfNeeded(const std::vector<TrainingExample>& vectorOfTrai
             torch::Tensor predValue = outputs[0];
             torch::Tensor predPolicy = outputs[1];
 
-            // Compute losses.
             torch::Tensor lossValue = torch::mse_loss(predValue, batchYValue);
             torch::Tensor lossPolicy = torch::binary_cross_entropy(predPolicy, batchYPolicy);
             torch::Tensor loss = lossValue + lossPolicy;
@@ -90,10 +93,9 @@ void trainNeuralNetworkIfNeeded(const std::vector<TrainingExample>& vectorOfTrai
             runningLoss += loss.item<double>() * (indexOfLastSample - indexOfFirstSample);
         }
         double avgLoss = runningLoss / numberOfSamples;
-        std::clog << "[TRAINING] Epoch " << (indexOfEpoch) << "/" << numberOfEpochs << ", Loss: " << avgLoss << std::endl;
+        std::clog << "[TRAINING] Epoch " << (indexOfEpoch + 1) << "/" << numberOfEpochs << ", Loss: " << avgLoss << std::endl;
     }
 
-    // Save the updated model parameters.
     try {
         auto parameters = neuralNet->model->parameters();
         torch::save(parameters, neuralNet->modelPath);

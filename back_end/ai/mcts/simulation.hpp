@@ -5,10 +5,20 @@
 */
 // TODO: Consider simulating multiple moves.
 double simulateRollout(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeuralNet& neuralNet) {
-	// Construct a dummy feature vector based on the node's game state.
-	// TODO: Consider using a feature vector based on the game state / board features.
-	std::vector<float> dummyFeatures = { 0.5f, 0.5f, 0.5f, 0.5f, 1.0f };
-	auto eval = neuralNet.evaluateSettlement(dummyFeatures);
-	// TODO: Consider using other neural network functions if the step is not placing a settlement.
-	return eval.first; // Return value estimate.
+	if (node->moveType == "settlement") {
+		auto eval = neuralNet.evaluateSettlementFromVertex(node->move);
+		return eval.first;
+	}
+	else if (node->moveType == "city") {
+		auto eval = neuralNet.evaluateCityFromVertex(node->move);
+		return eval.first;
+	}
+	else if (node->moveType == "road") {
+		std::string lastBuilding = (node->parent ? node->parent->move : "");
+		if (!lastBuilding.empty()) {
+			auto eval = neuralNet.evaluateRoadFromEdge(lastBuilding, node->move);
+			return eval.first;
+		}
+	}
+	return 0.0;
 }

@@ -34,27 +34,20 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeu
 
 		// Call the appropriate neural network evaluation depending on move type.
 		if (node->moveType == "settlement") {
-			// Construct features for building a settlement.
-			// TODO: Consider using a function like `board.getVertexFeatures` to compute features for building a settlement.
-			std::vector<float> features = { 0.5f, 0.5f, 0.5f, 0.5f, 1.0f };
 			// Evaluate the move with the neural network.
-			auto eval = neuralNet.evaluateSettlement(features);
+			auto eval = neuralNet.evaluateSettlementFromVertex(move);
 			// Use the network's policy output as the prior probability.
 			prior = eval.second;
 		} else if (node->moveType == "city") {
-			// Construct features for building a city.
-			// TODO: Consider using a function like `board.getVertexFeatures` to compute features for building a city.
-			std::vector<float> features = { 0.5f, 0.5f, 0.5f, 0.5f, 1.0f };
-			auto eval = neuralNet.evaluateCity(features);
-			// Use the network's policy output as the prior probability.
+			auto eval = neuralNet.evaluateCityFromVertex(move);
 			prior = eval.second;
 		}
 		else if (node->moveType == "road") {
-			// Construct features for building a road.
-			// TODO: Consider using a function like `board.getEdgeFeatures` to compute features for building a road.
-			std::vector<float> features = { 0.5f, 0.5f, 0.5f, 0.5f, 1.0f };
-			auto eval = neuralNet.evaluateRoad(features);
-			prior = eval.second;
+			std::string labelOfVertexOfLastBuilding = (node->parent ? node->parent->move : "");
+			if (!labelOfVertexOfLastBuilding.empty()) {
+				auto eval = neuralNet.evaluateRoadFromEdge(labelOfVertexOfLastBuilding, move);
+				prior = eval.second;
+			}
 		}
 		child->P = prior;
 		node->children[move] = child;

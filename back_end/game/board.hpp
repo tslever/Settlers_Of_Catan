@@ -1,5 +1,187 @@
 #pragma once
 
+#include <corecrt_math_defines.h>
+
+#include "../db/database.hpp"
+
+
+// TODO: Deduplicate code similar code in this file.
+// TODO: Deduplicate code across files.
+
+
+class Board {
+public:
+
+	std::vector<std::pair<double, double>> getVectorOfPairsOfCoordinatesOfVertices(crow::json::rvalue jsonObjectOfHexInformation) const {
+		// Extract the top-left coordinate (the hex's reference point) from the JSON object.
+		double x = jsonObjectOfHexInformation["x"].d();
+		double y = jsonObjectOfHexInformation["y"].d();
+
+		// Hardcoded board dimensions: board width 100 vmin and 6 hexes per row.
+		const double boardWidth = 100.0;
+		const double numHexesPerRow = 6.0;
+		double widthOfHex = boardWidth / numHexesPerRow;
+
+		// For a regular hexagon the height is given by:
+		// heightOfHex = widthOfHex * (2 * tan(pi/6))
+		double tan_pi_6 = std::tan(M_PI / 6);
+		double heightOfHex = widthOfHex * (2 * tan_pi_6);
+
+		std::vector<std::pair<double, double>> vertices;
+		// Compute the six vertices (ordered clockwise starting from the top vertex).
+		vertices.push_back({ x + 0.5 * widthOfHex, y });
+		vertices.push_back({ x + widthOfHex, y + 0.25 * heightOfHex });
+		vertices.push_back({ x + widthOfHex, y + 0.75 * heightOfHex });
+		vertices.push_back({ x + 0.5 * widthOfHex, y + heightOfHex });
+		vertices.push_back({ x, y + 0.75 * heightOfHex });
+		vertices.push_back({ x, y + 0.25 * heightOfHex });
+		return vertices;
+	}
+
+
+	// Function `getVertexLabelByCoordinates` loads the board geometry,
+	// then iterates over the vertices, comparing the provided x and y with each vertex's coordinates.
+	std::string getVertexLabelByCoordinates(double x, double y) const {
+		const double marginOfError = 0.01;
+		std::ifstream file("../board_geometry.json");
+		if (!file.is_open()) {
+			throw std::runtime_error("Board geometry file could not be opened.");
+		}
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+		crow::json::rvalue boardGeometry = crow::json::load(buffer.str());
+		if (!boardGeometry) {
+			throw std::runtime_error("Board geometry file could not be parsed.");
+		}
+		crow::json::rvalue verticesJson = boardGeometry["vertices"];
+		if (!verticesJson || verticesJson.size() == 0) {
+			throw std::runtime_error("Board geometry file does not contain vertices.");
+		}
+		for (const auto& jsonObjectOfVertexInformation : verticesJson) {
+			double vx = jsonObjectOfVertexInformation["x"].d();
+			double vy = jsonObjectOfVertexInformation["y"].d();
+			if (std::abs(vx - x) < marginOfError && std::abs(vy - y) < marginOfError) {
+				return jsonObjectOfVertexInformation["label"].s();
+			}
+		}
+		return "";
+	}
+
+
+	/* Function `getFeatureVector` computes and returns a 5 element feature vector for a given vertex label.
+	* Features include:
+	* - normalized total number of pips,
+	* - normalized x coordinate,
+	* - normalized y coordinate,
+	* - normalized hex count, and
+	* - bias 1.0.
+	*/
+	std::vector<float> getFeatureVector(const std::string& labelOfVertex) const {
+		// Find vertex by label.
+		const double marginOfError = 0.01;
+		float x = 0.0f;
+		float y = 0.0f;
+		bool found = false;
+
+		// TODO: Move functionally duplicate logic to a function.
+		std::ifstream file("../board_geometry.json");
+		if (!file.is_open()) {
+			throw std::runtime_error("Board geometry file could not be opened.");
+		}
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+		crow::json::rvalue boardGeometry = crow::json::load(buffer.str());
+		if (!boardGeometry) {
+			throw std::runtime_error("Board geometry file could not be parsed.");
+		}
+		crow::json::rvalue jsonArrayOfVertexInformation = boardGeometry["vertices"];
+		if (!jsonArrayOfVertexInformation || jsonArrayOfVertexInformation.size() == 0) {
+			throw std::runtime_error("Board geometry file does not contain vertex information.");
+		}
+
+		auto jsonArrayOfHexInformation = boardGeometry["hexes"];
+		if (!jsonArrayOfHexInformation || jsonArrayOfHexInformation.size() == 0) {
+			throw std::runtime_error("Board geometry file does not contain hex information.");
+		}
+
+		for (const auto& jsonObjectOfVertexInformation : jsonArrayOfVertexInformation) {
+			if (jsonObjectOfVertexInformation["label"] == labelOfVertex) {
+				x = static_cast<float>(jsonObjectOfVertexInformation["x"].d());
+				y = static_cast<float>(jsonObjectOfVertexInformation["y"].d());
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			throw std::runtime_error("Vertex " + labelOfVertex + " was not found in board geometry.");
+		}
+		// For each hex in the board, if the given vertex is one of the vertices of the hex, accumulate pip counts.
+		float totalNumberOfPips = 0.0f;
+		int numberOfHexes = 0;
+		for (const crow::json::rvalue jsonObjectOfHexInformation : jsonArrayOfHexInformation) {
+			std::vector<std::pair<double, double>> vectorOfPairsOfCoordinatesOfVertices = getVectorOfPairsOfCoordinatesOfVertices(jsonObjectOfHexInformation);
+			for (const std::pair<double, double> pairOfCoordinatesOfVertex : vectorOfPairsOfCoordinatesOfVertices) {
+				double dx = pairOfCoordinatesOfVertex.first - x;
+				double dy = pairOfCoordinatesOfVertex.second - y;
+				if (std::sqrt(dx * dx + dy * dy) < marginOfError) {
+					std::string idOfHex = jsonObjectOfHexInformation["id"].s();
+					std::unordered_map<std::string, int> mapOfIdOfHexToNumberOfToken = {
+						{"H01", 10},
+						{"H02", 2},
+						{"H03", 9},
+						{"H04", 12},
+						{"H05", 6},
+						{"H06", 4},
+						{"H07", 10},
+						{"H08", 9},
+						{"H09", 11},
+						{"H10", 1},
+						{"H11", 3},
+						{"H12", 8},
+						{"H13", 8},
+						{"H14", 3},
+						{"H15", 4},
+						{"H16", 5},
+						{"H17", 5},
+						{"H18", 6},
+						{"H19", 11}
+					};
+					auto vectorOfIdOfHexAndNumberOfToken = mapOfIdOfHexToNumberOfToken.find(idOfHex); // TODO: Replace auto with type.
+					if (vectorOfIdOfHexAndNumberOfToken != mapOfIdOfHexToNumberOfToken.end()) {
+						int numberOfToken = vectorOfIdOfHexAndNumberOfToken->second;
+						std::unordered_map<int, int> mapOfNumberOfTokenToNumberOfPips = {
+							{1, 0},
+							{2, 1},
+							{3, 2},
+							{4, 3},
+							{5, 4},
+							{6, 5},
+							{8, 5},
+							{9, 4},
+							{10, 3},
+							{11, 2},
+							{12, 1}
+						};
+						auto vectorOfNumberOfTokenAndNumberOfPips = mapOfNumberOfTokenToNumberOfPips.find(numberOfToken); // TODO: Replace auto with type.
+						if (vectorOfNumberOfTokenAndNumberOfPips != mapOfNumberOfTokenToNumberOfPips.end()) {
+							totalNumberOfPips += vectorOfNumberOfTokenAndNumberOfPips->second;
+						}
+						numberOfHexes++;
+						break;
+					}
+				}
+			}
+			// Use hardcoded boarded width 100.0 `vmin` to normalize x and y normalization of 100.0.
+			float normalizedNumberOfPips = (numberOfHexes > 0) ? totalNumberOfPips / (numberOfHexes * 5.0f) : 0.0f;
+			float normalizedXCoordinate = x / 100.0f;
+			float normalizedYCoordinate = y / 100.0f;
+			float normalizedNumberOfHexes = numberOfHexes / 3.0f;
+			return { normalizedNumberOfPips, normalizedXCoordinate, normalizedYCoordinate, normalizedNumberOfHexes, 1.0f };
+		}
+	}
+
+};
+
 
 // Fuction `getOccupiedVertices` gets a list of occupied vertex labels by querying the database.
 std::vector<std::string> getOccupiedVertices(Database& db) {
@@ -21,6 +203,8 @@ std::vector<std::string> getOccupiedVertices(Database& db) {
 * or is too close (i.e. adjacent) to any occupied vertex.
 */
 std::vector<std::string> getAvailableVertices(const std::vector<std::string>& addressOfListOfLabelsOfOccupiedVertices) {
+
+	// TODO: Move functionally duplicate logic to a function.
 	std::ifstream file("../board_geometry.json");
 	if (!file.is_open()) {
 		throw std::runtime_error("Board geometry file could not be opened.");
