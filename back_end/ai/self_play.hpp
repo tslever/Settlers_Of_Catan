@@ -15,6 +15,16 @@ struct TrainingExample {
     double policy; // policy represents target probability (e.g., derived from MCTS visit counts).
 };
 
+
+// Function `computeGameOutcome` computes game outcome based on current game state.
+// TODO: Replace dummy implementation with evaluation based on `compute_game_outcome` in `self_play.py` in Python back end.
+double computeGameOutcome(const GameState& gameState) {
+    // For now, we simply return a dummy value based on current player (e.g., win for Player 1, loss for other players).
+    // TODO: Sum pip counts on adjacent hexes or simulate the rest of the game.
+    return (gameState.currentPlayer == 1) ? 1.0 : -1.0;
+}
+
+
 std::vector<TrainingExample> runSelfPlayGame(
     SettlersNeuralNet& neuralNet,
     Database& db,
@@ -42,7 +52,7 @@ std::vector<TrainingExample> runSelfPlayGame(
     trainingExample.gameState = gameState;
     trainingExample.move = mctsResult.first;
     // For this dummy example, we use neutral dummy targets.
-    trainingExample.value = 0.0; // e.g., 0.0 represents a tie outcome.
+    trainingExample.value = computeGameOutcome(gameState);
     trainingExample.policy = 0.5; // 0.5 is an arbitrary policy.
     // TODO: Consider determining value as in function `compute_game_outcome` in `self_play.py` in Python back end.
     // TODO: Consider collecting MCTS derived policy distributions.

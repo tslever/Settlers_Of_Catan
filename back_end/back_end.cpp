@@ -18,8 +18,7 @@
 #include "game/phase_state_machine.hpp"
 
 
-// Configuration struct
-// TODO: Load from `config.json`.
+// TODO: Consider whether `struct` `Config` belongs in another file.
 struct Config {
 	int backEndPort;
 	double cPuct;
@@ -33,14 +32,16 @@ struct Config {
 	int numberOfSimulations;
 	double tolerance;
 	int trainingThreshold;
+	// TODO: Consider configuring simulation depth.
+	// TODO: Consider configuring number of training epochs.
 };
 
 
+// TODO: Consider whether function `loadConfig` belongs in another file.
 Config loadConfig() {
 	Config config;
 	std::ifstream file("config.json");
 	if (!file.is_open()) {
-		std::clog << "[ERROR] config.json could not be opened." << std::endl;
 		throw std::runtime_error("config.json could not be opened.");
 	}
 	std::stringstream buffer;
@@ -61,7 +62,6 @@ Config loadConfig() {
 	config.numberOfSimulations = configJson["numberOfSimulations"].i();
 	config.tolerance = configJson["tolerance"].d();
 	config.trainingThreshold = configJson["trainingThreshold"].i();
-	std::clog << "[INFO] Configuration loaded from config.json." << std::endl;
 	return config;
 }
 
