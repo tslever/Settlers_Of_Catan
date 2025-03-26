@@ -129,9 +129,8 @@ static void trainingLoop(
 			// TODO: Consider whether running more than one game is important.
 			auto trainingExamples = runSelfPlayGame(*neuralNet, *db, numberOfSimulations, cPuct, tolerance);
 			trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
-			std::clog << "[TRAINING] Collected " << trainingData.size() << " training examples." << std::endl;
+			std::clog << "[TRAINING] " << trainingData.size() << " training examples were collected." << std::endl;
 			if (trainingData.size() >= trainingThreshold) {
-				std::clog << "[TRAINING] Training neural network with " << trainingData.size() << " examples." << std::endl;
 				trainNeuralNetworkIfNeeded(trainingData, neuralNet);
 				trainingData.clear();
 			}
