@@ -109,7 +109,7 @@ static void modelWatcher(SettlersNeuralNet* neuralNet, int modelWatcherInterval)
 }
 
 /* Function `trainingLoop` runs on a background thread and
-* continuously runs self play games to collect training examples and
+* continuously runs full self play games to collect training examples and
 * triggers training when enough examples have been collected.
 */
 // TODO: Consider whether function `trainingLoop` belongs in another file.
@@ -125,7 +125,7 @@ static void trainingLoop(
 	std::vector<TrainingExample> trainingData;
 	while (!stopTraining.load()) {
 		try {
-			// Run one self play game to generate training examples.
+			// Run one full self play game to generate training examples.
 			// TODO: Consider whether running more than one game is important.
 			auto trainingExamples = runSelfPlayGame(*neuralNet, *db, numberOfSimulations, cPuct, tolerance);
 			trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
@@ -166,7 +166,7 @@ int main() {
 		std::clog << "[INFO] Database was initialized.\n";
 	}
 	catch (const std::exception& e) {
-		std::cerr << "[ERROR] Database initialization failed with the following error." << e.what() << std::endl;
+		std::cerr << "[ERROR] Database initialization failed with the following error. " << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
 
