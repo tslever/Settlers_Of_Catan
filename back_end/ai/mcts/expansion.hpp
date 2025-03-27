@@ -14,7 +14,6 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeu
 	// Determine available moves based on the type of move.
 	std::vector<std::string> availableMoves;
 	if (node->moveType == "settlement" || node->moveType == "city") {
-		// Get the current list of occupied vertices from the database and determine available vertices.
 		std::vector<std::string> occupiedVertices = getOccupiedVertices(db);
 		availableMoves = getAvailableVertices(occupiedVertices);
 	}
@@ -27,19 +26,14 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeu
 		if (node->children.find(move) != node->children.end()) {
 			continue;
 		}
-		// Create a child node corresponding to this move.
 		auto child = std::make_shared<MCTSNode>(node->gameState, move, nullptr, node->moveType);
 		child->parent = node;
 		double prior = 0.5;
 
 		// Call the appropriate neural network evaluation depending on move type.
-		if (node->moveType == "settlement") {
-			// Evaluate the move with the neural network.
+		if (node->moveType == "settlement" || node->moveType == "city") {
 			auto eval = neuralNet.evaluateBuildingFromVertex(move);
 			// Use the network's policy output as the prior probability.
-			prior = eval.second;
-		} else if (node->moveType == "city") {
-			auto eval = neuralNet.evaluateBuildingFromVertex(move);
 			prior = eval.second;
 		}
 		else if (node->moveType == "road") {

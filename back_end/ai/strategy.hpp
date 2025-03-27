@@ -9,7 +9,7 @@
 #include "mcts/simulation.hpp"
 
 
-void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double epsilon = 0.25, double alpha = 0.03) {
+void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double epsilon, double alpha) {
 	if (root->children.empty()) {
 		return;
 	}
@@ -55,7 +55,7 @@ std::pair<std::string, int> runMcts(
 	expandNode(root, db, neuralNet);
 
 	// Inject Dirichlet noise at the root to encourage exploration.
-	injectDirichletNoise(root);
+	injectDirichletNoise(root, 0.25, 0.03);
 
 	// Run MCTS simulations.
 	for (int i = 0; i < numberOfSimulations; i++) {

@@ -7,27 +7,20 @@
 #include "strategy.hpp"
 
 
-// TODO: Consider recording additional data (e.g., full game trajectory, move probabilities).
+// TODO: Consider recording additional data such as full game trajectory, move probabilities, and/or everything about the board and structures on the board.
 struct TrainingExample {
     GameState gameState; // `gameState` represents snapshot of game state at time of move.
-    std::string move; // move represents label of vertex at which settlement or city is placed. TODO: What does move represent when placing a road?
+    std::string move; // move represents label of vertex at which settlement or city is placed or key of edge at which road is placed.
     double value; // value represents target value (e.g., game outcome from perspective of current player).
-    double policy; // policy represents target probability (e.g., derived from MCTS visit counts).
+    double policy; // policy represents target prior probability derived from numbers of visits to nodes that occur during Monte Carlo Tree Search.
 };
 
-
-// Function `computeGameOutcome` computes game outcome based on current game state.
 double computeGameOutcome(const GameState& gameState) {
-    // For now, we simply return a dummy value based on current player (e.g., win for Player 1, loss for other players).
-    /* TODO: Use board geometry to sum pip counts on adjacent hexes or simulate the rest of the game.
-    * The winner is the player with the highest sum after setup.
-    */ 
+    // TODO: Determine the winner as the player with the greatest sum of all numbers of all pips on all tokens on all hexes adjacent to all buildings of the player and adjacent to the open ends of any roads of the player. 
     return (gameState.currentPlayer == 1) ? 1.0 : -1.0;
 }
 
-
-// Function `updatePhase` updates the game phase.
-// TODO: Consider whether function `updatePhase` can be replaced by using the existing phase state machine.
+// TODO: Consider replacing function `updatePhase` by using the existing phase state machine.
 void updatePhase(GameState& gameState) {
     if (gameState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
         gameState.phase = Phase::TO_PLACE_FIRST_ROAD;
@@ -55,9 +48,8 @@ void updatePhase(GameState& gameState) {
     }
 }
 
-
-/* Function `runSelfPlayGame` simulates a complete game trajectory.
-* Function `runSelfPlayGame` repeatedly uses Monte Carlo Tree Search via function `runMcts` to select a move and update the game state
+/* Function `runSelfPlayGame` simulates a complete game trajectory
+* by repeatedly using Monte Carlo Tree Search to select a move and by updating the game state
 * until the game reaches the turn phase when setup is complete.
 */
 std::vector<TrainingExample> runSelfPlayGame(
@@ -68,44 +60,55 @@ std::vector<TrainingExample> runSelfPlayGame(
     double tolerance
 ) {
     std::vector<TrainingExample> vectorOfTrainingExamples;
-    // Initialize game state using default settings. Initial phase is `Phase::TO_PLACE_FIRST_SETTLEMENT`.
+    // Initialize game state using default settings, including initial phase `Phase::TO_PLACE_FIRST_SETTLEMENT`.
     GameState gameState;
-    // Simulate moves up to a maximum number of steps or until the phase becomes `Phase::TURN`.
-    int steps = 0;
-    const int maxSteps = 100; // Safeguard against infinite loops.
-    while (gameState.phase != Phase::TURN && steps < maxSteps) {
+    // Simulate moves until phase becomes `Phase::TURN`, or up to a maximum number of steps to safeguard against infinite loops.
+    int numberOfStepsCompleted = 0;
+    const int maximumNumberOfSteps = 100;
+    while (gameState.phase != Phase::TURN && numberOfStepsCompleted < maximumNumberOfSteps) {
+        // We're simulating and in simulation now.
         // Use MCTS to select the best move for the current phase.
-        auto mctsResult = runMcts(gameState, db, neuralNet, numberOfSimulations, cPuct, tolerance);
-        if (mctsResult.first.empty()) {
-            // If MCTS fails, break out of simulation.
+        std::pair<std::string, int> pairOfLabelOfVertexOrEdgeKeyAndVisitCount = runMcts(
+            gameState,
+            db,
+            neuralNet,
+            numberOfSimulations,
+            cPuct,
+            tolerance
+        );
+        std::string labelOfVertexOrEdgeKey = pairOfLabelOfVertexOrEdgeKeyAndVisitCount.first;
+        if (labelOfVertexOrEdgeKey.empty()) {
             std::clog << "[SELF PLAY] MCTS did not return a valid move." << std::endl;
             break;
         }
         int currentPlayer = gameState.currentPlayer;
         // Update game state based on phase.
         if (gameState.phase.find("settlement") != std::string::npos) {
-            gameState.placeSettlement(currentPlayer, mctsResult.first);
+            gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
         }
         else if (gameState.phase.find("city") != std::string::npos) {
-            gameState.placeCity(currentPlayer, mctsResult.first);
+            gameState.placeCity(currentPlayer, labelOfVertexOrEdgeKey);
         }
         else if (gameState.phase.find("road") != std::string::npos) {
-            gameState.placeRoad(currentPlayer, mctsResult.first);
+            gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
         }
         TrainingExample trainingExample;
         trainingExample.gameState = gameState; // snapshot after move
-        trainingExample.move = mctsResult.first;
+        trainingExample.move = labelOfVertexOrEdgeKey;
         trainingExample.value = 0.0; // temporary dummy value that will be updated once game outcome is known
-        trainingExample.policy = static_cast<double>(mctsResult.second) / static_cast<double>(numberOfSimulations);
+        int visitCount = pairOfLabelOfVertexOrEdgeKeyAndVisitCount.second;
+        double priorProbabilityOfVisit = static_cast<double>(visitCount) / static_cast<double>(numberOfSimulations);
+        trainingExample.policy = priorProbabilityOfVisit;
         vectorOfTrainingExamples.push_back(trainingExample);
         updatePhase(gameState);
-        steps++;
+        numberOfStepsCompleted++;
     }
     double gameOutcome = computeGameOutcome(gameState);
-    // Update every training example with the same final game outcome.
     for (auto& trainingExample : vectorOfTrainingExamples) {
         trainingExample.value = gameOutcome;
     }
-    std::clog << "[SELF PLAY] Completed game simulation in " << steps << " steps with game outcome " << gameOutcome << std::endl;
+    std::clog <<
+        "[SELF PLAY] Game simulation completed in " << numberOfStepsCompleted << " steps " <<
+        "with game outcome " << gameOutcome << " for Player " << gameState.currentPlayer << "." << std::endl;
     return vectorOfTrainingExamples;
 }

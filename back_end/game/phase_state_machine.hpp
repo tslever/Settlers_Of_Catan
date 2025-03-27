@@ -12,9 +12,7 @@
 */
 
 
-/* TODO: Replace with function that chooses a road edge by evaluating each candidate edge by evaluating the vertex opposite the last building.
-* Choose the edge with the highest policy score.
-*/
+// TODO: Use solely Monte Carlo Tree Search and/or neural network to determine best edge.
 std::string getBestEdgeKeyAdjacentTo(const std::string& labelOfVertexOfLastBuilding, SettlersNeuralNet& neuralNet) {
 	crow::json::rvalue boardGeometry = readBoardGeometry();
 	crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometry["edges"];

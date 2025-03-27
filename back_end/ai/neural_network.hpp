@@ -40,7 +40,6 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\nvJitLink_120_0.dll" "$(Ou
 // Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include\torch\csrc\api\include;`.
 
 
-// Define the default neural network as a torch module.
 struct SettlersPolicyValueNetImpl : torch::nn::Module {
     // Mark submodules as mutable so they can be used in a const forward function.
     mutable torch::nn::Linear fc1{ nullptr };
@@ -48,7 +47,6 @@ struct SettlersPolicyValueNetImpl : torch::nn::Module {
     mutable torch::nn::Linear fc_policy{ nullptr };
     mutable torch::nn::Linear fc_value{ nullptr };
 
-    // Constructor: Initialize layers with given dimensions.
     SettlersPolicyValueNetImpl(int64_t input_dim, int64_t hidden_dim) {
         fc1 = register_module("fc1", torch::nn::Linear(input_dim, hidden_dim));
         fc2 = register_module("fc2", torch::nn::Linear(hidden_dim, hidden_dim));
@@ -56,7 +54,7 @@ struct SettlersPolicyValueNetImpl : torch::nn::Module {
         fc_value = register_module("fc_value", torch::nn::Linear(hidden_dim, 1)); // value head
     }
 
-    // Forward pass: Compute activations and return (value, policy) tuple.
+    // Forward pass: Compute activations and return vector of value and policy.
     std::vector<torch::Tensor> forward(torch::Tensor x) const {
         x = torch::relu(fc1->forward(x));
         x = torch::relu(fc2->forward(x));
@@ -70,30 +68,26 @@ TORCH_MODULE(SettlersPolicyValueNet);
 
 class SettlersNeuralNet {
 private:
-    std::filesystem::file_time_type lastModified;
+    std::filesystem::file_time_type lastWriteTime;
     torch::Device device;
 public:
     SettlersPolicyValueNet model = nullptr;
     std::string modelPath;
     Board board;
 
-    // Constructor `SettlersNeuralNet` instantiates model, then loads parameters from disk or saves default parameters if missing.
     SettlersNeuralNet(const std::string& modelPath) : modelPath(modelPath), device(torch::kCPU), board() {
-        // Define default dimensions.
         const int64_t inputDim = 5;
         const int64_t hiddenDim = 128;
         
-        // Initialize the model.
         model = SettlersPolicyValueNet(inputDim, hiddenDim);
         model->eval();
 
-        // If the parameter file doesn't exist, save the default model parameters.
         if (!std::filesystem::exists(modelPath)) {
-            std::clog << "[WARNING] Model file not found at " << modelPath << ". Creating default parameter file." << std::endl;
-            auto parameters = model->parameters();
+            std::clog << "[WARNING] Model file was not found at " << modelPath << "." << std::endl;
+            torch::autograd::variable_list variableListOfParameters = model->parameters();
             try {
-                torch::save(parameters, modelPath);
-                std::clog << "[INFO] Default model parameters saved to " << modelPath << "." << std::endl;
+                torch::save(variableListOfParameters, modelPath);
+                std::clog << "[INFO] Default model parameters were saved to " << modelPath << "." << std::endl;
             }
             catch (const c10::Error& e) {
                 std::cerr << "[ERROR] Saving default model parameters failed with the following error. " << e.what() << std::endl;
@@ -102,37 +96,37 @@ public:
         }
 
         try {
-            std::clog << "[INFO] CUDA " << (torch::cuda::is_available() ? "is" : "is not") << " available." << std::endl;
-            device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
+            bool cudaIsAvailable = torch::cuda::is_available();
+            std::clog << "[INFO] CUDA " << (cudaIsAvailable ? "is" : "is not") << " available." << std::endl;
+            device = cudaIsAvailable ? torch::kCUDA : torch::kCPU;
             model->to(device);
 
             // Load the parameters from file.
-            std::vector<torch::Tensor> parameters;
-            torch::load(parameters, modelPath);
-            auto modelParameters = model->parameters();
-            if (modelParameters.size() != parameters.size()) {
-                std::cerr << "[ERROR] A mismatch in parameter count occurred. " << modelParameters.size() << " parameters were expected. There are " << parameters.size() << " parameters." << std::endl;
-                throw std::runtime_error("A mismatch in parameter count occurred.");
+            std::vector<torch::Tensor> vectorOfParameters;
+            torch::load(vectorOfParameters, modelPath);
+            torch::autograd::variable_list variableListOfParameters = model->parameters();
+            if (variableListOfParameters.size() != vectorOfParameters.size()) {
+                std::cerr <<
+                    "[ERROR] Numbers of parameters are mismatched. " <<
+                    variableListOfParameters.size() << " parameters were expected. " <<
+                    "There are " << vectorOfParameters.size() << " parameters." << std::endl;
+                throw std::runtime_error("Numbers of parameters are mismatched.");
             }
             torch::NoGradGuard noGrad; // Disable gradient tracking during parameter copy.
-            for (size_t i = 0; i < parameters.size(); i++) {
-                modelParameters[i].data().copy_(parameters[i].data());
+            for (size_t i = 0; i < vectorOfParameters.size(); i++) {
+                variableListOfParameters[i].data().copy_(vectorOfParameters[i].data());
             }
-            lastModified = std::filesystem::last_write_time(modelPath);
-            std::clog << "[INFO] Model parameters were successfully loaded from " << modelPath << " on device " << (device == torch::kCUDA ? "CUDA" : "CPU") << "." << std::endl;
+            lastWriteTime = std::filesystem::last_write_time(modelPath);
+            std::clog <<
+                "[INFO] Model parameters were successfully loaded from " << modelPath <<
+                " on device " << (device == torch::kCUDA ? "CUDA" : "CPU") << "." << std::endl;
         }
         catch (const c10::Error& e) {
             std::cerr << "[ERROR] The following exception occurred while loading model. " << e.what() << std::endl;
-            throw std::runtime_error("An exception occurred while loading model from the following path. " + modelPath);
+            throw std::runtime_error("An exception occurred while loading model.");
         }
     }
 
-    /* TODO: Consider whether functions `evaluateSettlement`, `evaluateCity`, and `evaluateRoad` should be different,
-    * or consolidated into a common `evaluateMove` pattern.
-    */
-
-
-    // Evaluate a settlement move given a feature vector.
     std::pair<double, double> evaluateStructure(const std::vector<float>& features) {
         torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
         torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
@@ -142,16 +136,17 @@ public:
         return { value, policy };
     }
 
+    // TODO: Evaluate both buildings and roads based on feature vector and avoid evaluating roads as idiosyncratically as presently.
     std::pair<double, double> evaluateBuildingFromVertex(const std::string& labelOfVertex) {
         std::vector<float> featureVector = board.getFeatureVector(labelOfVertex);
         return evaluateStructure(featureVector);
     }
 
-    /* Evaluate a road move given the last building vertex and an edge key.
-    * Parse the edge key with format "x1-y1_x2-y2" and determine which endpoint is not the last building.
-    */
     std::pair<double, double> evaluateRoadFromEdge(const std::string& labelOfVertexOfLastBuilding, const std::string& edgeKey) {
-        float x1, y1, x2, y2;
+        float x1;
+        float y1;
+        float x2;
+        float y2;
         if (sscanf_s(edgeKey.c_str(), "%f-%f_%f-%f", &x1, &y1, &x2, &y2) != 4) {
             throw std::runtime_error("Edge key " + edgeKey + " has invalid format.");
         }
@@ -170,28 +165,27 @@ public:
         return evaluateBuildingFromVertex(labelOfVertexWithoutLastBuilding);
     }
 
-    // Reload model if weights have been updated on disk.
     void reloadIfUpdated() {
         try {
-            auto currentModTime = std::filesystem::last_write_time(modelPath);
-            if (currentModTime > lastModified) {
-                std::vector<torch::Tensor> parameters;
-                torch::load(parameters, modelPath);
-                auto modelParameters = model->parameters();
-                if (modelParameters.size() != parameters.size()) {
-                    std::cerr << "[ERROR] A mismatch in parameter count occurred during reload." << std::endl;
-                    throw std::runtime_error("A mismatch in parameter count occurred during reload.");
+            auto currentWriteTime = std::filesystem::last_write_time(modelPath);
+            if (currentWriteTime > lastWriteTime) {
+                std::vector<torch::Tensor> vectorOfParameters;
+                torch::load(vectorOfParameters, modelPath);
+                torch::autograd::variable_list variableListOfParameters = model->parameters();
+                if (variableListOfParameters.size() != vectorOfParameters.size()) {
+                    std::cerr << "[ERROR] Numbers of parameters were mismatched during reload." << std::endl;
+                    throw std::runtime_error("Numbers of parameters were mismatched during reload.");
                 }
                 torch::NoGradGuard noGrad;
-                for (size_t i = 0; i < parameters.size(); i++) {
-                    modelParameters[i].data().copy_(parameters[i].data());
+                for (size_t i = 0; i < vectorOfParameters.size(); i++) {
+                    variableListOfParameters[i].data().copy_(vectorOfParameters[i].data());
                 }
-                lastModified = currentModTime;
-                std::clog << "[INFO] Updated model parameters were detected. Model was reloaded." << std::endl;
+                lastWriteTime = currentWriteTime;
+                std::clog << "[INFO] Model was reloaded after updated model parameters were detected." << std::endl;
             }
         }
         catch (const std::exception& e) {
-            std::cerr << "[ERROR] The following exception in `reloadIfUpdated` occurred. " << e.what() << std::endl;
+            std::cerr << "[ERROR] The following exception occurred. " << e.what() << std::endl;
         }
     }
 };

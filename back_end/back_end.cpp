@@ -18,6 +18,9 @@
 #include "game/phase_state_machine.hpp"
 
 
+// TODO: Prove that collecting training examples will be slower after training the neural network for the first time than before.
+
+
 // TODO: Consider whether `struct` `Config` belongs in another file.
 struct Config {
 	int backEndPort;

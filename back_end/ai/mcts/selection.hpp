@@ -1,21 +1,19 @@
 #pragma once
 
+
 // Function `selectChild` is a selection function that using PUCT.
 std::shared_ptr<MCTSNode> selectChild(
 	const std::shared_ptr<MCTSNode>& node,
-	double c_puct = 1.0, // TODO: Define c_puct.
-	double tolerance = 1e-6 // TODO: Define tolerance.
+	double c_puct = 1.0,
+	double tolerance = 1e-6
 ) {
 	double bestScore = -std::numeric_limits<double>::infinity();
 	std::vector<std::shared_ptr<MCTSNode>> bestCandidates;
 	for (const auto& pair : node->children) {
 		auto child = pair.second;
 		// Exploration bonus U as in AlphaGo Zero
-		// TODO: Define exploration bonus.
 		double u = c_puct * child->P * std::sqrt(node->N) / (1.0 + child->N);
 		double score = child->Q + u;
-		// TODO: Define `child->Q`.
-		// TODO: Define score.
 		if (score > bestScore + tolerance) {
 			bestScore = score;
 			bestCandidates.clear();
@@ -26,18 +24,15 @@ std::shared_ptr<MCTSNode> selectChild(
 		}
 	}
 	if (bestCandidates.empty()) {
-		return node; // Return the current node if no children exist.
+		// Return the current node if no children exist.
+		return node;
 	}
-	// Among equally scoring candidates, pick the candidate with the lowest visit count and highest prior.
-	// TODO: Consider whether these criteria are ideal.
 	auto best = bestCandidates[0];
 	for (const auto& candidate : bestCandidates) {
 		if (
 			(candidate->N < best->N) ||
 			(candidate->N == best->N && candidate->P > best->P)
 		) {
-			// TODO: Define `candidate->N`.
-			// TODO: Define `candidate->P`.
 			best = candidate;
 		}
 	}

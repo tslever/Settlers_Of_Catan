@@ -1,6 +1,5 @@
-// TODO: Integrate into back end.
-
 #pragma once
+
 
 #include <string>
 #include <unordered_map>
@@ -20,13 +19,14 @@ public:
     std::unordered_map<std::string, std::shared_ptr<MCTSNode>> children;
     std::weak_ptr<MCTSNode> parent;
 
-    MCTSNode(const GameState& state,
+    MCTSNode(
+        const GameState& state,
         const std::string& move = "",
         std::shared_ptr<MCTSNode> parent = nullptr,
-        const std::string& moveType = "")
-        : gameState(state), move(move), moveType(moveType), parent(parent),
-        N(0), W(0.0), Q(0.0), P(0.0)
+        const std::string& moveType = ""
+    ) : gameState(state), move(move), moveType(moveType), parent(parent), N(0), W(0.0), Q(0.0), P(0.0)
     {
+        // Do nothing.
     }
 
     bool isLeaf() const {
