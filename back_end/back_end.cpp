@@ -131,6 +131,7 @@ static void trainingLoop(
 			if (trainingData.size() >= trainingThreshold) {
 				trainNeuralNetworkIfNeeded(trainingData, neuralNet);
 				trainingData.clear();
+				trainingData.shrink_to_fit();
 			}
 		}
 		catch (const std::exception& e) {
