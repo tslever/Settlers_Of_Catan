@@ -18,7 +18,7 @@ public:
     double Q; // mean value = W / N
     double P; // prior probability
     std::unordered_map<std::string, std::shared_ptr<MCTSNode>> children;
-    std::shared_ptr<MCTSNode> parent;
+    std::weak_ptr<MCTSNode> parent;
 
     MCTSNode(const GameState& state,
         const std::string& move = "",

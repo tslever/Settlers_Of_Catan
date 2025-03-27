@@ -18,7 +18,7 @@ double simulateRollout(const std::shared_ptr<MCTSNode>& node, Database& db, Sett
 		return eval.first;
 	}
 	else if (node->moveType == "road") {
-		std::string lastBuilding = (node->parent ? node->parent->move : "");
+		std::string lastBuilding = (node->parent.lock() ? node->parent.lock()->move : "");
 		if (!lastBuilding.empty()) {
 			auto eval = neuralNet.evaluateRoadFromEdge(lastBuilding, node->move);
 			return eval.first;

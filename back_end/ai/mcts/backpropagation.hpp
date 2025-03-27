@@ -7,10 +7,10 @@
 // Backpropagate the rollout value up the tree.
 // TODO: Consider adding discount factors or more advanced statistics.
 void backpropagate(std::shared_ptr<MCTSNode> node, double value) {
-	while (node != nullptr) {
+	while (node) {
 		node->N += 1;
 		node->W += value;
 		node->Q = node->W / node->N;
-		node = node->parent;
+		node = node->parent.lock();
 	}
 }

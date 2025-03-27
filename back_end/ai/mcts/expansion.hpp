@@ -28,7 +28,8 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeu
 			continue;
 		}
 		// Create a child node corresponding to this move.
-		auto child = std::make_shared<MCTSNode>(node->gameState, move, node, node->moveType);
+		auto child = std::make_shared<MCTSNode>(node->gameState, move, nullptr, node->moveType);
+		child->parent = node;
 		double prior = 0.5;
 
 		// Call the appropriate neural network evaluation depending on move type.
@@ -42,7 +43,7 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeu
 			prior = eval.second;
 		}
 		else if (node->moveType == "road") {
-			std::string labelOfVertexOfLastBuilding = (node->parent ? node->parent->move : "");
+			std::string labelOfVertexOfLastBuilding = (node->parent.lock() ? node->parent.lock()->move : "");
 			if (!labelOfVertexOfLastBuilding.empty()) {
 				auto eval = neuralNet.evaluateRoadFromEdge(labelOfVertexOfLastBuilding, move);
 				prior = eval.second;
