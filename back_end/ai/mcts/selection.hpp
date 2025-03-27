@@ -5,14 +5,12 @@ std::shared_ptr<MCTSNode> selectChild(
 	const std::shared_ptr<MCTSNode>& node,
 	double c_puct = 1.0, // TODO: Define c_puct.
 	double tolerance = 1e-6 // TODO: Define tolerance.
-	// TODO: Consider moving c_puct to a configuration file.
-	// TODO: Consider moving tolerance to a configuration file.
 ) {
 	double bestScore = -std::numeric_limits<double>::infinity();
 	std::vector<std::shared_ptr<MCTSNode>> bestCandidates;
 	for (const auto& pair : node->children) {
 		auto child = pair.second;
-		// Exploration bonus as in AlphaGo Zero U
+		// Exploration bonus U as in AlphaGo Zero
 		// TODO: Define exploration bonus.
 		double u = c_puct * child->P * std::sqrt(node->N) / (1.0 + child->N);
 		double score = child->Q + u;

@@ -127,10 +127,13 @@ public:
         }
     }
 
-    // TODO: Consider whether functions `evaluateSettlement`, `evaluateCity`, and `evaluateRoad` should be different.
+    /* TODO: Consider whether functions `evaluateSettlement`, `evaluateCity`, and `evaluateRoad` should be different,
+    * or consolidated into a common `evaluateMove` pattern.
+    */
+
 
     // Evaluate a settlement move given a feature vector.
-    std::pair<double, double> evaluateSettlement(const std::vector<float>& features) {
+    std::pair<double, double> evaluateStructure(const std::vector<float>& features) {
         torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
         torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
         auto output = model->forward(input);
@@ -139,37 +142,12 @@ public:
         return { value, policy };
     }
 
-    std::pair<double, double> evaluateSettlementFromVertex(const std::string& labelOfVertex) {
+    std::pair<double, double> evaluateBuildingFromVertex(const std::string& labelOfVertex) {
         std::vector<float> featureVector = board.getFeatureVector(labelOfVertex);
-        return evaluateSettlement(featureVector);
+        return evaluateStructure(featureVector);
     }
 
-    // Evaluate a city move given a feature vector.
-    std::pair<double, double> evaluateCity(const std::vector<float>& features) {
-        torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
-        torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
-        auto output = model->forward(input);
-        double value = output[0].item<double>();
-        double policy = output[1].item<double>();
-        return { value, policy };
-    }
-
-    std::pair<double, double> evaluateCityFromVertex(const std::string& labelOfVertex) {
-        std::vector<float> featureVector = board.getFeatureVector(labelOfVertex);
-        return evaluateCity(featureVector);
-    }
-
-    // Evaluate a road move given a feature vector.
-    std::pair<double, double> evaluateRoad(const std::vector<float>& features) {
-        torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
-        torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
-        auto output = model->forward(input);
-        double value = output[0].item<double>();
-        double policy = output[1].item<double>();
-        return { value, policy };
-    }
-
-    /* Evaluate a road move given the last builiding vertex and an edge key.
+    /* Evaluate a road move given the last building vertex and an edge key.
     * Parse the edge key with format "x1-y1_x2-y2" and determine which endpoint is not the last building.
     */
     std::pair<double, double> evaluateRoadFromEdge(const std::string& labelOfVertexOfLastBuilding, const std::string& edgeKey) {
@@ -177,19 +155,19 @@ public:
         if (sscanf_s(edgeKey.c_str(), "%f-%f_%f-%f", &x1, &y1, &x2, &y2) != 4) {
             throw std::runtime_error("Edge key " + edgeKey + " has invalid format.");
         }
-        std::string otherVertex;
-        // Here, for simplicity, we assume that the "other" endpoint is the one with larger x.
-        // TODO: Replace the following if else block with logic that compares coordinates to determine which vertex is not the vertex of the last building.
-        if (x1 < x2) {
-            otherVertex = board.getVertexLabelByCoordinates(x2, y2);
+        std::string labelOfFirstVertex = board.getVertexLabelByCoordinates(x1, y1);
+        std::string labelOfSecondVertex = board.getVertexLabelByCoordinates(x2, y2);
+        std::string labelOfVertexWithoutLastBuilding;
+        if (labelOfFirstVertex == labelOfVertexOfLastBuilding) {
+            labelOfVertexWithoutLastBuilding = labelOfSecondVertex;
         }
-        else {
-            otherVertex = board.getVertexLabelByCoordinates(x1, y1);
+        else if (labelOfSecondVertex == labelOfVertexOfLastBuilding) {
+            labelOfVertexWithoutLastBuilding = labelOfFirstVertex;
         }
-        if (otherVertex.empty()) {
-            throw std::runtime_error("Other endpoint for road edge " + edgeKey + " cannot be determined.");
+        if (labelOfVertexWithoutLastBuilding.empty()) {
+            throw std::runtime_error("Label of vertex without last building cannot be determined.");
         }
-        return evaluateSettlementFromVertex(otherVertex);
+        return evaluateBuildingFromVertex(labelOfVertexWithoutLastBuilding);
     }
 
     // Reload model if weights have been updated on disk.

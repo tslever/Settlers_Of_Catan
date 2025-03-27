@@ -5,8 +5,10 @@
 #include <vector>
 
 
-// Namespace Phase is a namespace for game state phase constants.
-// TODO: Consider whether an enum would be more appropriate.
+
+/* TODO: Keep or replace the following namespace with an enum class and change phase in `oss << "phase: " << phase << "\n";` below
+* to a string representing the enumeration that is lowercase and without underscores as in the strings immediately below.
+*/
 namespace Phase {
 	const std::string TO_PLACE_FIRST_SETTLEMENT = "phase to place first settlement";
 	const std::string TO_PLACE_FIRST_ROAD = "phase to place first road";

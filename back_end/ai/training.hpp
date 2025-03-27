@@ -1,8 +1,9 @@
 #pragma once
 
 
-// Dummy implementation of training function
-// TODO: Replace the following implementation with an actual training loop using libtorch and optimizer and loss function.
+// TODO: Consider recording extra data such as full game trajectories or move probabilities.
+
+
 void trainNeuralNetworkIfNeeded(const std::vector<TrainingExample>& vectorOfTrainingExamples, SettlersNeuralNet* neuralNet) {
     std::clog << "[TRAINING] Neural network will be trained on " << vectorOfTrainingExamples.size() << " examples." << std::endl;
     Board board;

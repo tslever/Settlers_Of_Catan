@@ -17,10 +17,11 @@ struct TrainingExample {
 
 
 // Function `computeGameOutcome` computes game outcome based on current game state.
-// TODO: Replace dummy implementation with evaluation based on `compute_game_outcome` in `self_play.py` in Python back end.
 double computeGameOutcome(const GameState& gameState) {
     // For now, we simply return a dummy value based on current player (e.g., win for Player 1, loss for other players).
-    // TODO: Use board geometry to sum pip counts on adjacent hexes or simulate the rest of the game.
+    /* TODO: Use board geometry to sum pip counts on adjacent hexes or simulate the rest of the game.
+    * The winner is the player with the highest sum after setup.
+    */ 
     return (gameState.currentPlayer == 1) ? 1.0 : -1.0;
 }
 

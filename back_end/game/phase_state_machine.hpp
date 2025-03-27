@@ -7,89 +7,64 @@
 #include <random>
 
 
-// TODO: Consider running Monte Carlo Tree Search to place first road, place first city, and place second road.
+/* TODO: Ensure that the various phase state classes for placing settlements, roads, and cities use Monte Carlo Tree Search
+* so that all move decisions are driven by AI logic.
+*/
 
 
-std::string getRandomEdgeKeyAdjacentTo(const std::string& lastBuilding) {
-	std::ifstream file("../board_geometry.json");
-	if (!file.is_open()) {
-		throw std::runtime_error("Board geometry file could not be opened.");
-	}
-	std::stringstream buffer;
-	buffer << file.rdbuf();
-	auto jsonVal = crow::json::load(buffer.str());
-	if (!jsonVal) {
-		throw std::runtime_error("Board geometry file could not be parsed.");
-	}
+/* TODO: Replace with function that chooses a road edge by evaluating each candidate edge by evaluating the vertex opposite the last building.
+* Choose the edge with the highest policy score.
+*/
+std::string getBestEdgeKeyAdjacentTo(const std::string& labelOfVertexOfLastBuilding, SettlersNeuralNet& neuralNet) {
+	crow::json::rvalue boardGeometry = readBoardGeometry();
+	crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometry["edges"];
 
-	// Look up vertex with label equal to given vertex of last building.
-	auto vertices = jsonVal["vertices"];
-	if (!vertices || vertices.size() == 0) {
-		throw std::runtime_error("Board geometry file does not contain vertices.");
-	}
-	double last_x = 0.0;
-	double last_y = 0.0;
-	bool found = false;
-	for (size_t i = 0; i < vertices.size(); i++) {
-		auto vertex = vertices[i];
-		std::string label = vertex["label"].s();
-		if (label == lastBuilding) {
-			last_x = vertex["x"].d();
-			last_y = vertex["y"].d();
-			found = true;
-			break;
+	const double marginOfError = 1e-2;
+	std::vector<crow::json::rvalue> adjacentEdges;
+	Board board;
+
+	// Populate vector of adjacent edges.
+	for (const auto& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
+		double x1 = jsonObjectOfEdgeInformation["x1"].d();
+		double y1 = jsonObjectOfEdgeInformation["y1"].d();
+		double x2 = jsonObjectOfEdgeInformation["x2"].d();
+		double y2 = jsonObjectOfEdgeInformation["y2"].d();
+		std::string labelOfFirstVertex = board.getVertexLabelByCoordinates(x1, y1);
+		std::string labelOfSecondVertex = board.getVertexLabelByCoordinates(x2, y2);
+		if (labelOfFirstVertex == labelOfVertexOfLastBuilding || labelOfSecondVertex == labelOfVertexOfLastBuilding) {
+			adjacentEdges.push_back(jsonObjectOfEdgeInformation);
 		}
 	}
-	if (!found) {
-		throw std::runtime_error("Last building vertex was not found in board geometry.");
+	if (adjacentEdges.empty()) {
+		throw std::runtime_error("No adjacent edges were found for placing road.");
 	}
 
-	// Filter edges that are adjacent to vertex with label of last building.
-	auto edges = jsonVal["edges"];
-	if (!edges || edges.size() == 0) {
-		throw std::runtime_error("Board geometry file does not contain edges.");
-	}
-	std::vector<crow::json::rvalue> adjacentEdges;
-	const double tolerance = 1e-2;
-	for (size_t i = 0; i < edges.size(); i++) {
-		auto edge = edges[i];
+	double bestScore = -std::numeric_limits<double>::infinity();
+	std::string bestEdge;
+	// Evaluate each adjacent edge by checking the policy score of the vertex opposite the last building.
+	for (const auto& edge : adjacentEdges) {
 		double x1 = edge["x1"].d();
 		double y1 = edge["y1"].d();
 		double x2 = edge["x2"].d();
 		double y2 = edge["y2"].d();
-		if ((std::abs(x1 - last_x) < tolerance && std::abs(y1 - last_y) < tolerance) ||
-			(std::abs(x2 - last_x) < tolerance && std::abs(y2 - last_y) < tolerance)) {
-			adjacentEdges.push_back(edge);
+		std::string labelOfFirstVertex = board.getVertexLabelByCoordinates(x1, y1);
+		std::string labelOfSecondVertex = board.getVertexLabelByCoordinates(x2, y2);
+		std::string labelOfVertexWithoutLastBuilding = (labelOfFirstVertex == labelOfVertexOfLastBuilding) ? labelOfSecondVertex : labelOfFirstVertex;
+		auto eval = neuralNet.evaluateBuildingFromVertex(labelOfVertexWithoutLastBuilding);
+		double score = eval.second; // Use policy score as selection criterion.
+		if (score > bestScore) {
+			bestScore = score;
+			char buf[50];
+			if ((x1 < x2) || (std::abs(x1 - x2) < marginOfError && y1 <= y2)) {
+				std::snprintf(buf, sizeof(buf), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
+			}
+			else {
+				std::snprintf(buf, sizeof(buf), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
+			}
+			bestEdge = std::string(buf);
 		}
 	}
-	if (adjacentEdges.empty()) {
-		throw std::runtime_error("No edges are adjacent to last building found.");
-	}
-
-	// Randomly select one of the adjacent edges.
-	/* TODO: Let an edge terminate at vertex with label `lastBuilding` and vertex with label `label_of_vertex_opposite_last_building`.
-	* Chose the edge with the strongest vertex with label `label_of_vertex_opposite_last_building`.
-	*/
-	std::random_device dev;
-	std::mt19937 rng(dev());
-	std::uniform_int_distribution<> dist(0, adjacentEdges.size() - 1);
-	int index = dist(rng);
-	auto chosenEdge = adjacentEdges[index];
-
-	double x1 = chosenEdge["x1"].d();
-	double y1 = chosenEdge["y1"].d();
-	double x2 = chosenEdge["x2"].d();
-	double y2 = chosenEdge["y2"].d();
-
-	// Format the edge key so that the order of endpoints is consistent.
-	char buf[50];
-	if ((x1 < x2) || (std::abs(x1 - x2) < tolerance && y1 <= y2)) {
-		std::snprintf(buf, sizeof(buf), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
-	}
-	else {
-		std::snprintf(buf, sizeof(buf), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
-	}
-	return std::string(buf);
+	return bestEdge;
 }
 
 
@@ -175,7 +150,7 @@ public:
 		if (state.lastBuilding.empty()) {
 			throw std::runtime_error("No last building was set for road placement.");
 		}
-		std::string chosenEdge = getRandomEdgeKeyAdjacentTo(state.lastBuilding);
+		std::string chosenEdge = getBestEdgeKeyAdjacentTo(state.lastBuilding, neuralNet);
 
 		int player = state.currentPlayer;
 		state.placeRoad(player, chosenEdge);
@@ -270,7 +245,7 @@ public:
 		if (state.lastBuilding.empty()) {
 			throw std::runtime_error("No last building was set for road placement.");
 		}
-		std::string chosenEdge = getRandomEdgeKeyAdjacentTo(state.lastBuilding);
+		std::string chosenEdge = getBestEdgeKeyAdjacentTo(state.lastBuilding, neuralNet);
 
 		int player = state.currentPlayer;
 		state.placeRoad(player, chosenEdge);

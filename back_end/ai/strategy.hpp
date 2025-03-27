@@ -9,7 +9,6 @@
 #include "mcts/simulation.hpp"
 
 
-// TODO: Consider whether function `injectDirichletNoise` belongs in another file.
 void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double epsilon = 0.25, double alpha = 0.03) {
 	if (root->children.empty()) {
 		return;
@@ -77,7 +76,7 @@ std::pair<std::string, int> runMcts(
 	}
 
 	// Select the child move with the highest visit count.
-	// TODO: Consider whether selecting moves based on visit count and/or other criteria might be better.
+	// TODO: Consider whether selecting moves based on visit count, evaluation scores, and/or other criteria might be better.
 	std::shared_ptr<MCTSNode> bestChild = nullptr;
 	int bestVisits = -1;
 	for (const auto& pair : root->children) {

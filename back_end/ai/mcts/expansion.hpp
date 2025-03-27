@@ -19,9 +19,8 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeu
 		availableMoves = getAvailableVertices(occupiedVertices);
 	}
 	else if (node->moveType == "road") {
-		// We use placeholder dummy moves.
-		// TODO: Use board logic for road moves (e.g., function `getAvailableRoadMoves`).
-		availableMoves = { "E01", "E02" };
+		std::vector<std::string> vectorOfOccupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
+		availableMoves = getVectorOfKeysOfAvailableEdges(vectorOfOccupiedEdges);
 	}
 	// Create a child node for each available move.
 	for (const auto& move : availableMoves) {
@@ -35,11 +34,11 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeu
 		// Call the appropriate neural network evaluation depending on move type.
 		if (node->moveType == "settlement") {
 			// Evaluate the move with the neural network.
-			auto eval = neuralNet.evaluateSettlementFromVertex(move);
+			auto eval = neuralNet.evaluateBuildingFromVertex(move);
 			// Use the network's policy output as the prior probability.
 			prior = eval.second;
 		} else if (node->moveType == "city") {
-			auto eval = neuralNet.evaluateCityFromVertex(move);
+			auto eval = neuralNet.evaluateBuildingFromVertex(move);
 			prior = eval.second;
 		}
 		else if (node->moveType == "road") {
