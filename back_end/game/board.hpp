@@ -37,7 +37,18 @@ public:
 	* - normalized hex count, and
 	* - bias 1.0.
 	*/
-	std::vector<float> getFeatureVector(const std::string& labelOfVertex) const {
+	std::vector<float> getFeatureVector(const std::string& labelOfVertexOrEdgeKey) const {
+
+		if (labelOfVertexOrEdgeKey.find('_') != std::string::npos) { // (i.e., if `labelOfVertexOrEdgeKey` is an edge key)
+			// TODO: Calculate feature vector corresponding to edge and/or revise feature vector to include more information relating to edge.
+			float normalizedNumberOfPips = 0.5f;
+			float normalizedXCoordinate = 0.5f;
+			float normalizedYCoordinate = 0.5f;
+			float normalizedNumberOfHexes = 0.5f;
+			float bias = 1.0f;
+			return { normalizedNumberOfPips, normalizedXCoordinate, normalizedYCoordinate, normalizedNumberOfHexes, bias };
+		}
+
 		// Find vertex by label.
 		const double marginOfError = 0.01;
 		float x = 0.0f;
@@ -57,7 +68,7 @@ public:
 		}
 
 		for (const crow::json::rvalue& jsonObjectOfVertexInformation : jsonArrayOfVertexInformation) {
-			if (jsonObjectOfVertexInformation["label"] == labelOfVertex) {
+			if (jsonObjectOfVertexInformation["label"] == labelOfVertexOrEdgeKey) {
 				x = static_cast<float>(jsonObjectOfVertexInformation["x"].d());
 				y = static_cast<float>(jsonObjectOfVertexInformation["y"].d());
 				found = true;
@@ -65,9 +76,9 @@ public:
 			}
 		}
 		if (!found) {
-			throw std::runtime_error("Vertex " + labelOfVertex + " was not found in board geometry.");
+			throw std::runtime_error("Vertex " + labelOfVertexOrEdgeKey + " was not found in board geometry.");
 		}
-		// For each hex in the board, if the given vertex is one of the vertices of the hex, accumulate pip counts.
+		// For each hex in the board, if the given vertex is one of the vertices of the hex, accumulate pip counts and count hexes.
 		float totalNumberOfPips = 0.0f;
 		int numberOfHexes = 0;
 		for (const crow::json::rvalue jsonObjectOfHexInformation : jsonArrayOfHexInformation) {
@@ -123,13 +134,15 @@ public:
 					}
 				}
 			}
-			// Use hardcoded boarded width 100.0 `vmin` to normalize x and y normalization of 100.0.
-			float normalizedNumberOfPips = (numberOfHexes > 0) ? totalNumberOfPips / (numberOfHexes * 5.0f) : 0.0f;
-			float normalizedXCoordinate = x / 100.0f;
-			float normalizedYCoordinate = y / 100.0f;
-			float normalizedNumberOfHexes = numberOfHexes / 3.0f;
-			return { normalizedNumberOfPips, normalizedXCoordinate, normalizedYCoordinate, normalizedNumberOfHexes, 1.0f };
 		}
+		// Use hardcoded boarded width 100.0 `vmin` to normalize x and 100.0 to normalized y.
+		// TODO: Consider revising feature vector to include more information relating to both vertices and edges.
+		float normalizedNumberOfPips = (numberOfHexes > 0) ? totalNumberOfPips / (numberOfHexes * 5.0f) : 0.0f;
+		float normalizedXCoordinate = x / 100.0f;
+		float normalizedYCoordinate = y / 100.0f;
+		float normalizedNumberOfHexes = numberOfHexes / 3.0f;
+		float bias = 1.0f;
+		return { normalizedNumberOfPips, normalizedXCoordinate, normalizedYCoordinate, normalizedNumberOfHexes, bias };
 	}
 
 

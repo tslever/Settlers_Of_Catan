@@ -7,11 +7,12 @@
 #include "../../game/game_state.hpp"
 
 
+// Class MCTS is a template for an MCTS node, which represents a game state that is reached by making a particular move.
 class MCTSNode {
 public:
     GameState gameState;
     std::string move; // e.g. vertex label or edge key
-    std::string moveType; // "settlement", "road", etc.
+    std::string moveType; // "city", "settlement", or "road"
     int N; // visit count
     double W; // total value
     double Q; // mean value = W / N

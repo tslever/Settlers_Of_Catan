@@ -16,7 +16,7 @@ struct TrainingExample {
 };
 
 double computeGameOutcome(const GameState& gameState) {
-    // TODO: Determine the winner as the player with the greatest sum of all numbers of all pips on all tokens on all hexes adjacent to all buildings of the player and adjacent to the open ends of any roads of the player. 
+    // TODO: Determine the winner as the player with the greatest sum of all numbers of all pips on all tokens on all hexes adjacent to all buildings of the player. 
     return (gameState.currentPlayer == 1) ? 1.0 : -1.0;
 }
 

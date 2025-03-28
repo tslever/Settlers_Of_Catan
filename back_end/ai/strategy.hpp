@@ -9,28 +9,32 @@
 #include "mcts/simulation.hpp"
 
 
-void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double epsilon, double alpha) {
+void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double mixingWeight, double shape) {
 	if (root->children.empty()) {
 		return;
 	}
-	// Prepare noise: Sample gamma variables and normalize them.
-	std::vector<double> noise;
-	std::default_random_engine generator(std::random_device{}());
-	std::gamma_distribution<double> gammaDist(alpha, 1.0);
-	double sum = 0.0;
+	std::vector<double> vectorOfNoise;
+	std::random_device::result_type resultType = std::random_device{}();
+	std::default_random_engine defaultRandomEngine(resultType);
+	double scale = 1.0;
+	std::gamma_distribution<double> gammaDistribution(shape, scale);
+
+	double sumOfNoise = 0.0;
 	for (size_t i = 0; i < root->children.size(); i++) {
-		double n = gammaDist(generator);
-		noise.push_back(n);
-		sum += n;
+		double noise = gammaDistribution(defaultRandomEngine);
+		vectorOfNoise.push_back(noise);
+		sumOfNoise += noise;
 	}
-	for (auto& n : noise) {
-		n /= sum;
+
+	for (double& noise : vectorOfNoise) {
+		noise /= sumOfNoise;
 	}
+
 	size_t index = 0;
-	for (auto& childPair : root->children) {
-		auto child = childPair.second;
-		// Adjust the prior using a weighted mix of the original prior and the injected noise.
-		child->P = (1 - epsilon) * child->P + epsilon * noise[index++];
+	for (std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndNode : root->children) {
+		std::shared_ptr<MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndNode.second;
+		// Adjust prior probability using weighted mix of original prior probability and injected noise.
+		child->P = (1 - mixingWeight) * child->P + mixingWeight * vectorOfNoise[index++];
 	}
 }
 
@@ -38,20 +42,31 @@ void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double epsilon, doubl
 /* Function `runMcts` runs MCTS by creating a root node from the current game state,
 * running a number of simulations, and returning the best move.
 */
-// TODO: Consider whether function `runMcts` belongs in another file.
 std::pair<std::string, int> runMcts(
 	GameState& currentState,
 	Database& db,
 	SettlersNeuralNet& neuralNet,
 	int numberOfSimulations,
-	double c_puct,
+	double cPuct,
 	double tolerance
 ) {
-	// Create root node for the current phase.
-	// TODO: Avoid assuming settlement phase.
-	auto root = std::make_shared<MCTSNode>(currentState, "", nullptr, "settlement");
+	// Create root node for current phase.
+	std::string moveType = "";
+	if (currentState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+		moveType = "settlement";
+	}
+	else if (currentState.phase == Phase::TO_PLACE_FIRST_ROAD || currentState.phase == Phase::TO_PLACE_SECOND_ROAD) {
+		moveType = "road";
+	}
+	else if (currentState.phase == Phase::TO_PLACE_FIRST_CITY) {
+		moveType = "city";
+	}
+	else if (currentState.phase == Phase::TURN) {
+		moveType = "turn";
+	}
+	std::shared_ptr<MCTSNode> root = std::make_shared<MCTSNode>(currentState, "", nullptr, moveType);
 
-	// Initially expand the root node based on available moves.
+	// Initially expand the root based on available moves.
 	expandNode(root, db, neuralNet);
 
 	// Inject Dirichlet noise at the root to encourage exploration.
@@ -59,30 +74,30 @@ std::pair<std::string, int> runMcts(
 
 	// Run MCTS simulations.
 	for (int i = 0; i < numberOfSimulations; i++) {
-		auto node = root;
+		std::shared_ptr<MCTSNode> node = root;
 		// Selection: Descend / traverse down the tree until a leaf node is reached.
 		while (!node->isLeaf()) {
-			node = selectChild(node, c_puct, tolerance);
+			node = selectChild(node, cPuct, tolerance);
 		}
 		// Expansion: If this leaf node was visited before, expand the node.
 		if (node->N > 0) {
 			expandNode(node, db, neuralNet);
 		}
-		// Simulation: Evaluate the leaf node via a rollout.
+		// Simulation: Evaluate the leaf node via by simulating rollout.
 		// TODO: Consider extending to multi-step rollouts.
 		double value = simulateRollout(node, db, neuralNet);
-		// Backpropagation: Update statistics up the tree / all nodes along the path.
+		// Backpropagation: Update statistics up tree / all nodes along path.
 		backpropagate(node, value);
 	}
 
 	// Select the child move with the highest visit count.
 	// TODO: Consider whether selecting moves based on visit count, evaluation scores, and/or other criteria might be better.
 	std::shared_ptr<MCTSNode> bestChild = nullptr;
-	int bestVisits = -1;
-	for (const auto& pair : root->children) {
-		auto child = pair.second;
-		if (child->N > bestVisits) {
-			bestVisits = child->N;
+	int numberOfVisitsToBestChild = -1;
+	for (const std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndNode : root->children) {
+		std::shared_ptr<MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndNode.second;
+		if (child->N > numberOfVisitsToBestChild) {
+			numberOfVisitsToBestChild = child->N;
 			bestChild = child;
 		}
 	}

@@ -17,5 +17,8 @@ double simulateRollout(const std::shared_ptr<MCTSNode>& node, Database& db, Sett
 			return eval.first;
 		}
 	}
+	else if (node->moveType == "turn") {
+		throw std::runtime_error("Expanding node with move type turn is not implemented yet.");
+	}
 	return 0.0;
 }

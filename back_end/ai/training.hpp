@@ -1,9 +1,6 @@
 #pragma once
 
 
-// TODO: Consider recording extra data such as full game trajectories or move probabilities.
-
-
 void trainNeuralNetworkIfNeeded(const std::vector<TrainingExample>& vectorOfTrainingExamples, SettlersNeuralNet* neuralNet) {
     std::clog << "[TRAINING] Neural network will be trained on " << vectorOfTrainingExamples.size() << " examples." << std::endl;
     Board board;
@@ -14,8 +11,8 @@ void trainNeuralNetworkIfNeeded(const std::vector<TrainingExample>& vectorOfTrai
         try {
             return board.getFeatureVector(move);
         }
-        catch (...) {
-            std::cerr << "[TRAINING] Getting feature vector failed." << std::endl;
+        catch (const std::exception& e) {
+            std::cerr << "[TRAINING] Getting feature vector failed with the following exception. " << e.what() << std::endl;
             throw std::runtime_error("[TRAINING] Getting feature vector failed.");
         }
     };

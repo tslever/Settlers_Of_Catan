@@ -21,6 +21,9 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeu
 		std::vector<std::string> vectorOfOccupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
 		availableMoves = getVectorOfKeysOfAvailableEdges(vectorOfOccupiedEdges);
 	}
+	else if (node->moveType == "turn") {
+		throw std::runtime_error("Expanding node with move type turn is not implemented yet.");
+	}
 	// Create a child node for each available move.
 	for (const auto& move : availableMoves) {
 		if (node->children.find(move) != node->children.end()) {
@@ -42,6 +45,9 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeu
 				auto eval = neuralNet.evaluateRoadFromEdge(labelOfVertexOfLastBuilding, move);
 				prior = eval.second;
 			}
+		}
+		else if (node->moveType == "turn") {
+			throw std::runtime_error("Expanding node with move type turn is not implemented yet.");
 		}
 		child->P = prior;
 		node->children[move] = child;
