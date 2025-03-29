@@ -12,60 +12,6 @@
 */
 
 
-// TODO: Use solely Monte Carlo Tree Search and/or neural network to determine best edge.
-std::string getBestEdgeKeyAdjacentTo(const std::string& labelOfVertexOfLastBuilding, WrapperOfNeuralNetwork& neuralNet) {
-	crow::json::rvalue boardGeometry = readBoardGeometry();
-	crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometry["edges"];
-
-	const double marginOfError = 1e-2;
-	std::vector<crow::json::rvalue> adjacentEdges;
-	Board board;
-
-	// Populate vector of adjacent edges.
-	for (const auto& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
-		double x1 = jsonObjectOfEdgeInformation["x1"].d();
-		double y1 = jsonObjectOfEdgeInformation["y1"].d();
-		double x2 = jsonObjectOfEdgeInformation["x2"].d();
-		double y2 = jsonObjectOfEdgeInformation["y2"].d();
-		std::string labelOfFirstVertex = board.getVertexLabelByCoordinates(x1, y1);
-		std::string labelOfSecondVertex = board.getVertexLabelByCoordinates(x2, y2);
-		if (labelOfFirstVertex == labelOfVertexOfLastBuilding || labelOfSecondVertex == labelOfVertexOfLastBuilding) {
-			adjacentEdges.push_back(jsonObjectOfEdgeInformation);
-		}
-	}
-	if (adjacentEdges.empty()) {
-		throw std::runtime_error("No adjacent edges were found for placing road.");
-	}
-
-	double bestScore = -std::numeric_limits<double>::infinity();
-	std::string bestEdge;
-	// Evaluate each adjacent edge by checking the policy score of the vertex opposite the last building.
-	for (const auto& edge : adjacentEdges) {
-		double x1 = edge["x1"].d();
-		double y1 = edge["y1"].d();
-		double x2 = edge["x2"].d();
-		double y2 = edge["y2"].d();
-		std::string labelOfFirstVertex = board.getVertexLabelByCoordinates(x1, y1);
-		std::string labelOfSecondVertex = board.getVertexLabelByCoordinates(x2, y2);
-		std::string labelOfVertexWithoutLastBuilding = (labelOfFirstVertex == labelOfVertexOfLastBuilding) ? labelOfSecondVertex : labelOfFirstVertex;
-		auto eval = neuralNet.evaluateBuildingFromVertex(labelOfVertexWithoutLastBuilding);
-		double score = eval.second; // Use policy score as selection criterion.
-		if (score > bestScore) {
-			bestScore = score;
-			char buf[50];
-			if ((x1 < x2) || (std::abs(x1 - x2) < marginOfError && y1 <= y2)) {
-				std::snprintf(buf, sizeof(buf), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
-			}
-			else {
-				std::snprintf(buf, sizeof(buf), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
-			}
-			bestEdge = std::string(buf);
-		}
-	}
-	return bestEdge;
-}
-
-
 // Class PhaseState is a base abstract class that represents a phase handler / state.
 class PhaseState {
 public:
@@ -96,26 +42,16 @@ public:
 	) override {
 		crow::json::wvalue result;
 
-		// Get the up-to-date list of occupied vertices from the database.
-		std::vector<std::string> listOfLabelsOfOccupiedVertices = getOccupiedVertices(db);
-
-		// Determine which vertices are available (not occupied and not adjacent to any occupied vertex).
-		auto vectorOfLabelsOfAvailableVertices = getAvailableVertices(listOfLabelsOfOccupiedVertices);
-		if (vectorOfLabelsOfAvailableVertices.empty()) {
-			throw std::runtime_error("No vertices are available for placing settlement.");
-		}
-
-		int currentPlayer = state.currentPlayer;
 		auto mctsResult = runMcts(state, db, neuralNet, numberOfSimulations, cPuct, tolerance);
 		if (mctsResult.first.empty()) {
 			throw std::runtime_error("MCTS failed to determine a move.");
 		}
+
+		int currentPlayer = state.currentPlayer;
 		std::string chosenVertex = mctsResult.first;
 		state.placeSettlement(currentPlayer, chosenVertex);
 
-		// Transition to road phase.
 		state.phase = Phase::TO_PLACE_FIRST_ROAD;
-		// Persist settlement in database.
 		int settlementId = db.addSettlement(currentPlayer, chosenVertex);
 
 		result["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + chosenVertex + ".";
@@ -125,6 +61,7 @@ public:
 		settlementJson["player"] = currentPlayer;
 		settlementJson["vertex"] = chosenVertex;
 		result["settlement"] = std::move(settlementJson);
+
 		return result;
 	}
 };
@@ -145,31 +82,34 @@ public:
 	) override {
 		crow::json::wvalue result;
 
-		if (state.lastBuilding.empty()) {
-			throw std::runtime_error("No last building was set for road placement.");
+		auto mctsResult = runMcts(state, db, neuralNet, numberOfSimulations, cPuct, tolerance);
+		if (mctsResult.first.empty()) {
+			throw std::runtime_error("MCTS failed to determine a move.");
 		}
-		std::string chosenEdge = getBestEdgeKeyAdjacentTo(state.lastBuilding, neuralNet);
 
-		int player = state.currentPlayer;
-		state.placeRoad(player, chosenEdge);
+		int currentPlayer = state.currentPlayer;
+		std::string keyOfChosenEdge = mctsResult.first;
+		state.placeRoad(currentPlayer, keyOfChosenEdge);
 		state.lastBuilding = "";
+
 		// For players 1 and 2, move to next settlement; for player 3, transition to city.
-		if (player < 3) {
-			state.currentPlayer = player + 1;
+		if (currentPlayer < 3) {
+			state.currentPlayer = currentPlayer + 1;
 			state.phase = Phase::TO_PLACE_FIRST_SETTLEMENT;
 		}
 		else {
 			state.phase = Phase::TO_PLACE_FIRST_CITY;
 		}
-		int roadId = db.addRoad(player, chosenEdge);
+		int roadId = db.addRoad(currentPlayer, keyOfChosenEdge);
 
-		result["message"] = "Player " + std::to_string(player) + " placed a road at " + chosenEdge + ".";
+		result["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + keyOfChosenEdge + ".";
 		result["moveType"] = "road";
 		crow::json::wvalue roadJson;
 		roadJson["id"] = roadId;
-		roadJson["player"] = player;
-		roadJson["edge"] = chosenEdge;
+		roadJson["player"] = currentPlayer;
+		roadJson["edge"] = keyOfChosenEdge;
 		result["road"] = std::move(roadJson);
+
 		return result;
 	}
 };
@@ -240,13 +180,14 @@ public:
 	) override {
 		crow::json::wvalue result;
 
-		if (state.lastBuilding.empty()) {
-			throw std::runtime_error("No last building was set for road placement.");
+		auto mctsResult = runMcts(state, db, neuralNet, numberOfSimulations, cPuct, tolerance);
+		if (mctsResult.first.empty()) {
+			throw std::runtime_error("MCTS failed to determine a move.");
 		}
-		std::string chosenEdge = getBestEdgeKeyAdjacentTo(state.lastBuilding, neuralNet);
 
 		int player = state.currentPlayer;
-		state.placeRoad(player, chosenEdge);
+		std::string keyOfChosenEdge = mctsResult.first;
+		state.placeRoad(player, keyOfChosenEdge);
 		state.lastBuilding = "";
 		/* Transition logic:
 		* If player number is greater than 1, decrement player number and reset phase for city.
@@ -259,14 +200,14 @@ public:
 		else {
 			state.phase = Phase::TURN;
 		}
-		int roadId = db.addRoad(player, chosenEdge);
+		int roadId = db.addRoad(player, keyOfChosenEdge);
 
-		result["message"] = "Player " + std::to_string(player) + " placed a road at " + chosenEdge + ".";
+		result["message"] = "Player " + std::to_string(player) + " placed a road at " + keyOfChosenEdge + ".";
 		result["moveType"] = "road";
 		crow::json::wvalue roadJson;
 		roadJson["id"] = roadId;
 		roadJson["player"] = player;
-		roadJson["edge"] = chosenEdge;
+		roadJson["edge"] = keyOfChosenEdge;
 		result["road"] = std::move(roadJson);
 		return result;
 	}

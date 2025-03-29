@@ -19,7 +19,7 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNe
 	}
 	else if (node->moveType == "road") {
 		std::vector<std::string> vectorOfOccupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
-		availableMoves = getVectorOfKeysOfAvailableEdges(vectorOfOccupiedEdges);
+		availableMoves = getVectorOfKeysOfAvailableEdges(node->gameState.lastBuilding, vectorOfOccupiedEdges);
 	}
 	else if (node->moveType == "turn") {
 		throw std::runtime_error("Expanding node with move type turn is not implemented yet.");
@@ -34,17 +34,12 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNe
 		double prior = 0.5;
 
 		// Call the appropriate neural network evaluation depending on move type.
-		if (node->moveType == "settlement" || node->moveType == "city") {
-			auto eval = neuralNet.evaluateBuildingFromVertex(move);
+		if (node->moveType == "settlement" || node->moveType == "road" || node->moveType == "city") {
+			Board board;
+			std::vector<float> featureVector = board.getFeatureVector(move);
+			auto eval = neuralNet.evaluateStructure(featureVector);
 			// Use the network's policy output as the prior probability.
 			prior = eval.second;
-		}
-		else if (node->moveType == "road") {
-			std::string labelOfVertexOfLastBuilding = (node->parent.lock() ? node->parent.lock()->move : "");
-			if (!labelOfVertexOfLastBuilding.empty()) {
-				auto eval = neuralNet.evaluateRoadFromEdge(labelOfVertexOfLastBuilding, move);
-				prior = eval.second;
-			}
 		}
 		else if (node->moveType == "turn") {
 			throw std::runtime_error("Expanding node with move type turn is not implemented yet.");

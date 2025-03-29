@@ -278,31 +278,35 @@ std::vector<std::string> getOccupiedVertices(Database& db) {
 }
 
 
-/* Function `getVectorOfKeysOfAvailableEdges` computes available edges on which a road may be placed
-* based on board geometry and current state.
-*/
-std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::vector<std::string> vectorOfKeysOfOccupiedEdges) {
+// Function `getVectorOfKeysOfAvailableEdges` computes available edges on which a road may be placed.
+std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::string labelOfVertexOfLastBuilding, std::vector<std::string> vectorOfKeysOfOccupiedEdges) {
 	crow::json::rvalue boardGeometry = readBoardGeometry();
 	crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometry["edges"];
+
 	std::vector<std::string> vectorOfKeysOfAvailableEdges;
-	const double marginOfError = 1e-2;
-	for (size_t i = 0; i < jsonArrayOfEdgeInformation.size(); i++) {
-		crow::json::rvalue jsonObjectOfEdgeInformation = jsonArrayOfEdgeInformation[i];
+	Board board;
+	int marginOfError = 1e-2;
+	for (const auto& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
 		double x1 = jsonObjectOfEdgeInformation["x1"].d();
 		double y1 = jsonObjectOfEdgeInformation["y1"].d();
 		double x2 = jsonObjectOfEdgeInformation["x2"].d();
 		double y2 = jsonObjectOfEdgeInformation["y2"].d();
-		char bufferRepresentingEdgeKey[50];
-		if ((x1 < x2) || (std::abs(x1 - x2) < marginOfError && y1 <= y2)) {
-			std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
-		}
-		else {
-			std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
-		}
-		std::string edgeKey(bufferRepresentingEdgeKey);
-		if (std::find(vectorOfKeysOfOccupiedEdges.begin(), vectorOfKeysOfOccupiedEdges.end(), edgeKey) == vectorOfKeysOfOccupiedEdges.end()) {
+		std::string labelOfFirstVertex = board.getVertexLabelByCoordinates(x1, y1);
+		std::string labelOfSecondVertex = board.getVertexLabelByCoordinates(x2, y2);
+		if (labelOfFirstVertex == labelOfVertexOfLastBuilding || labelOfSecondVertex == labelOfVertexOfLastBuilding) {
+			char bufferRepresentingEdgeKey[50];
+			if ((x1 < x2) || (std::abs(x1 - x2) < marginOfError && y1 <= y2)) {
+				std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
+			}
+			else {
+				std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
+			}
+			std::string edgeKey = std::string(bufferRepresentingEdgeKey);
 			vectorOfKeysOfAvailableEdges.push_back(edgeKey);
 		}
+	}
+	if (vectorOfKeysOfAvailableEdges.empty()) {
+		throw std::runtime_error("No adjacent edges were found for placing road.");
 	}
 	return vectorOfKeysOfAvailableEdges;
 }

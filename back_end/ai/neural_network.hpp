@@ -58,13 +58,12 @@ struct NeuralNetworkImpl : torch::nn::Module {
         fc_value = register_module("fc_value", torch::nn::Linear(hidden_dim, 1)); // value head
     }
 
-    // Forward pass: Compute activations and return vector of value and policy.
-    std::vector<torch::Tensor> forward(torch::Tensor x) const {
-        x = torch::relu(fc1->forward(x));
-        x = torch::relu(fc2->forward(x));
-        auto value = torch::tanh(fc_value->forward(x));
-        auto policy = torch::sigmoid(fc_policy->forward(x));
-        return { value, policy };
+    std::vector<torch::Tensor> forward(torch::Tensor inputTensorForBatch) const {
+        torch::Tensor outputOfLayer1 = torch::relu(fc1->forward(inputTensorForBatch));
+        torch::Tensor outputOfLayer2 = torch::relu(fc2->forward(outputOfLayer1));
+        torch::Tensor tensorOfPredictedValues = torch::tanh(fc_value->forward(outputOfLayer2));
+        auto tensorOfPredictedPolicies = torch::sigmoid(fc_policy->forward(outputOfLayer2));
+        return { tensorOfPredictedValues, tensorOfPredictedPolicies };
     }
 };
 
@@ -82,7 +81,7 @@ private:
     std::filesystem::file_time_type lastWriteTime;
     torch::Device device;
 public:
-    NeuralNetwork model = nullptr;
+    NeuralNetwork neuralNetwork = nullptr;
     std::string modelPath;
     Board board;
 
@@ -90,12 +89,12 @@ public:
         const int64_t inputDim = 5;
         const int64_t hiddenDim = 128;
         
-        model = NeuralNetwork(inputDim, hiddenDim);
-        model->eval();
+        neuralNetwork = NeuralNetwork(inputDim, hiddenDim);
+        neuralNetwork->eval();
 
         if (!std::filesystem::exists(modelPath)) {
             std::clog << "[WARNING] Model file was not found at " << modelPath << "." << std::endl;
-            torch::autograd::variable_list variableListOfParameters = model->parameters();
+            torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
             try {
                 torch::save(variableListOfParameters, modelPath);
                 std::clog << "[INFO] Default model parameters were saved to " << modelPath << "." << std::endl;
@@ -110,12 +109,12 @@ public:
             bool cudaIsAvailable = torch::cuda::is_available();
             std::clog << "[INFO] CUDA " << (cudaIsAvailable ? "is" : "is not") << " available." << std::endl;
             device = cudaIsAvailable ? torch::kCUDA : torch::kCPU;
-            model->to(device);
+            neuralNetwork->to(device);
 
             // Load the parameters from file.
             std::vector<torch::Tensor> vectorOfParameters;
             torch::load(vectorOfParameters, modelPath);
-            torch::autograd::variable_list variableListOfParameters = model->parameters();
+            torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
             if (variableListOfParameters.size() != vectorOfParameters.size()) {
                 std::cerr <<
                     "[ERROR] Numbers of parameters are mismatched. " <<
@@ -141,39 +140,10 @@ public:
     std::pair<double, double> evaluateStructure(const std::vector<float>& features) {
         torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
         torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
-        auto output = model->forward(input);
+        auto output = neuralNetwork->forward(input);
         double value = output[0].item<double>();
         double policy = output[1].item<double>();
         return { value, policy };
-    }
-
-    // TODO: Evaluate both buildings and roads based on feature vector and avoid evaluating roads as idiosyncratically as presently.
-    std::pair<double, double> evaluateBuildingFromVertex(const std::string& labelOfVertex) {
-        std::vector<float> featureVector = board.getFeatureVector(labelOfVertex);
-        return evaluateStructure(featureVector);
-    }
-
-    std::pair<double, double> evaluateRoadFromEdge(const std::string& labelOfVertexOfLastBuilding, const std::string& edgeKey) {
-        float x1;
-        float y1;
-        float x2;
-        float y2;
-        if (sscanf_s(edgeKey.c_str(), "%f-%f_%f-%f", &x1, &y1, &x2, &y2) != 4) {
-            throw std::runtime_error("Edge key " + edgeKey + " has invalid format.");
-        }
-        std::string labelOfFirstVertex = board.getVertexLabelByCoordinates(x1, y1);
-        std::string labelOfSecondVertex = board.getVertexLabelByCoordinates(x2, y2);
-        std::string labelOfVertexWithoutLastBuilding;
-        if (labelOfFirstVertex == labelOfVertexOfLastBuilding) {
-            labelOfVertexWithoutLastBuilding = labelOfSecondVertex;
-        }
-        else if (labelOfSecondVertex == labelOfVertexOfLastBuilding) {
-            labelOfVertexWithoutLastBuilding = labelOfFirstVertex;
-        }
-        if (labelOfVertexWithoutLastBuilding.empty()) {
-            throw std::runtime_error("Label of vertex without last building cannot be determined.");
-        }
-        return evaluateBuildingFromVertex(labelOfVertexWithoutLastBuilding);
     }
 
     void reloadIfUpdated() {
@@ -182,7 +152,7 @@ public:
             if (currentWriteTime > lastWriteTime) {
                 std::vector<torch::Tensor> vectorOfParameters;
                 torch::load(vectorOfParameters, modelPath);
-                torch::autograd::variable_list variableListOfParameters = model->parameters();
+                torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
                 if (variableListOfParameters.size() != vectorOfParameters.size()) {
                     std::cerr << "[ERROR] Numbers of parameters were mismatched during reload." << std::endl;
                     throw std::runtime_error("Numbers of parameters were mismatched during reload.");
