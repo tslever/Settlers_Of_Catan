@@ -40,14 +40,18 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\nvJitLink_120_0.dll" "$(Ou
 // Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include\torch\csrc\api\include;`.
 
 
-struct SettlersPolicyValueNetImpl : torch::nn::Module {
+/* `struct` `NeuralNetworkImpl` is a concrete implementation of neural network that defines network,
+* including architecture and forward pass.
+* The name `NeuralNetworkImpl` is required by macro `TORCH_MODULE`.
+*/
+struct NeuralNetworkImpl : torch::nn::Module {
     // Mark submodules as mutable so they can be used in a const forward function.
     mutable torch::nn::Linear fc1{ nullptr };
     mutable torch::nn::Linear fc2{ nullptr };
     mutable torch::nn::Linear fc_policy{ nullptr };
     mutable torch::nn::Linear fc_value{ nullptr };
 
-    SettlersPolicyValueNetImpl(int64_t input_dim, int64_t hidden_dim) {
+    NeuralNetworkImpl(int64_t input_dim, int64_t hidden_dim) {
         fc1 = register_module("fc1", torch::nn::Linear(input_dim, hidden_dim));
         fc2 = register_module("fc2", torch::nn::Linear(hidden_dim, hidden_dim));
         fc_policy = register_module("fc_policy", torch::nn::Linear(hidden_dim, 1)); // policy head
@@ -64,22 +68,29 @@ struct SettlersPolicyValueNetImpl : torch::nn::Module {
     }
 };
 
-TORCH_MODULE(SettlersPolicyValueNet);
+/* Class `NeuralNetwork` is a template for a wrapper that holds a shared pointer to `NeuralNetworkImpl` and
+* simplifies use of `NeuralNetworkImpl` with libtorch's module system.
+*/
+TORCH_MODULE(NeuralNetwork);
 
-class SettlersNeuralNet {
+/* Class `WrapperOfNeuralNetwork` is a template for a wrapper of an instance of `NeuralNetwork` that
+* - handles network lifecycle by managing saving and loading model parameters from a file and handling device assignment, and
+* - handles domain specific evaluation by providing helper methods to perform inference given game specific features. 
+*/
+class WrapperOfNeuralNetwork {
 private:
     std::filesystem::file_time_type lastWriteTime;
     torch::Device device;
 public:
-    SettlersPolicyValueNet model = nullptr;
+    NeuralNetwork model = nullptr;
     std::string modelPath;
     Board board;
 
-    SettlersNeuralNet(const std::string& modelPath) : modelPath(modelPath), device(torch::kCPU), board() {
+    WrapperOfNeuralNetwork(const std::string& modelPath) : modelPath(modelPath), device(torch::kCPU), board() {
         const int64_t inputDim = 5;
         const int64_t hiddenDim = 128;
         
-        model = SettlersPolicyValueNet(inputDim, hiddenDim);
+        model = NeuralNetwork(inputDim, hiddenDim);
         model->eval();
 
         if (!std::filesystem::exists(modelPath)) {

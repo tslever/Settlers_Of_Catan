@@ -45,7 +45,7 @@ void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double mixingWeight, 
 std::pair<std::string, int> runMcts(
 	GameState& currentState,
 	Database& db,
-	SettlersNeuralNet& neuralNet,
+	WrapperOfNeuralNetwork& neuralNet,
 	int numberOfSimulations,
 	double cPuct,
 	double tolerance

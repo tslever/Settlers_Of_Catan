@@ -13,7 +13,7 @@
 
 
 // TODO: Use solely Monte Carlo Tree Search and/or neural network to determine best edge.
-std::string getBestEdgeKeyAdjacentTo(const std::string& labelOfVertexOfLastBuilding, SettlersNeuralNet& neuralNet) {
+std::string getBestEdgeKeyAdjacentTo(const std::string& labelOfVertexOfLastBuilding, WrapperOfNeuralNetwork& neuralNet) {
 	crow::json::rvalue boardGeometry = readBoardGeometry();
 	crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometry["edges"];
 
@@ -73,7 +73,7 @@ public:
 	virtual crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		SettlersNeuralNet& neuralNet,
+		WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -89,7 +89,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		SettlersNeuralNet& neuralNet,
+		WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -138,7 +138,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		SettlersNeuralNet& neuralNet,
+		WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -183,7 +183,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		SettlersNeuralNet& neuralNet,
+		WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -233,7 +233,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		SettlersNeuralNet& neuralNet,
+		WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -279,7 +279,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		SettlersNeuralNet& neuralNet,
+		WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -311,7 +311,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		SettlersNeuralNet& neuralNet,
+		WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance

@@ -10,7 +10,7 @@
 /* Function `expandNode`, for each move determined to be available by board geometry and current state,
 * creates a child node and sets its prior probability based on the move type.
 */
-void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, SettlersNeuralNet& neuralNet) {
+void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNeuralNetwork& neuralNet) {
 	// Determine available moves based on the type of move.
 	std::vector<std::string> availableMoves;
 	if (node->moveType == "settlement" || node->moveType == "city") {

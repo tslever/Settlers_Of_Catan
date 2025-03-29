@@ -1,7 +1,7 @@
 #pragma once
 
 
-void trainNeuralNetworkIfNeeded(const std::vector<TrainingExample>& vectorOfTrainingExamples, SettlersNeuralNet* neuralNet) {
+void trainNeuralNetwork(const std::vector<TrainingExample>& vectorOfTrainingExamples, WrapperOfNeuralNetwork* neuralNet) {
     std::clog << "[TRAINING] Neural network will be trained on " << vectorOfTrainingExamples.size() << " examples." << std::endl;
     Board board;
 

@@ -53,7 +53,7 @@ void updatePhase(GameState& gameState) {
 * until the game reaches the turn phase when setup is complete.
 */
 std::vector<TrainingExample> runSelfPlayGame(
-    SettlersNeuralNet& neuralNet,
+    WrapperOfNeuralNetwork& neuralNet,
     Database& db,
     int numberOfSimulations,
     double cPuct,
