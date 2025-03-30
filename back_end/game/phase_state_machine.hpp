@@ -134,7 +134,8 @@ public:
 		std::vector<std::string> listOfLabelsOfOccupiedVertices = getOccupiedVertices(db);
 
 		// Determine which vertices are available (not occupied and not adjacent to any occupied vertex).
-		auto vectorOfLabelsOfAvailableVertices = getAvailableVertices(listOfLabelsOfOccupiedVertices);
+		Board board;
+		auto vectorOfLabelsOfAvailableVertices = board.getAvailableVertices(listOfLabelsOfOccupiedVertices);
 		if (vectorOfLabelsOfAvailableVertices.empty()) {
 			throw std::runtime_error("No vertices are available for placing settlement.");
 		}

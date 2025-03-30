@@ -49,15 +49,15 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNe
 	std::vector<std::string> availableMoves;
 	if (node->gameState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
 		std::vector<std::string> occupiedVertices = getOccupiedVertices(db);
-		availableMoves = getAvailableVertices(occupiedVertices);
+		availableMoves = board.getAvailableVertices(occupiedVertices);
 	}
 	else if (node->gameState.phase == Phase::TO_PLACE_FIRST_ROAD || node->gameState.phase == Phase::TO_PLACE_SECOND_ROAD) {
 		std::vector<std::string> occupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
-		availableMoves = getVectorOfKeysOfAvailableEdges(node->gameState.lastBuilding, occupiedEdges);
+		availableMoves = board.getVectorOfKeysOfAvailableEdges(node->gameState.lastBuilding, occupiedEdges);
 	}
 	else if (node->gameState.phase == Phase::TO_PLACE_FIRST_CITY) {
 		std::vector<std::string> occupiedVertices = getOccupiedVertices(db);
-		availableMoves = getAvailableVertices(occupiedVertices);
+		availableMoves = board.getAvailableVertices(occupiedVertices);
 	}
 	else if (node->gameState.phase == Phase::TURN) {
 		if (node->children.find("pass") == node->children.end()) {
@@ -85,7 +85,7 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNe
 		}
 		std::vector<std::string> occupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
 		for (const std::string& endpoint : unorderedSetOfLabelsOfEndpoints) {
-			std::vector<std::string> edgeMoves = getVectorOfKeysOfAvailableEdges(endpoint, occupiedEdges);
+			std::vector<std::string> edgeMoves = board.getVectorOfKeysOfAvailableEdges(endpoint, occupiedEdges);
 			for (const std::string& edgeKey : edgeMoves) {
 				if (node->children.find(edgeKey) == node->children.end()) {
 					GameState childState = node->gameState;
@@ -99,7 +99,7 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNe
 			}
 		}
 		std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getOccupiedVertices(db);
-		std::vector<std::string> candidateVertices = getAvailableVertices(vectorOfLabelsOfOccupiedVertices);
+		std::vector<std::string> candidateVertices = board.getAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 		std::unordered_map<std::string, int> mapOfLabelsOfVerticesAndNumbersOfRoads;
 		for (const std::string& edgeKey : node->gameState.roads[currentPlayer]) {
 			std::pair<std::string, std::string> pairOfLabelsOfEndpoints = parseEdgeEndpoints(board, edgeKey);
