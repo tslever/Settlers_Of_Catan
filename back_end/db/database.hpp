@@ -22,6 +22,7 @@ public:
     std::string host;
 	std::string password;
 	unsigned int port;
+    mysqlx::Session session;
 	std::string username;
 
     Database(
@@ -30,14 +31,18 @@ public:
         const std::string& password,
         unsigned int port,
         const std::string& username
-	) : dbName(dbName), host(host), password(password), port(port), username(username)
+    ) : dbName(dbName),
+        host(host),
+        password(password),
+        port(port),
+        username(username),
+        session(host, port, username, password, dbName)
     {
         // TODO: Consider setting additional session options if appropriate.
     }
 
     void initialize() {
         try {
-            mysqlx::Session session(host, port, username, password, dbName);
 			mysqlx::Schema schema = session.getSchema(dbName);
 
             session.sql(
@@ -70,15 +75,12 @@ public:
             ).execute();
         }
         catch (const mysqlx::Error& err) {
-            // TODO: Ensure that this is the appropriate error.
             std::cerr << "The following error occurred while the database was being initialized." << err.what() << std::endl;
-            throw; // Rethrow to allow caller to handle the error.
+            throw;
         }
     }
 
     int addCity(int player, const std::string& vertex) {
-        // Create a new session and insert a city record.
-        mysqlx::Session session(host, port, username, password, dbName);
         mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("cities");
         table.insert("player", "vertex").values(player, vertex).execute();
@@ -95,8 +97,6 @@ public:
     }
 
     int addSettlement(int player, const std::string& vertex) {
-        // Create a new session and insert a settlement record.
-		mysqlx::Session session(host, port, username, password, dbName);
 		mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("settlements");
         table.insert("player", "vertex").values(player, vertex).execute();
@@ -113,8 +113,6 @@ public:
     }
 
     int addRoad(int player, const std::string& edge) {
-		// Create a new session and insert a road record.
-        mysqlx::Session session(host, port, username, password, dbName);
 		mysqlx::Schema schema = session.getSchema(dbName);
 		mysqlx::Table table = schema.getTable("roads");
 		table.insert("player", "edge").values(player, edge).execute();
@@ -132,7 +130,6 @@ public:
 
     std::vector<City> getCities() {
         std::vector<City> cities;
-		mysqlx::Session session(host, port, username, password, dbName);
 		mysqlx::Schema schema = session.getSchema(dbName);
 		mysqlx::Table table = schema.getTable("cities");
 		mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
@@ -169,7 +166,6 @@ public:
     */
     GameState getGameState() {
         GameState gameState;
-        mysqlx::Session session(host, port, username, password, dbName);
         mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("state");
         mysqlx::RowResult rowResult = table.select("current_player", "phase", "last_building").where("id = 1").execute();
