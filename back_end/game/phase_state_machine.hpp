@@ -227,8 +227,45 @@ public:
 	) override {
 		crow::json::wvalue result;
 		int player = state.currentPlayer;
-		result["message"] = "Player " + std::to_string(player) + " is taking their turn.";
-		result["moveType"] = "turn";
+		auto mctsResult = runMcts(state, db, neuralNet, numberOfSimulations, cPuct, tolerance);
+		if (mctsResult.first.empty()) {
+			throw std::runtime_error("MCTS did not return a valid move.");
+		}
+		std::string move = mctsResult.first;
+		// Interpret move.
+		if (move == "pass") {
+			// Player passes turn.
+			// Update to next player.
+			result["message"] = "Player " + std::to_string(player) + " passed their turn.";
+			result["moveType"] = "pass";
+			state.currentPlayer = (player % 3) + 1;
+		}
+		else if (move.find('-') != std::string::npos && move.find('_') != std::string::npos) {
+			// Move string format with '-' and '_' indicates a road.
+			state.placeRoad(player, move);
+			result["message"] = "Player " + std::to_string(player) + " placed a road at " + move + ".";
+			result["moveType"] = "road";
+			int roadId = db.addRoad(player, move);
+			crow::json::wvalue roadJson;
+			roadJson["id"] = roadId;
+			roadJson["player"] = player;
+			roadJson["edge"] = move;
+			result["road"] = std::move(roadJson);
+		}
+		else {
+			// Assume a settlement is being placed.
+			state.placeSettlement(player, move);
+			result["message"] = "Player " + std::to_string(player) + " placed a settlement at " + move + ".";
+			result["moveType"] = "settlement";
+			int settlementId = db.addSettlement(player, move);
+			crow::json::wvalue settlementJson;
+			settlementJson["id"] = settlementId;
+			settlementJson["player"] = player;
+			settlementJson["vertex"] = move;
+			result["settlement"] = std::move(settlementJson);
+		}
+		state.currentPlayer = (player % 3) + 1;
+		state.phase = Phase::TURN;
 		return result;
 	}
 };

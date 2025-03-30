@@ -7,6 +7,17 @@ std::shared_ptr<MCTSNode> selectChild(
 	double c_puct = 1.0,
 	double tolerance = 1e-6
 ) {
+	auto parent = node->parent.lock();
+	if (parent) {
+		std::clog << "Selecting node N" << node->index
+			<< " (result of move \"" << node->move
+			<< "\" of type \"" << node->moveType << "\") with parent N"
+			<< parent->index << std::endl;
+	}
+	else {
+		std::clog << "Selecting root node N" << node->index
+			<< " (initial game state)" << std::endl;
+	}
 	double bestScore = -std::numeric_limits<double>::infinity();
 	std::vector<std::shared_ptr<MCTSNode>> bestCandidates;
 	for (const auto& pair : node->children) {

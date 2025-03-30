@@ -41,59 +41,101 @@ public:
         roads[3] = {};
     }
 
-    // Add a settlement for the given player at the specified vertex.
+    // TODO: Consider replacing function `updatePhase` by using the existing phase state machine.
+    void updatePhase() {
+        if (phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+            phase = Phase::TO_PLACE_FIRST_ROAD;
+        }
+        else if (phase == Phase::TO_PLACE_FIRST_ROAD) {
+            if (currentPlayer < 3) {
+                currentPlayer++;
+                phase = Phase::TO_PLACE_FIRST_SETTLEMENT;
+            }
+            else {
+                phase = Phase::TO_PLACE_FIRST_CITY;
+            }
+        }
+        else if (phase == Phase::TO_PLACE_FIRST_CITY) {
+            phase = Phase::TO_PLACE_SECOND_ROAD;
+        }
+        else if (phase == Phase::TO_PLACE_SECOND_ROAD) {
+            if (currentPlayer > 1) {
+                currentPlayer--;
+                phase = Phase::TO_PLACE_FIRST_CITY;
+            }
+            else {
+                phase = Phase::TURN;
+            }
+        }
+    }
+
+    /* Add a settlement for the given player at the specified vertex.
+    * Transition this game state to the next phase.
+    */
 	void placeSettlement(int player, const std::string& vertex) {
 		settlements[player].push_back(vertex);
 		lastBuilding = vertex;
+        updatePhase();
 	}
 
-    // Add a city for the given player at the specified vertex.
+    /* Add a city for the given player at the specified vertex.
+    * Transition this game state to the next phase.
+    */
     void placeCity(int player, const std::string& vertex) {
         cities[player].push_back(vertex);
         lastBuilding = vertex;
+        updatePhase();
     }
 
     /* Add a road for the given player at the specified edge.
-    * After a road is placed we clear `lastBuilding` so that subsequent moves don't reuse it.
+    * After placing a road, clear `lastBuilding` so that subsequent moves don't reuse it.
+    * Transition this game state to the next phase.
     */
     void placeRoad(int player, const std::string& edge) {
         roads[player].push_back(edge);
         lastBuilding = "";
+        updatePhase();
     }
 
-    // Return a snapshot of the game state as a string.
-    std::string getStateSnapshot() const {
-        std::ostringstream oss;
-        oss << "currentPlayer: " << currentPlayer << "\n";
-        oss << "phase: " << phase << "\n";
-        oss << "lastBuilding: " << lastBuilding << "\n";
+    crow::json::wvalue toJson() const {
+        crow::json::wvalue json;
+        json["currentPlayer"] = currentPlayer;
+        json["phase"] = phase;
+        json["lastBuilding"] = lastBuilding;
 
-        oss << "settlements:\n";
+        crow::json::wvalue settlementsJson(crow::json::type::List);
         for (const auto& pair : settlements) {
-            oss << "  Player " << pair.first << ": ";
-            for (const auto& v : pair.second) {
-                oss << v << " ";
+            crow::json::wvalue arr;
+            int i = 0;
+            for (const auto& vertex : pair.second) {
+                arr[i++] = vertex;
             }
-            oss << "\n";
+            settlementsJson["Player " + std::to_string(pair.first)] = std::move(arr);
         }
+        json["settlements"] = std::move(settlementsJson);
 
-        oss << "cities:\n";
+        crow::json::wvalue citiesJson(crow::json::type::List);
         for (const auto& pair : cities) {
-            oss << "  Player " << pair.first << ": ";
-            for (const auto& v : pair.second) {
-                oss << v << " ";
+            crow::json::wvalue arr;
+            int i = 0;
+            for (const auto& vertex : pair.second) {
+                arr[i++] = vertex;
             }
-            oss << "\n";
+            citiesJson["Player " + std::to_string(pair.first)] = std::move(arr);
         }
+        json["cities"] = std::move(citiesJson);
 
-        oss << "roads:\n";
+        crow::json::wvalue roadsJson(crow::json::type::List);
         for (const auto& pair : roads) {
-            oss << "  Player " << pair.first << ": ";
-            for (const auto& e : pair.second) {
-                oss << e << " ";
+            crow::json::wvalue arr;
+            int i = 0;
+            for (const auto& edge : pair.second) {
+                arr[i++] = edge;
             }
-            oss << "\n";
+            roadsJson["Player " + std::to_string(pair.first)] = std::move(arr);
         }
-        return oss.str();
+        json["roads"] = std::move(roadsJson);
+
+        return json;
     }
 };

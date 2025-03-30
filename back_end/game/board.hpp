@@ -285,7 +285,7 @@ std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::string labelOfVert
 
 	std::vector<std::string> vectorOfKeysOfAvailableEdges;
 	Board board;
-	int marginOfError = 1e-2;
+	double marginOfError = 1e-2;
 	for (const auto& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
 		double x1 = jsonObjectOfEdgeInformation["x1"].d();
 		double y1 = jsonObjectOfEdgeInformation["y1"].d();
@@ -313,6 +313,10 @@ std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::string labelOfVert
 
 
 std::vector<std::string> getVectorOfKeysOfOccupiedEdges(Database& db) {
-	// TODO: Implement.
-	return {};
+	std::vector<std::string> vectorOfKeysOfOccupiedEdges;
+	std::vector<Road> vectorOfRoads = db.getRoads();
+	for (const Road& road : vectorOfRoads) {
+		vectorOfKeysOfOccupiedEdges.push_back(road.edge);
+	}
+	return vectorOfKeysOfOccupiedEdges;
 }

@@ -50,6 +50,10 @@ std::pair<std::string, int> runMcts(
 	double cPuct,
 	double tolerance
 ) {
+	std::clog << "[MCTS] Starting MCTS with " << numberOfSimulations << " simulations." << std::endl;
+
+	MCTSNode::nextIndex = 0;
+
 	// Create root node for current phase.
 	std::string moveType = "";
 	if (currentState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
@@ -69,7 +73,9 @@ std::pair<std::string, int> runMcts(
 	// Initially expand the root based on available moves.
 	expandNode(root, db, neuralNet);
 
-	// Inject Dirichlet noise at the root to encourage exploration.
+	/* Inject Dirichlet noise at the root to encourage exploration
+	* by changing the prior probabilities of the children of the root.
+	*/
 	injectDirichletNoise(root, 0.25, 0.03);
 
 	// Run MCTS simulations.
@@ -79,8 +85,8 @@ std::pair<std::string, int> runMcts(
 		while (!node->isLeaf()) {
 			node = selectChild(node, cPuct, tolerance);
 		}
-		// Expansion: If this leaf node was visited before, expand the node.
-		if (node->N > 0) {
+		// Expansion: If this leaf node was not visited before, expand the node.
+		if (node->N == 0) {
 			expandNode(node, db, neuralNet);
 		}
 		// Simulation: Evaluate the leaf node via by simulating rollout.

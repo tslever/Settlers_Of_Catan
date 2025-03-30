@@ -20,34 +20,6 @@ double computeGameOutcome(const GameState& gameState) {
     return (gameState.currentPlayer == 1) ? 1.0 : -1.0;
 }
 
-// TODO: Consider replacing function `updatePhase` by using the existing phase state machine.
-void updatePhase(GameState& gameState) {
-    if (gameState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
-        gameState.phase = Phase::TO_PLACE_FIRST_ROAD;
-    }
-    else if (gameState.phase == Phase::TO_PLACE_FIRST_ROAD) {
-        if (gameState.currentPlayer < 3) {
-            gameState.currentPlayer++;
-            gameState.phase = Phase::TO_PLACE_FIRST_SETTLEMENT;
-        }
-        else {
-            gameState.phase = Phase::TO_PLACE_FIRST_CITY;
-        }
-    }
-    else if (gameState.phase == Phase::TO_PLACE_FIRST_CITY) {
-        gameState.phase = Phase::TO_PLACE_SECOND_ROAD;
-    }
-    else if (gameState.phase == Phase::TO_PLACE_SECOND_ROAD) {
-        if (gameState.currentPlayer > 1) {
-            gameState.currentPlayer--;
-            gameState.phase = Phase::TO_PLACE_FIRST_CITY;
-        }
-        else {
-            gameState.phase = Phase::TURN;
-        }
-    }
-}
-
 /* Function `runSelfPlayGame` simulates a complete game trajectory
 * by repeatedly using Monte Carlo Tree Search to select a move and by updating the game state
 * until the game reaches the turn phase when setup is complete.
@@ -67,7 +39,7 @@ std::vector<TrainingExample> runSelfPlayGame(
     const int maximumNumberOfSteps = 100;
     while (gameState.phase != Phase::TURN && numberOfStepsCompleted < maximumNumberOfSteps) {
         // We're simulating and in simulation now.
-        // Use MCTS to select the best move for the current phase.
+        // Run MCTS to get the best move for the current phase.
         std::pair<std::string, int> pairOfLabelOfVertexOrEdgeKeyAndVisitCount = runMcts(
             gameState,
             db,
@@ -82,14 +54,14 @@ std::vector<TrainingExample> runSelfPlayGame(
             break;
         }
         int currentPlayer = gameState.currentPlayer;
-        // Update game state based on phase.
-        if (gameState.phase.find("settlement") != std::string::npos) {
+        std::string phaseBefore = gameState.phase;
+        if (phaseBefore.find("settlement") != std::string::npos) {
             gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
         }
-        else if (gameState.phase.find("city") != std::string::npos) {
+        else if (phaseBefore.find("city") != std::string::npos) {
             gameState.placeCity(currentPlayer, labelOfVertexOrEdgeKey);
         }
-        else if (gameState.phase.find("road") != std::string::npos) {
+        else if (phaseBefore.find("road") != std::string::npos) {
             gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
         }
         TrainingExample trainingExample;
@@ -100,7 +72,6 @@ std::vector<TrainingExample> runSelfPlayGame(
         double priorProbabilityOfVisit = static_cast<double>(visitCount) / static_cast<double>(numberOfSimulations);
         trainingExample.policy = priorProbabilityOfVisit;
         vectorOfTrainingExamples.push_back(trainingExample);
-        updatePhase(gameState);
         numberOfStepsCompleted++;
     }
     double gameOutcome = computeGameOutcome(gameState);
