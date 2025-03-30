@@ -129,29 +129,25 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNe
 
 	std::string appliedPhase = node->gameState.phase;
 
+	std::vector<std::vector<float>> batchFeatures;
+	std::vector<std::shared_ptr<MCTSNode>> batchChildren;
 	for (const auto& move : availableMoves) {
 		if (node->children.find(move) != node->children.end()) {
 			continue;
 		}
 		GameState childState = node->gameState;
 		int currentPlayer = childState.currentPlayer;
-		if (appliedPhase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
-			childState.placeSettlement(currentPlayer, move);
-		}
-		else if (appliedPhase == Phase::TO_PLACE_FIRST_ROAD || appliedPhase == Phase::TO_PLACE_SECOND_ROAD) {
-			childState.placeRoad(currentPlayer, move);
-		}
-		else if (appliedPhase == Phase::TO_PLACE_FIRST_CITY) {
-			childState.placeCity(currentPlayer, move);
-		}
 		std::string appliedMoveType;
 		if (appliedPhase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+			childState.placeSettlement(currentPlayer, move);
 			appliedMoveType = "settlement";
 		}
 		else if (appliedPhase == Phase::TO_PLACE_FIRST_ROAD || appliedPhase == Phase::TO_PLACE_SECOND_ROAD) {
+			childState.placeRoad(currentPlayer, move);
 			appliedMoveType = "road";
 		}
 		else if (appliedPhase == Phase::TO_PLACE_FIRST_CITY) {
+			childState.placeCity(currentPlayer, move);
 			appliedMoveType = "city";
 		}
 		else if (appliedPhase == Phase::TURN) {
@@ -159,8 +155,14 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNe
 		}
 		auto child = std::make_shared<MCTSNode>(childState, move, node, appliedMoveType);
 		std::vector<float> featureVector = board.getFeatureVector(move);
-		auto eval = neuralNet.evaluateStructure(featureVector);
-		child->P = eval.second;
+		batchFeatures.push_back(featureVector);
+		batchChildren.push_back(child);
 		node->children[move] = child;
+	}
+	if (!batchFeatures.empty()) {
+		auto batchEvaluations = neuralNet.evaluateStructures(batchFeatures);
+		for (size_t i = 0; i < batchEvaluations.size(); i++) {
+			batchChildren[i]->P = batchEvaluations[i].second;
+		}
 	}
 }

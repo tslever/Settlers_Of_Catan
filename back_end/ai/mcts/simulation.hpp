@@ -20,8 +20,8 @@ double simulateRollout(const std::shared_ptr<MCTSNode>& node, Database& db, Wrap
 	if (node->moveType == "settlement" || node->moveType == "road" || node->moveType == "city") {
 		Board board;
 		std::string move = node->move;
-		std::vector<float> featureVector = board.getFeatureVector(move);
-		auto eval = neuralNet.evaluateStructure(featureVector);
+		std::vector<std::vector<float>> featureVector = { board.getFeatureVector(move) };
+		auto eval = neuralNet.evaluateStructures(featureVector)[0];
 		return eval.first;
 	}
 	else if (node->moveType == "turn") {

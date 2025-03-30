@@ -146,6 +146,25 @@ public:
         return { value, policy };
     }
 
+    std::vector<std::pair<double, double>> evaluateStructures(const std::vector<std::vector<float>>& features) {
+        torch::NoGradGuard noGrad;
+        std::vector<torch::Tensor> tensors;
+        for (const auto& vec : features) {
+            tensors.push_back(torch::tensor(vec, torch::TensorOptions().device(device).dtype(torch::kFloat32)));
+        }
+        torch::Tensor inputTensor = torch::stack(tensors);
+        auto outputs = neuralNetwork->forward(inputTensor);
+        torch::Tensor valuesTensor = outputs[0].cpu().squeeze(1);
+        torch::Tensor policiesTensor = outputs[1].cpu().squeeze(1);
+        std::vector<float> values(valuesTensor.data_ptr<float>(), valuesTensor.data_ptr<float>() + valuesTensor.numel());
+        std::vector<float> policies(policiesTensor.data_ptr<float>(), policiesTensor.data_ptr<float>() + policiesTensor.numel());
+        std::vector<std::pair<double, double>> results;
+        for (size_t i = 0; i < values.size(); i++) {
+            results.push_back({ static_cast<double>(values[i]), static_cast<double>(policies[i]) });
+        }
+        return results;
+    }
+
     void reloadIfUpdated() {
         try {
             auto currentWriteTime = std::filesystem::last_write_time(modelPath);
