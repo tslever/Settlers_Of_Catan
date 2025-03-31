@@ -9,15 +9,15 @@
 
 // TODO: Consider recording additional data such as full game trajectory, move probabilities, and/or everything about the board and structures on the board.
 struct TrainingExample {
+    int player; // player represents player who made move.
     GameState gameState; // `gameState` represents snapshot of game state at time of move.
     std::string move; // move represents label of vertex at which settlement or city is placed or key of edge at which road is placed.
     double value; // value represents target value (e.g., game outcome from perspective of current player).
     double policy; // policy represents target prior probability derived from numbers of visits to nodes that occur during Monte Carlo Tree Search.
 };
 
-double computeGameOutcome(const GameState& gameState) {
-    // TODO: Determine the winner as the player with the greatest sum of all numbers of all pips on all tokens on all hexes adjacent to all buildings of the player. 
-    return (gameState.currentPlayer == 1) ? 1.0 : -1.0;
+double computeGameOutcome(const GameState& gameState) {    
+    return (gameState.currentPlayer == gameState.winner) ? 1.0 : -1.0;
 }
 
 /* Function `runSelfPlayGame` simulates a complete game trajectory
@@ -54,6 +54,7 @@ std::vector<TrainingExample> runSelfPlayGame(
         else if (gameState.phase == Phase::TURN) {
             std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " playing their turn is being simulated." << std::endl;
         }
+        int currentPlayer = gameState.currentPlayer;
         std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = runMcts(
             gameState,
             db,
@@ -67,7 +68,7 @@ std::vector<TrainingExample> runSelfPlayGame(
             std::clog << "[SELF PLAY] MCTS did not return a valid move." << std::endl;
             break;
         }
-        int currentPlayer = gameState.currentPlayer;
+
         std::string phase = gameState.phase;
         if (phase.find("settlement") != std::string::npos) {
             gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
@@ -87,6 +88,7 @@ std::vector<TrainingExample> runSelfPlayGame(
             }
         }
         TrainingExample trainingExample;
+        trainingExample.player = currentPlayer; // Record which player made move.
         trainingExample.gameState = gameState; // snapshot after move
         trainingExample.move = labelOfVertexOrEdgeKey;
         trainingExample.value = 0.0; // temporary dummy value that will be updated once game outcome is known
@@ -96,12 +98,11 @@ std::vector<TrainingExample> runSelfPlayGame(
         vectorOfTrainingExamples.push_back(trainingExample);
         numberOfMovesSimulated++;
     }
-    double gameOutcome = computeGameOutcome(gameState);
     for (auto& trainingExample : vectorOfTrainingExamples) {
-        trainingExample.value = gameOutcome;
+        trainingExample.value = (trainingExample.player == gameState.winner) ? 1.0 : -1.0;
     }
     std::clog <<
         "[SELF PLAY] Game simulation completed in " << numberOfMovesSimulated << " steps " <<
-        "with game outcome " << gameOutcome << " for Player " << gameState.currentPlayer << "." << std::endl;
+        "with winner Player " << gameState.winner << "." << std::endl;
     return vectorOfTrainingExamples;
 }

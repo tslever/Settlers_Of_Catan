@@ -27,9 +27,10 @@ public:
     std::unordered_map<int, std::vector<std::string>> cities;
     std::unordered_map<int, std::vector<std::string>> roads;
     std::string lastBuilding;
+    int winner;
 
     GameState()
-        : currentPlayer(1), phase(Phase::TO_PLACE_FIRST_SETTLEMENT), lastBuilding("")
+        : currentPlayer(1), phase(Phase::TO_PLACE_FIRST_SETTLEMENT), lastBuilding(""), winner(0)
     {
         settlements[1] = {};
         settlements[2] = {};
@@ -69,13 +70,16 @@ public:
             }
         }
         else if (phase == Phase::TURN) {
-            if (currentPlayer < 3) {
-                currentPlayer++;
-                phase = Phase::TURN;
+            for (int i = 1; i <= 3; i++) {
+                int numberOfVictoryPoints = settlements[i].size() + cities[i].size();
+                if (numberOfVictoryPoints >= 5) {
+                    currentPlayer = i;
+                    winner = i;
+                    phase = Phase::DONE;
+                    return;
+                }
             }
-            else {
-                phase = Phase::DONE;
-            }
+            currentPlayer = (currentPlayer % 3) + 1;
         }
     }
 
