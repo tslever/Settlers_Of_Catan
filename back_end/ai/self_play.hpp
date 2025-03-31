@@ -31,16 +31,30 @@ std::vector<TrainingExample> runSelfPlayGame(
     double cPuct,
     double tolerance
 ) {
+    std::clog << "[SELF PLAY GAME] A self play game is running." << std::endl;
     std::vector<TrainingExample> vectorOfTrainingExamples;
     // Initialize game state using default settings, including initial phase `Phase::TO_PLACE_FIRST_SETTLEMENT`.
     GameState gameState;
     // Simulate moves until phase becomes `Phase::TURN`, or up to a maximum number of steps to safeguard against infinite loops.
-    int numberOfStepsCompleted = 0;
+    int numberOfMovesSimulated = 0;
     const int maximumNumberOfSteps = 100;
-    while (gameState.phase != Phase::TURN && numberOfStepsCompleted < maximumNumberOfSteps) {
-        // We're simulating and in simulation now.
-        // Run MCTS to get the best move for the current phase.
-        std::pair<std::string, int> pairOfLabelOfVertexOrEdgeKeyAndVisitCount = runMcts(
+    while (gameState.phase != Phase::DONE && numberOfMovesSimulated < maximumNumberOfSteps) {
+        if (gameState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+            std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first settlement is being simulated." << std::endl;
+        }
+        else if (gameState.phase == Phase::TO_PLACE_FIRST_ROAD) {
+            std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first road is being simulated." << std::endl;
+        }
+        else if (gameState.phase == Phase::TO_PLACE_FIRST_CITY) {
+            std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first city is being simulated." << std::endl;
+        }
+        else if (gameState.phase == Phase::TO_PLACE_SECOND_ROAD) {
+            std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their second road is being simulated." << std::endl;
+        }
+        else if (gameState.phase == Phase::TURN) {
+            std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " playing their turn is being simulated." << std::endl;
+        }
+        std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = runMcts(
             gameState,
             db,
             neuralNet,
@@ -48,38 +62,46 @@ std::vector<TrainingExample> runSelfPlayGame(
             cPuct,
             tolerance
         );
-        std::string labelOfVertexOrEdgeKey = pairOfLabelOfVertexOrEdgeKeyAndVisitCount.first;
+        std::string labelOfVertexOrEdgeKey = pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount.first;
         if (labelOfVertexOrEdgeKey.empty()) {
             std::clog << "[SELF PLAY] MCTS did not return a valid move." << std::endl;
             break;
         }
         int currentPlayer = gameState.currentPlayer;
-        std::string phaseBefore = gameState.phase;
-        if (phaseBefore.find("settlement") != std::string::npos) {
+        std::string phase = gameState.phase;
+        if (phase.find("settlement") != std::string::npos) {
             gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
         }
-        else if (phaseBefore.find("city") != std::string::npos) {
+        else if (phase.find("city") != std::string::npos) {
             gameState.placeCity(currentPlayer, labelOfVertexOrEdgeKey);
         }
-        else if (phaseBefore.find("road") != std::string::npos) {
+        else if (phase.find("road") != std::string::npos) {
             gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
+        }
+        else if (phase == "turn") {
+            if (isLabelOfVertex(labelOfVertexOrEdgeKey)) {
+                gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
+            }
+            else if (isEdgeKey(labelOfVertexOrEdgeKey)) {
+                gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
+            }
         }
         TrainingExample trainingExample;
         trainingExample.gameState = gameState; // snapshot after move
         trainingExample.move = labelOfVertexOrEdgeKey;
         trainingExample.value = 0.0; // temporary dummy value that will be updated once game outcome is known
-        int visitCount = pairOfLabelOfVertexOrEdgeKeyAndVisitCount.second;
+        int visitCount = pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount.second;
         double priorProbabilityOfVisit = static_cast<double>(visitCount) / static_cast<double>(numberOfSimulations);
         trainingExample.policy = priorProbabilityOfVisit;
         vectorOfTrainingExamples.push_back(trainingExample);
-        numberOfStepsCompleted++;
+        numberOfMovesSimulated++;
     }
     double gameOutcome = computeGameOutcome(gameState);
     for (auto& trainingExample : vectorOfTrainingExamples) {
         trainingExample.value = gameOutcome;
     }
     std::clog <<
-        "[SELF PLAY] Game simulation completed in " << numberOfStepsCompleted << " steps " <<
+        "[SELF PLAY] Game simulation completed in " << numberOfMovesSimulated << " steps " <<
         "with game outcome " << gameOutcome << " for Player " << gameState.currentPlayer << "." << std::endl;
     return vectorOfTrainingExamples;
 }

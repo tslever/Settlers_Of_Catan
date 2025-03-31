@@ -127,7 +127,6 @@ static void trainingLoop(
 	std::vector<TrainingExample> trainingData;
 	while (!stopTraining.load()) {
 		try {
-			// Run one full self play game to generate training examples.
 			auto trainingExamples = runSelfPlayGame(*neuralNet, *db, numberOfSimulations, cPuct, tolerance);
 			trainingData.insert(trainingData.end(), trainingExamples.begin(), trainingExamples.end());
 			std::clog << "[TRAINING] " << trainingData.size() << " training examples were collected." << std::endl;

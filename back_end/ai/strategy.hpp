@@ -50,7 +50,7 @@ std::pair<std::string, int> runMcts(
 	double cPuct,
 	double tolerance
 ) {
-	std::clog << "[MCTS] Starting MCTS with " << numberOfSimulations << " simulations." << std::endl;
+	//std::clog << "        [MCTS] MCTS is being started." << std::endl;
 
 	MCTSNode::nextIndex = 0;
 
@@ -70,33 +70,41 @@ std::pair<std::string, int> runMcts(
 	}
 	std::shared_ptr<MCTSNode> root = std::make_shared<MCTSNode>(currentState, "", nullptr, moveType);
 
-	// Initially expand the root based on available moves.
+	//std::clog << "            [EXPAND ROOT] The root is being expanded." << std::endl;
+	//std::clog << "            [EXPAND ROOT] The following root is being expanded.\n            " << root->toJson().dump() << std::endl;
 	expandNode(root, db, neuralNet);
+	//std::clog << "            [EXPAND ROOT] The root was expanded into the following.\n            " << root->toJson().dump() << std::endl;
 
-	/* Inject Dirichlet noise at the root to encourage exploration
-	* by changing the prior probabilities of the children of the root.
-	*/
+	// Inject Dirichlet noise at the root to encourage exploration by changing the prior probabilities of the children of the root.
 	injectDirichletNoise(root, 0.25, 0.03);
 
-	// Run MCTS simulations.
 	for (int i = 0; i < numberOfSimulations; i++) {
+		//std::clog << "            [MCTS SIMULATION] MCTS simulation " << i + 1 << " of " << numberOfSimulations << " is running." << std::endl;
+		//std::clog << "                [MCTS SIMULATION] Node node is being set to root." << std::endl;
 		std::shared_ptr<MCTSNode> node = root;
-		// Selection: Descend / traverse down the tree until a leaf node is reached.
+		//if (node->isLeaf()) {
+		//	std::clog << "                [SELECT NO NODE] Node node is leaf and will not be reset to a child." << std::endl;
+		//}
 		while (!node->isLeaf()) {
 			node = selectChild(node, cPuct, tolerance);
+			//std::clog << "                [SELECT NODE] Node node was not leaf and was reset to a child." << std::endl;
+			//std::clog << "                [SELECT NODE] Node node was not leaf and was reset to the following child.\n                " << node->toJson().dump() << std::endl;
 		}
-		// Expansion: If this leaf node was not visited before, expand the node.
+		//if (node->N > 0) {
+		//	std::clog << "                [EXPAND NO NODE] Node node was visited before and was not expanded." << std::endl;
+		//}
+		//else {
 		if (node->N == 0) {
 			expandNode(node, db, neuralNet);
+			//std::clog << "                [EXPAND NODE] Node node was not visited before and was expanded." << std::endl;
+			//std::clog << "                [EXPAND NODE] Node node was not visited before and was expanded into the following.\n                " << node->toJson().dump() << std::endl;
 		}
-		// Simulation: Evaluate the leaf node via by simulating rollout.
-		// TODO: Consider extending to multi-step rollouts.
-		double value = simulateRollout(node, db, neuralNet);
-		// Backpropagation: Update statistics up tree / all nodes along path.
+		double value = rollout(node, db, neuralNet);
+		//std::clog << "                [ROLLOUT] The value of node node is " << value << "." << std::endl;
 		backpropagate(node, value);
+		//std::clog << "                [BACKPROPAGATION] Statistics of node node and all parents were updated." << std::endl;
 	}
 
-	// Select the child move with the highest visit count.
 	// TODO: Consider whether selecting moves based on visit count, evaluation scores, and/or other criteria might be better.
 	std::shared_ptr<MCTSNode> bestChild = nullptr;
 	int numberOfVisitsToBestChild = -1;
@@ -108,7 +116,10 @@ std::pair<std::string, int> runMcts(
 		}
 	}
 	if (bestChild) {
+		//std::clog << "            [SELECT BEST CHILD] The best child has move " << bestChild->move << "." << std::endl;
+		//std::clog << "            [SELECT BEST CHILD] The child of the root with the highest visit count is the following.\n" << bestChild->toJson().dump() << std::endl;
 		return { bestChild->move, bestChild->N };
 	}
-	return { "", 0 };
+	throw std::runtime_error("Best child is not defined.");
+	//return { "", 0 };
 }

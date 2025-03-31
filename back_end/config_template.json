@@ -8,7 +8,7 @@
     "dbUsername": "username",
     "modelPath": "ai/neural_network.pt",
     "modelWatcherInterval": 10,
-    "numberOfSimulations": 50,
+    "numberOfSimulations": 5,
     "tolerance": 0.000001,
     "trainingThreshold": 500
 }

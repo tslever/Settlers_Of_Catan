@@ -1,10 +1,10 @@
 #pragma once
 
 
+#include "../../game/board.hpp"
 #include "../../db/database.hpp"
 #include "../neural_network.hpp"
 #include "node.hpp"
-#include "../../game/board.hpp"
 
 
 std::pair<double, double> parseCoordinates(const std::string& stringRepresentingEndpoint) {
@@ -34,135 +34,90 @@ std::pair<std::string, std::string> parseEdgeEndpoints(const Board& board, const
 * creates a child node and sets its prior probability based on the move type.
 */
 void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNeuralNetwork& neuralNet) {
-	auto parent = node->parent.lock();
-	if (parent) {
-		std::clog << "Expanding node N" << node->index
-			<< " (result of move \"" << node->move
-			<< "\" of type \"" << node->moveType << "\") with parent N"
-			<< parent->index << std::endl;
-	}
-	else {
-		std::clog << "Expanding root node N" << node->index
-			<< " (initial game state)" << std::endl;
-	}
 	Board board;
-	std::vector<std::string> availableMoves;
-	if (node->gameState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
-		std::vector<std::string> occupiedVertices = getOccupiedVertices(db);
-		availableMoves = board.getAvailableVertices(occupiedVertices);
+
+	// Create vector of labels of available vertices or keys of available edges.
+	std::vector<std::string> vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges;
+	std::string phase = node->gameState.phase;
+	if (phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+		std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(db);
+		vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 	}
-	else if (node->gameState.phase == Phase::TO_PLACE_FIRST_ROAD || node->gameState.phase == Phase::TO_PLACE_SECOND_ROAD) {
-		std::vector<std::string> occupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
-		availableMoves = board.getVectorOfKeysOfAvailableEdges(node->gameState.lastBuilding, occupiedEdges);
+	else if (phase == Phase::TO_PLACE_FIRST_ROAD || phase == Phase::TO_PLACE_SECOND_ROAD) {
+		std::vector<std::string> vectorOfKeysOfOccupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
+		vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfKeysOfAvailableEdgesExtendingFromLastBuilding(node->gameState.lastBuilding, vectorOfKeysOfOccupiedEdges);
 	}
-	else if (node->gameState.phase == Phase::TO_PLACE_FIRST_CITY) {
-		std::vector<std::string> occupiedVertices = getOccupiedVertices(db);
-		availableMoves = board.getAvailableVertices(occupiedVertices);
+	else if (phase == Phase::TO_PLACE_FIRST_CITY) {
+		std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(db);
+		vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 	}
 	else if (node->gameState.phase == Phase::TURN) {
-		if (node->children.find("pass") == node->children.end()) {
-			GameState childState = node->gameState;
-			auto passChild = std::make_shared<MCTSNode>(childState, "pass", node, "pass");
-			passChild->P = 0.1f;
-			node->children["pass"] = passChild;
-		}
-		int currentPlayer = node->gameState.currentPlayer;
-		std::unordered_set<std::string> unorderedSetOfLabelsOfEndpoints;
-		for (const std::string& labelOfVertexWithSettlement : node->gameState.settlements[currentPlayer]) {
-			unorderedSetOfLabelsOfEndpoints.insert(labelOfVertexWithSettlement);
-		}
-		for (const std::string& labelOfVertexWithCity : node->gameState.cities[currentPlayer]) {
-			unorderedSetOfLabelsOfEndpoints.insert(labelOfVertexWithCity);
-		}
-		for (std::string& edgeKey : node->gameState.roads[currentPlayer]) {
-			std::pair<std::string, std::string> pairOfLabelsOfEndpoints = parseEdgeEndpoints(board, edgeKey);
-			if (!pairOfLabelsOfEndpoints.first.empty()) {
-				unorderedSetOfLabelsOfEndpoints.insert(pairOfLabelsOfEndpoints.first);
-			}
-			if (!pairOfLabelsOfEndpoints.second.empty()) {
-				unorderedSetOfLabelsOfEndpoints.insert(pairOfLabelsOfEndpoints.second);
-			}
-		}
-		std::vector<std::string> occupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
-		for (const std::string& endpoint : unorderedSetOfLabelsOfEndpoints) {
-			std::vector<std::string> edgeMoves = board.getVectorOfKeysOfAvailableEdges(endpoint, occupiedEdges);
-			for (const std::string& edgeKey : edgeMoves) {
-				if (node->children.find(edgeKey) == node->children.end()) {
-					GameState childState = node->gameState;
-					childState.placeRoad(currentPlayer, edgeKey);
-					auto child = std::make_shared<MCTSNode>(childState, edgeKey, node, "road");
-					std::vector<float> featureVector = board.getFeatureVector(edgeKey);
-					auto eval = neuralNet.evaluateStructure(featureVector);
-					child->P = eval.second;
-					node->children[edgeKey] = child;
-				}
-			}
-		}
-		std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getOccupiedVertices(db);
-		std::vector<std::string> candidateVertices = board.getAvailableVertices(vectorOfLabelsOfOccupiedVertices);
-		std::unordered_map<std::string, int> mapOfLabelsOfVerticesAndNumbersOfRoads;
-		for (const std::string& edgeKey : node->gameState.roads[currentPlayer]) {
-			std::pair<std::string, std::string> pairOfLabelsOfEndpoints = parseEdgeEndpoints(board, edgeKey);
-			if (!pairOfLabelsOfEndpoints.first.empty()) {
-				mapOfLabelsOfVerticesAndNumbersOfRoads[pairOfLabelsOfEndpoints.first]++;
-			}
-			if (!pairOfLabelsOfEndpoints.second.empty()) {
-				mapOfLabelsOfVerticesAndNumbersOfRoads[pairOfLabelsOfEndpoints.second]++;
-			}
-		}
-		for (const std::string& labelOfVertex : candidateVertices) {
-			if (mapOfLabelsOfVerticesAndNumbersOfRoads[labelOfVertex] >= 2) {
-				if (node->children.find(labelOfVertex) == node->children.end()) {
-					GameState childState = node->gameState;
-					childState.placeSettlement(currentPlayer, labelOfVertex);
-					auto child = std::make_shared<MCTSNode>(childState, labelOfVertex, node, "settlement");
-					std::vector<float> featureVector = board.getFeatureVector(labelOfVertex);
-					auto eval = neuralNet.evaluateStructure(featureVector);
-					child->P = eval.second;
-					node->children[labelOfVertex] = child;
-				}
-			}
-		}
+		std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(db);
+		std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 
-		return;
+		std::vector<std::string> vectorOfKeysOfOccupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
+		std::vector<std::string> vectorOfKeysOfAvailableEdges = board.getVectorOfKeysOfAvailableEdges(vectorOfKeysOfOccupiedEdges);
+
+		vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.clear();
+		vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.shrink_to_fit();
+		size_t numberOfSpacesToReserve = vectorOfLabelsOfAvailableVertices.size() + vectorOfKeysOfAvailableEdges.size();
+		vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.reserve(numberOfSpacesToReserve);
+		vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.insert(
+			vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.end(),
+			vectorOfLabelsOfAvailableVertices.begin(),
+			vectorOfLabelsOfAvailableVertices.end()
+		);
+		vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.insert(
+			vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.end(),
+			vectorOfKeysOfAvailableEdges.begin(),
+			vectorOfKeysOfAvailableEdges.end()
+		);
 	}
 
-	std::string appliedPhase = node->gameState.phase;
-
-	std::vector<std::vector<float>> batchFeatures;
-	std::vector<std::shared_ptr<MCTSNode>> batchChildren;
-	for (const auto& move : availableMoves) {
-		if (node->children.find(move) != node->children.end()) {
+	// Create a child for each label of available vertex or key of available edge.
+	std::vector<std::vector<float>> vectorOfFeatureVectors;
+	std::vector<std::shared_ptr<MCTSNode>> vectorOfChildren;
+	for (const std::string& labelOfAvailableVertexOrKeyOfAvailableEdge : vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges) {
+		if (node->children.find(labelOfAvailableVertexOrKeyOfAvailableEdge) != node->children.end()) {
 			continue;
 		}
-		GameState childState = node->gameState;
-		int currentPlayer = childState.currentPlayer;
-		std::string appliedMoveType;
-		if (appliedPhase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
-			childState.placeSettlement(currentPlayer, move);
-			appliedMoveType = "settlement";
+		GameState gameStateOfChild = node->gameState;
+		int currentPlayer = gameStateOfChild.currentPlayer;
+		std::string moveType;
+		if (phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+			gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
+			moveType = "settlement";
 		}
-		else if (appliedPhase == Phase::TO_PLACE_FIRST_ROAD || appliedPhase == Phase::TO_PLACE_SECOND_ROAD) {
-			childState.placeRoad(currentPlayer, move);
-			appliedMoveType = "road";
+		else if (phase == Phase::TO_PLACE_FIRST_ROAD || phase == Phase::TO_PLACE_SECOND_ROAD) {
+			gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
+			moveType = "road";
 		}
-		else if (appliedPhase == Phase::TO_PLACE_FIRST_CITY) {
-			childState.placeCity(currentPlayer, move);
-			appliedMoveType = "city";
+		else if (phase == Phase::TO_PLACE_FIRST_CITY) {
+			gameStateOfChild.placeCity(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
+			moveType = "city";
 		}
-		else if (appliedPhase == Phase::TURN) {
-			appliedMoveType = "turn";
+		else if (phase == Phase::TURN) {
+			if (isLabelOfVertex(labelOfAvailableVertexOrKeyOfAvailableEdge)) {
+				gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
+				moveType = "turn";
+			}
+			else if (isEdgeKey(labelOfAvailableVertexOrKeyOfAvailableEdge)) {
+				gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
+				moveType = "turn";
+			}
 		}
-		auto child = std::make_shared<MCTSNode>(childState, move, node, appliedMoveType);
-		std::vector<float> featureVector = board.getFeatureVector(move);
-		batchFeatures.push_back(featureVector);
-		batchChildren.push_back(child);
-		node->children[move] = child;
+		auto child = std::make_shared<MCTSNode>(gameStateOfChild, labelOfAvailableVertexOrKeyOfAvailableEdge, node, moveType);
+		std::vector<float> featureVector = board.getFeatureVector(labelOfAvailableVertexOrKeyOfAvailableEdge);
+		vectorOfFeatureVectors.push_back(featureVector);
+		vectorOfChildren.push_back(child);
+		node->children[labelOfAvailableVertexOrKeyOfAvailableEdge] = child;
 	}
-	if (!batchFeatures.empty()) {
-		auto batchEvaluations = neuralNet.evaluateStructures(batchFeatures);
-		for (size_t i = 0; i < batchEvaluations.size(); i++) {
-			batchChildren[i]->P = batchEvaluations[i].second;
+	if (!vectorOfFeatureVectors.empty()) {
+		std::vector<std::pair<double, double>> vectorOfPairsOfValuesAndPolicies = neuralNet.evaluateStructures(vectorOfFeatureVectors);
+		for (size_t i = 0; i < vectorOfPairsOfValuesAndPolicies.size(); i++) {
+			std::pair<double, double> pairOfValueAndPolicy = vectorOfPairsOfValuesAndPolicies[i];
+			double policy = pairOfValueAndPolicy.second;
+			vectorOfChildren[i]->P = policy;
 		}
 	}
 }

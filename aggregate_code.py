@@ -41,8 +41,8 @@ def main():
             #paths_of_Python_back_end_files +
             paths_of_configuration_files +
             paths_of_files_to_alter_database +
-            paths_of_files_to_generate_board_geometry# +
-            #paths_of_front_end_files
+            paths_of_files_to_generate_board_geometry +
+            paths_of_front_end_files
         )
     )
     #aggregated_string = replace_import_groups(aggregated_string)

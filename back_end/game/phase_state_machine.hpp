@@ -131,11 +131,11 @@ public:
 		crow::json::wvalue result;
 
 		// Get the up-to-date list of occupied vertices from the database.
-		std::vector<std::string> listOfLabelsOfOccupiedVertices = getOccupiedVertices(db);
+		std::vector<std::string> listOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(db);
 
 		// Determine which vertices are available (not occupied and not adjacent to any occupied vertex).
 		Board board;
-		auto vectorOfLabelsOfAvailableVertices = board.getAvailableVertices(listOfLabelsOfOccupiedVertices);
+		auto vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(listOfLabelsOfOccupiedVertices);
 		if (vectorOfLabelsOfAvailableVertices.empty()) {
 			throw std::runtime_error("No vertices are available for placing settlement.");
 		}
@@ -227,46 +227,53 @@ public:
 		double tolerance
 	) override {
 		crow::json::wvalue result;
-		int player = state.currentPlayer;
+
 		auto mctsResult = runMcts(state, db, neuralNet, numberOfSimulations, cPuct, tolerance);
 		if (mctsResult.first.empty()) {
-			throw std::runtime_error("MCTS did not return a valid move.");
+			throw std::runtime_error("MCTS failed to determine a move.");
 		}
-		std::string move = mctsResult.first;
-		// Interpret move.
-		if (move == "pass") {
-			// Player passes turn.
-			// Update to next player.
-			result["message"] = "Player " + std::to_string(player) + " passed their turn.";
-			result["moveType"] = "pass";
-			state.currentPlayer = (player % 3) + 1;
-		}
-		else if (move.find('-') != std::string::npos && move.find('_') != std::string::npos) {
-			// Move string format with '-' and '_' indicates a road.
-			state.placeRoad(player, move);
-			result["message"] = "Player " + std::to_string(player) + " placed a road at " + move + ".";
-			result["moveType"] = "road";
-			int roadId = db.addRoad(player, move);
-			crow::json::wvalue roadJson;
-			roadJson["id"] = roadId;
-			roadJson["player"] = player;
-			roadJson["edge"] = move;
-			result["road"] = std::move(roadJson);
-		}
-		else {
-			// Assume a settlement is being placed.
-			state.placeSettlement(player, move);
-			result["message"] = "Player " + std::to_string(player) + " placed a settlement at " + move + ".";
-			result["moveType"] = "settlement";
-			int settlementId = db.addSettlement(player, move);
+
+		int currentPlayer = state.currentPlayer;
+		std::string chosenLabelOfVertexOrEdgeKey = mctsResult.first;
+		if (isLabelOfVertex(chosenLabelOfVertexOrEdgeKey)) {
+			state.placeSettlement(currentPlayer, chosenLabelOfVertexOrEdgeKey);
+			int settlementId = db.addSettlement(currentPlayer, chosenLabelOfVertexOrEdgeKey);
+			result["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + chosenLabelOfVertexOrEdgeKey + ".";
+			result["moveType"] = "turn";
 			crow::json::wvalue settlementJson;
 			settlementJson["id"] = settlementId;
-			settlementJson["player"] = player;
-			settlementJson["vertex"] = move;
+			settlementJson["player"] = currentPlayer;
+			settlementJson["vertex"] = chosenLabelOfVertexOrEdgeKey;
 			result["settlement"] = std::move(settlementJson);
 		}
-		state.currentPlayer = (player % 3) + 1;
-		state.phase = Phase::TURN;
+		else if (isEdgeKey(chosenLabelOfVertexOrEdgeKey)) {
+			state.placeRoad(currentPlayer, chosenLabelOfVertexOrEdgeKey);
+			int roadId = db.addRoad(currentPlayer, chosenLabelOfVertexOrEdgeKey);
+			result["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + chosenLabelOfVertexOrEdgeKey + ".";
+			result["moveType"] = "turn";
+			crow::json::wvalue roadJson;
+			roadJson["id"] = roadId;
+			roadJson["player"] = currentPlayer;
+			roadJson["vertex"] = chosenLabelOfVertexOrEdgeKey;
+			result["road"] = std::move(roadJson);
+		}
+		return result;
+	}
+};
+
+
+class DoneState : public PhaseState {
+public:
+	crow::json::wvalue handle(
+		GameState& state,
+		Database& db,
+		WrapperOfNeuralNetwork& neuralNet,
+		int numberOfSimulations,
+		double cPuct,
+		double tolerance
+	) override {
+		crow::json::wvalue result;
+		result["message"] = "Game over. Thanks for playing!";
 		return result;
 	}
 };
@@ -285,6 +292,7 @@ public:
 		stateHandlers[Phase::TO_PLACE_FIRST_CITY] = std::make_shared<PlaceFirstCityState>();
 		stateHandlers[Phase::TO_PLACE_SECOND_ROAD] = std::make_shared<PlaceSecondRoadState>();
 		stateHandlers[Phase::TURN] = std::make_shared<TurnState>();
+		stateHandlers[Phase::DONE] = std::make_shared<DoneState>();
 	}
 
 	crow::json::wvalue handle(

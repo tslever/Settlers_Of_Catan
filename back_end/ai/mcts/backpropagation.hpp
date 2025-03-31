@@ -7,7 +7,7 @@
 // Backpropagate the rollout value up the tree.
 // TODO: Consider adding discount factors or more advanced statistics.
 void backpropagate(std::shared_ptr<MCTSNode> node, double value) {
-	auto parent = node->parent.lock();
+	/*auto parent = node->parent.lock();
 	if (parent) {
 		std::clog << "Adjusting values of node N" << node->index
 			<< " (result of move \"" << node->move
@@ -17,7 +17,7 @@ void backpropagate(std::shared_ptr<MCTSNode> node, double value) {
 	else {
 		std::clog << "Adjusting values of node N" << node->index
 			<< " (initial game state)" << std::endl;
-	}
+	}*/
 	while (node) {
 		node->N += 1;
 		node->W += value;

@@ -15,6 +15,7 @@ namespace Phase {
     const std::string TO_PLACE_FIRST_CITY = "phase to place first city";
 	const std::string TO_PLACE_SECOND_ROAD = "phase to place second road";
 	const std::string TURN = "turn";
+    const std::string DONE = "done";
 }
 
 
@@ -67,6 +68,15 @@ public:
                 phase = Phase::TURN;
             }
         }
+        else if (phase == Phase::TURN) {
+            if (currentPlayer < 3) {
+                currentPlayer++;
+                phase = Phase::TURN;
+            }
+            else {
+                phase = Phase::DONE;
+            }
+        }
     }
 
     /* Add a settlement for the given player at the specified vertex.
@@ -103,9 +113,9 @@ public:
         json["phase"] = phase;
         json["lastBuilding"] = lastBuilding;
 
-        crow::json::wvalue settlementsJson(crow::json::type::List);
+        crow::json::wvalue settlementsJson(crow::json::type::Object);
         for (const auto& pair : settlements) {
-            crow::json::wvalue arr;
+            crow::json::wvalue arr(crow::json::type::List);
             int i = 0;
             for (const auto& vertex : pair.second) {
                 arr[i++] = vertex;
@@ -114,9 +124,9 @@ public:
         }
         json["settlements"] = std::move(settlementsJson);
 
-        crow::json::wvalue citiesJson(crow::json::type::List);
+        crow::json::wvalue citiesJson(crow::json::type::Object);
         for (const auto& pair : cities) {
-            crow::json::wvalue arr;
+            crow::json::wvalue arr(crow::json::type::List);
             int i = 0;
             for (const auto& vertex : pair.second) {
                 arr[i++] = vertex;
@@ -125,9 +135,9 @@ public:
         }
         json["cities"] = std::move(citiesJson);
 
-        crow::json::wvalue roadsJson(crow::json::type::List);
+        crow::json::wvalue roadsJson(crow::json::type::Object);
         for (const auto& pair : roads) {
-            crow::json::wvalue arr;
+            crow::json::wvalue arr(crow::json::type::List);
             int i = 0;
             for (const auto& edge : pair.second) {
                 arr[i++] = edge;

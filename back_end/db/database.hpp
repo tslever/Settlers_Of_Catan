@@ -22,7 +22,6 @@ public:
     std::string host;
 	std::string password;
 	unsigned int port;
-    mysqlx::Session session;
 	std::string username;
 
     Database(
@@ -35,14 +34,19 @@ public:
         host(host),
         password(password),
         port(port),
-        username(username),
-        session(host, port, username, password, dbName)
+        username(username)
     {
         // TODO: Consider setting additional session options if appropriate.
     }
 
+    mysqlx::Session createSession() const {
+        mysqlx::Session session(host, port, username, password, dbName);
+        return session;
+    }
+
     void initialize() {
         try {
+            mysqlx::Session session = createSession();
 			mysqlx::Schema schema = session.getSchema(dbName);
 
             session.sql(
@@ -81,6 +85,7 @@ public:
     }
 
     int addCity(int player, const std::string& vertex) {
+        mysqlx::Session session = createSession();
         mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("cities");
         table.insert("player", "vertex").values(player, vertex).execute();
@@ -97,6 +102,7 @@ public:
     }
 
     int addSettlement(int player, const std::string& vertex) {
+        mysqlx::Session session = createSession();
 		mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("settlements");
         table.insert("player", "vertex").values(player, vertex).execute();
@@ -113,10 +119,10 @@ public:
     }
 
     int addRoad(int player, const std::string& edge) {
+        mysqlx::Session session = createSession();
 		mysqlx::Schema schema = session.getSchema(dbName);
 		mysqlx::Table table = schema.getTable("roads");
 		table.insert("player", "edge").values(player, edge).execute();
-		// Query the road ID that was just inserted.
 		mysqlx::RowResult res = table
 			.select("id")
 			.where("player = " + std::to_string(player) + " AND edge = '" + edge + "'")
@@ -130,6 +136,7 @@ public:
 
     std::vector<City> getCities() {
         std::vector<City> cities;
+        mysqlx::Session session = createSession();
 		mysqlx::Schema schema = session.getSchema(dbName);
 		mysqlx::Table table = schema.getTable("cities");
 		mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
@@ -166,6 +173,7 @@ public:
     */
     GameState getGameState() {
         GameState gameState;
+        mysqlx::Session session = createSession();
         mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("state");
         mysqlx::RowResult rowResult = table.select("current_player", "phase", "last_building").where("id = 1").execute();
@@ -177,17 +185,39 @@ public:
         }
         else {
             gameState = GameState();
-            table
-                .insert("id", "current_player", "phase", "last_building")
-                .values(1, gameState.currentPlayer, gameState.phase, gameState.lastBuilding)
+            session.sql("REPLACE INTO state (id, current_player, phase, last_building) VALUES (1, ?, ?, ?)")
+                .bind(gameState.currentPlayer)
+                .bind(gameState.phase)
+                .bind(gameState.lastBuilding)
                 .execute();
+        }
+        mysqlx::Table settlementsTable = schema.getTable("settlements");
+        mysqlx::RowResult settlementsResult = settlementsTable.select("player", "vertex").execute();
+        for (mysqlx::Row sRow : settlementsResult) {
+            int player = sRow[0];
+            std::string vertex = sRow[1].get<std::string>();
+            gameState.settlements[player].push_back(vertex);
+        }
+        mysqlx::Table citiesTable = schema.getTable("cities");
+        mysqlx::RowResult citiesResult = citiesTable.select("player", "vertex").execute();
+        for (mysqlx::Row cRow : citiesResult) {
+            int player = cRow[0];
+            std::string vertex = cRow[1].get<std::string>();
+            gameState.cities[player].push_back(vertex);
+        }
+        mysqlx::Table roadsTable = schema.getTable("roads");
+        mysqlx::RowResult roadsResult = roadsTable.select("player", "edge").execute();
+        for (mysqlx::Row rRow : roadsResult) {
+            int player = rRow[0];
+            std::string edge = rRow[1].get<std::string>();
+            gameState.roads[player].push_back(edge);
         }
         return gameState;
     }
 
     std::vector<Road> getRoads() {
         std::vector<Road> roads;
-		mysqlx::Session session(host, port, username, password, dbName);
+        mysqlx::Session session = createSession();
 		mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("roads");
         mysqlx::RowResult rowResult = table.select("id", "player", "edge").execute();
@@ -221,7 +251,7 @@ public:
 
 	std::vector<Settlement> getSettlements() {
         std::vector<Settlement> settlements;
-		mysqlx::Session session(host, port, username, password, dbName);
+        mysqlx::Session session = createSession();
 		mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("settlements");
         mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
@@ -256,7 +286,7 @@ public:
 	// Reset game state (delete all settlements, cities, and roads and reset auto-increments).
     bool resetGame() {
         try {
-			mysqlx::Session session(host, port, username, password, dbName);
+            mysqlx::Session session = createSession();
 			mysqlx::Schema schema = session.getSchema(dbName);
 
             // Clear settlements, cities, and roads.
@@ -295,9 +325,15 @@ public:
 
     // Method `updateGameState` updates the state table with the current game state.
     void updateGameState(const GameState& gameState) {
-        mysqlx::Session session(host, port, username, password, dbName);
+        mysqlx::Session session = createSession();
         mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("state");
-        table.update().set("current_player", gameState.currentPlayer).set("phase", gameState.phase).set("last_building", gameState.lastBuilding).where("id = 1").execute();
+        table
+            .update()
+            .set("current_player", gameState.currentPlayer)
+            .set("phase", gameState.phase)
+            .set("last_building", gameState.lastBuilding)
+            .where("id = 1")
+            .execute();
     }
 };

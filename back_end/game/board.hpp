@@ -1,8 +1,9 @@
 #pragma once
 
-#include <corecrt_math_defines.h>
 
+#include <corecrt_math_defines.h>
 #include "../db/database.hpp"
+#include <regex>
 
 
 // TODO: Deduplicate code across files.
@@ -213,7 +214,7 @@ public:
 	* `getAvailableVertices` reads the board geometry and filters out any vertex that is either occupied
 	* or is too close (i.e. adjacent) to any occupied vertex.
 	*/
-	std::vector<std::string> getAvailableVertices(const std::vector<std::string>& addressOfListOfLabelsOfOccupiedVertices) {
+	std::vector<std::string> getVectorOfLabelsOfAvailableVertices(const std::vector<std::string>& addressOfListOfLabelsOfOccupiedVertices) {
 		crow::json::rvalue verticesJson = boardGeometryCache["vertices"];
 		if (!verticesJson || verticesJson.size() == 0) {
 			throw std::runtime_error("Board geometry file does not contain vertices.");
@@ -275,12 +276,42 @@ public:
 		return available;
 	}
 
-	// Function `getVectorOfKeysOfAvailableEdges` computes available edges on which a road may be placed.
-	std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::string labelOfVertexOfLastBuilding, std::vector<std::string> vectorOfKeysOfOccupiedEdges) {
-		crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometryCache["edges"];
-
-		std::vector<std::string> vectorOfKeysOfAvailableEdges;
+	
+	std::string getEdgeKey(double x1, double y1, double x2, double y2) {
 		double marginOfError = 1e-2;
+		char bufferRepresentingEdgeKey[50];
+		if ((x1 < x2) || (std::abs(x1 - x2) < marginOfError && y1 <= y2)) {
+			std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
+		}
+		else {
+			std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
+		}
+		std::string edgeKey = std::string(bufferRepresentingEdgeKey);
+		return edgeKey;
+	}
+
+
+	std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::vector<std::string> vectorOfKeysOfOccupiedEdges) {
+		crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometryCache["edges"];
+		std::vector<std::string> vectorOfKeysOfAvailableEdges;
+		for (const auto& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
+			double x1 = jsonObjectOfEdgeInformation["x1"].d();
+			double y1 = jsonObjectOfEdgeInformation["y1"].d();
+			double x2 = jsonObjectOfEdgeInformation["x2"].d();
+			double y2 = jsonObjectOfEdgeInformation["y2"].d();
+			std::string edgeKey = getEdgeKey(x1, y1, x2, y2);
+			vectorOfKeysOfAvailableEdges.push_back(edgeKey);
+		}
+		if (vectorOfKeysOfAvailableEdges.empty()) {
+			throw std::runtime_error("No adjacent edges were found for placing road.");
+		}
+		return vectorOfKeysOfAvailableEdges;
+	}
+
+
+	std::vector<std::string> getVectorOfKeysOfAvailableEdgesExtendingFromLastBuilding(std::string labelOfVertexOfLastBuilding, std::vector<std::string> vectorOfKeysOfOccupiedEdges) {
+		crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometryCache["edges"];
+		std::vector<std::string> vectorOfKeysOfAvailableEdges;
 		for (const auto& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
 			double x1 = jsonObjectOfEdgeInformation["x1"].d();
 			double y1 = jsonObjectOfEdgeInformation["y1"].d();
@@ -289,14 +320,7 @@ public:
 			std::string labelOfFirstVertex = getVertexLabelByCoordinates(x1, y1);
 			std::string labelOfSecondVertex = getVertexLabelByCoordinates(x2, y2);
 			if (labelOfFirstVertex == labelOfVertexOfLastBuilding || labelOfSecondVertex == labelOfVertexOfLastBuilding) {
-				char bufferRepresentingEdgeKey[50];
-				if ((x1 < x2) || (std::abs(x1 - x2) < marginOfError && y1 <= y2)) {
-					std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
-				}
-				else {
-					std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
-				}
-				std::string edgeKey = std::string(bufferRepresentingEdgeKey);
+				std::string edgeKey = getEdgeKey(x1, y1, x2, y2);
 				vectorOfKeysOfAvailableEdges.push_back(edgeKey);
 			}
 		}
@@ -309,7 +333,7 @@ public:
 
 
 // Fuction `getOccupiedVertices` gets a list of occupied vertex labels by querying the database.
-std::vector<std::string> getOccupiedVertices(Database& db) {
+std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(Database& db) {
 	std::vector<std::string> listOfLabelsOfOccupiedVertices;
 	std::vector<Settlement> settlements = db.getSettlements();
 	for (const Settlement& s : settlements) {
@@ -330,6 +354,24 @@ std::vector<std::string> getVectorOfKeysOfOccupiedEdges(Database& db) {
 		vectorOfKeysOfOccupiedEdges.push_back(road.edge);
 	}
 	return vectorOfKeysOfOccupiedEdges;
+}
+
+
+bool isLabelOfVertex(std::string s) {
+	std::regex vertexPattern("^V\\d{2}$");
+	if (std::regex_match(s, vertexPattern)) {
+		return true;
+	}
+	return false;
+}
+
+
+bool isEdgeKey(std::string s) {
+	std::regex edgePattern("^(\\d+\\.\\d{2})-(\\d+\\.\\d{2})_(\\d+\\.\\d{2})-(\\d+\\.\\d{2})$");
+	if (std::regex_match(s, edgePattern)) {
+		return true;
+	}
+	return false;
 }
 
 

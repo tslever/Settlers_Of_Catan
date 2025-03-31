@@ -35,4 +35,32 @@ public:
     bool isLeaf() const {
         return children.empty();
     }
+
+    crow::json::wvalue toJson() const {
+        crow::json::wvalue json;
+        json["index"] = index;
+        json["gameState"] = gameState.toJson();
+        json["move"] = move;
+        json["moveType"] = moveType;
+        json["N"] = N;
+        json["W"] = W;
+        json["Q"] = Q;
+        json["P"] = P;
+        
+        crow::json::wvalue childrenJson(crow::json::type::List);
+        int i = 0;
+        for (auto pair : children) {
+            auto child = pair.second;
+            childrenJson[i++] = child->index;
+        }
+        json["children"] = std::move(childrenJson);
+
+        if (auto parentPtr = parent.lock()) {
+            json["parent"] = parentPtr->index;
+        }
+        else {
+            json["parent"] = nullptr;
+        }
+        return json;
+    }
 };
