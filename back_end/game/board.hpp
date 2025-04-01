@@ -300,7 +300,9 @@ public:
 			double x2 = jsonObjectOfEdgeInformation["x2"].d();
 			double y2 = jsonObjectOfEdgeInformation["y2"].d();
 			std::string edgeKey = getEdgeKey(x1, y1, x2, y2);
-			vectorOfKeysOfAvailableEdges.push_back(edgeKey);
+			if (std::find(vectorOfKeysOfOccupiedEdges.begin(), vectorOfKeysOfOccupiedEdges.end(), edgeKey) == vectorOfKeysOfOccupiedEdges.end()) {
+				vectorOfKeysOfAvailableEdges.push_back(edgeKey);
+			}
 		}
 		if (vectorOfKeysOfAvailableEdges.empty()) {
 			throw std::runtime_error("No adjacent edges were found for placing road.");
@@ -321,7 +323,9 @@ public:
 			std::string labelOfSecondVertex = getVertexLabelByCoordinates(x2, y2);
 			if (labelOfFirstVertex == labelOfVertexOfLastBuilding || labelOfSecondVertex == labelOfVertexOfLastBuilding) {
 				std::string edgeKey = getEdgeKey(x1, y1, x2, y2);
-				vectorOfKeysOfAvailableEdges.push_back(edgeKey);
+				if (std::find(vectorOfKeysOfOccupiedEdges.begin(), vectorOfKeysOfOccupiedEdges.end(), edgeKey) == vectorOfKeysOfOccupiedEdges.end()) {
+					vectorOfKeysOfAvailableEdges.push_back(edgeKey);
+				}
 			}
 		}
 		if (vectorOfKeysOfAvailableEdges.empty()) {
