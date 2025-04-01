@@ -9,27 +9,9 @@
 // TODO: Deduplicate code across files.
 // TODO: Consider whether more functions in this file should be encapsulated in class Board.
 
-
-// Function `readBoardGeometry` reads and parses board geometry file.
-crow::json::rvalue readBoardGeometry() {
-	std::ifstream file("../board_geometry.json");
-	if (!file.is_open()) {
-		throw std::runtime_error("Board geometry file could not be opened.");
-	}
-	std::stringstream buffer;
-	buffer << file.rdbuf();
-	crow::json::rvalue boardGeometry = crow::json::load(buffer.str());
-	if (!boardGeometry) {
-		throw std::runtime_error("Board geometry file could not be parsed.");
-	}
-	return boardGeometry;
-}
-
-
 class Board {
 public:
 	static crow::json::rvalue boardGeometryCache;
-
 
 	static void loadBoardGeometry() {
 		if (!boardGeometryCache) {
@@ -46,11 +28,9 @@ public:
 		}
 	}
 
-
 	Board() {
 		loadBoardGeometry();
 	}
-
 
 	/* Function `getFeatureVector` computes and returns a 5 element feature vector for a given vertex label.
 	* Features include:
@@ -65,10 +45,11 @@ public:
 		if (labelOfVertexOrEdgeKey.find('_') != std::string::npos) {
 			// TODO: Calculate feature vector corresponding to edge and/or revise feature vector to include more information relating to edge.
 			/*float normalizedNumberOfPips = 0.5f;
-			float normalizedXCoordinate = 0.5f;
-			float normalizedYCoordinate = 0.5f;
-			float normalizedNumberOfHexes = 0.5f;
-			float bias = 1.0f;*/
+			* float normalizedXCoordinate = 0.5f;
+			* float normalizedYCoordinate = 0.5f;
+			* float normalizedNumberOfHexes = 0.5f;
+			* float bias = 1.0f;
+			*/
 			return { 0.5f, 0.5f, 0.5f, 0.5f, 1.0f };
 		}
 
@@ -164,7 +145,6 @@ public:
 		return { normalizedNumberOfPips, normalizedXCoordinate, normalizedYCoordinate, normalizedNumberOfHexes, bias };
 	}
 
-
 	std::vector<std::pair<double, double>> getVectorOfPairsOfCoordinatesOfVertices(crow::json::rvalue jsonObjectOfHexInformation) const {
 		// Extract the top-left coordinate (the hex's reference point) from the JSON object.
 		double x = jsonObjectOfHexInformation["x"].d();
@@ -190,7 +170,6 @@ public:
 		vertices.push_back({ x, y + 0.25 * heightOfHex });
 		return vertices;
 	}
-
 
 	// Function `getVertexLabelByCoordinates` loads the board geometry,
 	// then iterates over the vertices, comparing the provided x and y with each vertex's coordinates.
@@ -335,7 +314,6 @@ public:
 	}
 };
 
-
 // Fuction `getOccupiedVertices` gets a list of occupied vertex labels by querying the database.
 std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(Database& db) {
 	std::vector<std::string> listOfLabelsOfOccupiedVertices;
@@ -350,7 +328,6 @@ std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(Database& db) {
 	return listOfLabelsOfOccupiedVertices;
 }
 
-
 std::vector<std::string> getVectorOfKeysOfOccupiedEdges(Database& db) {
 	std::vector<std::string> vectorOfKeysOfOccupiedEdges;
 	std::vector<Road> vectorOfRoads = db.getRoads();
@@ -360,7 +337,6 @@ std::vector<std::string> getVectorOfKeysOfOccupiedEdges(Database& db) {
 	return vectorOfKeysOfOccupiedEdges;
 }
 
-
 bool isLabelOfVertex(std::string s) {
 	std::regex vertexPattern("^V\\d{2}$");
 	if (std::regex_match(s, vertexPattern)) {
@@ -369,7 +345,6 @@ bool isLabelOfVertex(std::string s) {
 	return false;
 }
 
-
 bool isEdgeKey(std::string s) {
 	std::regex edgePattern("^(\\d+\\.\\d{2})-(\\d+\\.\\d{2})_(\\d+\\.\\d{2})-(\\d+\\.\\d{2})$");
 	if (std::regex_match(s, edgePattern)) {
@@ -377,6 +352,5 @@ bool isEdgeKey(std::string s) {
 	}
 	return false;
 }
-
 
 crow::json::rvalue Board::boardGeometryCache;

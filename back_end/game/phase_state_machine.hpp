@@ -26,7 +26,6 @@ public:
 	) = 0;
 };
 
-
 /* Class PlaceFirstSettlementState is a concrete class
 * that represents a handler of the phase / state to place the first settlement.
 */
@@ -114,7 +113,6 @@ public:
 	}
 };
 
-
 /* Class PlaceFirstCityState is a concrete class
 * that represents a handler of the phase / state to place the first city.
 */
@@ -130,41 +128,29 @@ public:
 	) override {
 		crow::json::wvalue result;
 
-		// Get the up-to-date list of occupied vertices from the database.
-		std::vector<std::string> listOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(db);
-
-		// Determine which vertices are available (not occupied and not adjacent to any occupied vertex).
-		Board board;
-		auto vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(listOfLabelsOfOccupiedVertices);
-		if (vectorOfLabelsOfAvailableVertices.empty()) {
-			throw std::runtime_error("No vertices are available for placing settlement.");
+		auto mctsResult = runMcts(state, db, neuralNet, numberOfSimulations, cPuct, tolerance);
+		if (mctsResult.first.empty()) {
+			throw std::runtime_error("MCTS failed to determine a move.");
 		}
 
-		// Randomly select one available vertex.
-		// TODO: Replace with AI / board logic.
-		std::random_device dev;
-		std::mt19937 rng(dev());
-		std::uniform_int_distribution<> dist(0, vectorOfLabelsOfAvailableVertices.size() - 1);
-		std::string chosenVertex = vectorOfLabelsOfAvailableVertices.at(dist(rng));
+		int currentPlayer = state.currentPlayer;
+		std::string chosenVertex = mctsResult.first;
+		state.placeCity(currentPlayer, chosenVertex);
 
-		int player = state.currentPlayer;
-		state.placeCity(player, chosenVertex);
-		// Transition to the second road phase.
 		state.phase = Phase::TO_PLACE_SECOND_ROAD;
-		// Persist the city in the database.
-		int cityId = db.addCity(player, chosenVertex);
+		int cityId = db.addCity(currentPlayer, chosenVertex);
 
-		result["message"] = "Player " + std::to_string(player) + " placed a city at " + chosenVertex + ".";
+		result["message"] = "Player " + std::to_string(currentPlayer) + " placed a city at " + chosenVertex + ".";
 		result["moveType"] = "city";
 		crow::json::wvalue cityJson;
 		cityJson["id"] = cityId;
-		cityJson["player"] = player;
+		cityJson["player"] = currentPlayer;
 		cityJson["vertex"] = chosenVertex;
 		result["city"] = std::move(cityJson);
+
 		return result;
 	}
 };
-
 
 /* Class PlaceSecondRoadState is a concrete class
 * that represents a handler of the phase / state to place the second road.
@@ -190,10 +176,6 @@ public:
 		std::string keyOfChosenEdge = mctsResult.first;
 		state.placeRoad(player, keyOfChosenEdge);
 		state.lastBuilding = "";
-		/* Transition logic:
-		* If player number is greater than 1, decrement player number and reset phase for city.
-		* If player number is 1, transition to turn.
-		*/
 		if (player > 1) {
 			state.currentPlayer = player - 1;
 			state.phase = Phase::TO_PLACE_FIRST_CITY;
@@ -213,7 +195,6 @@ public:
 		return result;
 	}
 };
-
 
 // Class PlaceFirstCityState is a concrete class that represents a handler of a turn.
 class TurnState : public PhaseState {
@@ -261,7 +242,6 @@ public:
 	}
 };
 
-
 class DoneState : public PhaseState {
 public:
 	crow::json::wvalue handle(
@@ -277,7 +257,6 @@ public:
 		return result;
 	}
 };
-
 
 /* Class PhaseStateMachine represents a phase state machine
 * that dispatches the current phase to the appropriate handler.

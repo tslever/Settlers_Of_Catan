@@ -17,7 +17,6 @@ xcopy /Y /I "$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\
 
 class Database {
 public:
-
 	std::string dbName;
     std::string host;
 	std::string password;
@@ -89,7 +88,6 @@ public:
         mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("cities");
         table.insert("player", "vertex").values(player, vertex).execute();
-        // Query the city ID that was just inserted.
         mysqlx::RowResult res = table
             .select("id")
             .where("player = " + std::to_string(player) + " AND vertex = '" + vertex + "'")
@@ -106,7 +104,6 @@ public:
 		mysqlx::Schema schema = session.getSchema(dbName);
         mysqlx::Table table = schema.getTable("settlements");
         table.insert("player", "vertex").values(player, vertex).execute();
-        // Query the settlement ID that was just inserted.
         mysqlx::RowResult res = table
             .select("id")
             .where("player = " + std::to_string(player) + " AND vertex = '" + vertex + "'")

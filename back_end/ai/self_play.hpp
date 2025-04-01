@@ -10,19 +10,15 @@
 // TODO: Consider recording additional data such as full game trajectory, move probabilities, and/or everything about the board and structures on the board.
 struct TrainingExample {
     int player; // player represents player who made move.
-    GameState gameState; // `gameState` represents snapshot of game state at time of move.
+    GameState gameState; // `gameState` represents snapshot of game state after move.
     std::string move; // move represents label of vertex at which settlement or city is placed or key of edge at which road is placed.
     double value; // value represents target value (e.g., game outcome from perspective of current player).
     double policy; // policy represents target prior probability derived from numbers of visits to nodes that occur during Monte Carlo Tree Search.
 };
 
-double computeGameOutcome(const GameState& gameState) {    
-    return (gameState.currentPlayer == gameState.winner) ? 1.0 : -1.0;
-}
-
 /* Function `runSelfPlayGame` simulates a complete game trajectory
 * by repeatedly using Monte Carlo Tree Search to select a move and by updating the game state
-* until the game reaches the turn phase when setup is complete.
+* until the game reaches the done phase when setup is complete.
 */
 std::vector<TrainingExample> runSelfPlayGame(
     WrapperOfNeuralNetwork& neuralNet,
@@ -35,10 +31,10 @@ std::vector<TrainingExample> runSelfPlayGame(
     std::vector<TrainingExample> vectorOfTrainingExamples;
     // Initialize game state using default settings, including initial phase `Phase::TO_PLACE_FIRST_SETTLEMENT`.
     GameState gameState;
-    // Simulate moves until phase becomes `Phase::TURN`, or up to a maximum number of steps to safeguard against infinite loops.
+    // Simulate moves until phase becomes `Phase::DONE`, or up to a maximum number of moves to safeguard against infinite loops.
     int numberOfMovesSimulated = 0;
-    const int maximumNumberOfSteps = 100;
-    while (gameState.phase != Phase::DONE && numberOfMovesSimulated < maximumNumberOfSteps) {
+    const int maximumNumberOfMoves = 100;
+    while (gameState.phase != Phase::DONE && numberOfMovesSimulated < maximumNumberOfMoves) {
         if (gameState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
             std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first settlement is being simulated." << std::endl;
         }
@@ -65,8 +61,7 @@ std::vector<TrainingExample> runSelfPlayGame(
         );
         std::string labelOfVertexOrEdgeKey = pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount.first;
         if (labelOfVertexOrEdgeKey.empty()) {
-            std::clog << "[SELF PLAY] MCTS did not return a valid move." << std::endl;
-            break;
+            throw std::runtime_error("[SELF PLAY] MCTS did not return a valid move.");
         }
 
         std::string phase = gameState.phase;
@@ -88,8 +83,8 @@ std::vector<TrainingExample> runSelfPlayGame(
             }
         }
         TrainingExample trainingExample;
-        trainingExample.player = currentPlayer; // Record which player made move.
-        trainingExample.gameState = gameState; // snapshot after move
+        trainingExample.player = currentPlayer;
+        trainingExample.gameState = gameState;
         trainingExample.move = labelOfVertexOrEdgeKey;
         trainingExample.value = 0.0; // temporary dummy value that will be updated once game outcome is known
         int visitCount = pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount.second;
@@ -98,11 +93,11 @@ std::vector<TrainingExample> runSelfPlayGame(
         vectorOfTrainingExamples.push_back(trainingExample);
         numberOfMovesSimulated++;
     }
-    for (auto& trainingExample : vectorOfTrainingExamples) {
+    for (TrainingExample& trainingExample : vectorOfTrainingExamples) {
         trainingExample.value = (trainingExample.player == gameState.winner) ? 1.0 : -1.0;
     }
     std::clog <<
-        "[SELF PLAY] Game simulation completed in " << numberOfMovesSimulated << " steps " <<
+        "[SELF PLAY] Game simulation completed in " << numberOfMovesSimulated << " moves " <<
         "with winner Player " << gameState.winner << "." << std::endl;
     return vectorOfTrainingExamples;
 }

@@ -1,18 +1,6 @@
 #pragma once
 
 
-std::vector<float> getFeatureVector(const std::string& move) {
-    Board board;
-    try {
-        return board.getFeatureVector(move);
-    }
-    catch (const std::exception& e) {
-        std::cerr << "[TRAINING] Getting feature vector failed with the following exception. " << e.what() << std::endl;
-        throw std::runtime_error("[TRAINING] Getting feature vector failed.");
-    }
-}
-
-
 void trainNeuralNetwork(const std::vector<TrainingExample>& vectorOfTrainingExamples, WrapperOfNeuralNetwork* wrapperOfNeuralNetwork) {
     int numberOfTrainingExamples = vectorOfTrainingExamples.size();
     std::clog << "[TRAINING] Neural network will be trained on " << numberOfTrainingExamples << " examples." << std::endl;
@@ -21,8 +9,9 @@ void trainNeuralNetwork(const std::vector<TrainingExample>& vectorOfTrainingExam
     std::vector<torch::Tensor> vectorOfTensorsOfTargetValues;
     std::vector<torch::Tensor> vectorOfTensorsOfTargetPolicies;
 
+    Board board;
     for (const TrainingExample& trainingExample : vectorOfTrainingExamples) {
-        std::vector<float> featureVector = getFeatureVector(trainingExample.move);
+        std::vector<float> featureVector = board.getFeatureVector(trainingExample.move);
         c10::TensorOptions tensorOptions = torch::TensorOptions().dtype(torch::kFloat32);
         torch::Tensor inputTensor = torch::tensor(featureVector, tensorOptions);
         vectorOfInputTensors.push_back(inputTensor);
@@ -37,8 +26,7 @@ void trainNeuralNetwork(const std::vector<TrainingExample>& vectorOfTrainingExam
     }
 
     if (vectorOfInputTensors.empty()) {
-        std::clog << "[TRAINING] Training will be aborted as no training examples are available." << std::endl;
-        return;
+        throw std::runtime_error("[TRAINING] No training examples are available.");
     }
 
     /* Tensor `inputTensor` has shape[N, 5].

@@ -9,13 +9,16 @@
 #include "mcts/simulation.hpp"
 
 
+/* Function `injectDirichletNoise` injects Dirichlet noise at the root to encourage exploration
+* by changing the prior probabilities of the children of the root.
+*/
 void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double mixingWeight, double shape) {
 	if (root->unorderedMapOfRepresentationsOfMovesToChildren.empty()) {
 		return;
 	}
 	std::vector<double> vectorOfNoise;
-	std::random_device::result_type resultType = std::random_device{}();
-	std::default_random_engine defaultRandomEngine(resultType);
+	std::random_device::result_type randomDevice = std::random_device{}();
+	std::default_random_engine defaultRandomEngine(randomDevice);
 	double scale = 1.0;
 	std::gamma_distribution<double> gammaDistribution(shape, scale);
 
@@ -26,13 +29,14 @@ void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double mixingWeight, 
 		sumOfNoise += noise;
 	}
 
+	// Convert raw noise values into probabilities.
 	for (double& noise : vectorOfNoise) {
 		noise /= sumOfNoise;
 	}
 
 	size_t index = 0;
-	for (std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndNode : root->unorderedMapOfRepresentationsOfMovesToChildren) {
-		std::shared_ptr<MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndNode.second;
+	for (std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndChild : root->unorderedMapOfRepresentationsOfMovesToChildren) {
+		std::shared_ptr<MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndChild.second;
 		// Adjust prior probability using weighted mix of original prior probability and injected noise.
 		child->priorProbability = (1 - mixingWeight) * child->priorProbability + mixingWeight * vectorOfNoise[index++];
 	}
@@ -50,8 +54,7 @@ std::pair<std::string, int> runMcts(
 	double cPuct,
 	double tolerance
 ) {
-	//std::clog << "        [MCTS] MCTS is being started." << std::endl;
-
+	//std::clog << "        [MCTS] MCTS is being started." << std::endl
 	MCTSNode::nextIndex = 0;
 
 	// Create root node for current phase.
@@ -75,7 +78,6 @@ std::pair<std::string, int> runMcts(
 	expandNode(root, db, neuralNet);
 	//std::clog << "            [EXPAND ROOT] The root was expanded into the following.\n            " << root->toJson().dump() << std::endl;
 
-	// Inject Dirichlet noise at the root to encourage exploration by changing the prior probabilities of the children of the root.
 	injectDirichletNoise(root, 0.25, 0.03);
 
 	for (int i = 0; i < numberOfSimulations; i++) {
@@ -108,18 +110,19 @@ std::pair<std::string, int> runMcts(
 	// TODO: Consider whether selecting moves based on visit count, evaluation scores, and/or other criteria might be better.
 	std::shared_ptr<MCTSNode> bestChild = nullptr;
 	int numberOfVisitsToBestChild = -1;
-	for (const std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndNode : root->unorderedMapOfRepresentationsOfMovesToChildren) {
-		std::shared_ptr<MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndNode.second;
+	for (const std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndChild : root->unorderedMapOfRepresentationsOfMovesToChildren) {
+		std::shared_ptr<MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndChild.second;
 		if (child->visitCount > numberOfVisitsToBestChild) {
 			numberOfVisitsToBestChild = child->visitCount;
 			bestChild = child;
 		}
 	}
-	if (bestChild) {
-		//std::clog << "            [SELECT BEST CHILD] The best child has move " << bestChild->move << "." << std::endl;
-		//std::clog << "            [SELECT BEST CHILD] The child of the root with the highest visit count is the following.\n" << bestChild->toJson().dump() << std::endl;
-		return { bestChild->move, bestChild->visitCount };
+	if (!bestChild) {
+		throw std::runtime_error("Best child is not defined.");
+		//return { "", 0 };
 	}
-	throw std::runtime_error("Best child is not defined.");
-	//return { "", 0 };
+	//std::clog << "            [SELECT BEST CHILD] The best child has move " << bestChild->move << "." << std::endl;
+	//std::clog << "            [SELECT BEST CHILD] The child of the root with the highest visit count is the following.\n" << bestChild->toJson().dump() << std::endl;
+	std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = { bestChild->move, bestChild->visitCount };
+	return pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount;
 }
