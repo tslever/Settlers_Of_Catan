@@ -1,51 +1,41 @@
 #pragma once
 
 
-// Function `selectChild` is a selection function that using PUCT.
+// Function `selectChild` is a function that selects a best child using Predictor Upper Confidence bound applied to Trees.
 std::shared_ptr<MCTSNode> selectChild(
 	const std::shared_ptr<MCTSNode>& node,
-	double c_puct = 1.0,
-	double tolerance = 1e-6
+	double cPuct,
+	double tolerance
 ) {
-	/*auto parent = node->parent.lock();
-	if (parent) {
-		std::clog << "Selecting node N" << node->index
-			<< " (result of move \"" << node->move
-			<< "\" of type \"" << node->moveType << "\") with parent N"
-			<< parent->index << std::endl;
-	}
-	else {
-		std::clog << "Selecting root node N" << node->index
-			<< " (initial game state)" << std::endl;
-	}*/
 	double bestScore = -std::numeric_limits<double>::infinity();
-	std::vector<std::shared_ptr<MCTSNode>> bestCandidates;
-	for (const auto& pair : node->children) {
-		auto child = pair.second;
+	std::vector<std::shared_ptr<MCTSNode>> vectorOfBestCandidates;
+	for (const std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfRepresentationOfMoveAndChild : node->unorderedMapOfRepresentationsOfMovesToChildren) {
+		std::shared_ptr<MCTSNode> child = pairOfRepresentationOfMoveAndChild.second;
 		// Exploration bonus U as in AlphaGo Zero
-		double u = c_puct * child->P * std::sqrt(node->N) / (1.0 + child->N);
-		double score = child->Q + u;
+		double u = cPuct * child->priorProbability * std::sqrt(node->visitCount) / (1.0 + child->visitCount);
+		double averageValue = child->averageValue;
+		double score = averageValue + u;
 		if (score > bestScore + tolerance) {
 			bestScore = score;
-			bestCandidates.clear();
-			bestCandidates.push_back(child);
+			vectorOfBestCandidates.clear();
+			vectorOfBestCandidates.push_back(child);
 		}
 		else if (std::abs(score - bestScore) <= tolerance) {
-			bestCandidates.push_back(child);
+			vectorOfBestCandidates.push_back(child);
 		}
 	}
-	if (bestCandidates.empty()) {
-		// Return the current node if no children exist.
-		return node;
+	if (vectorOfBestCandidates.empty()) {
+		throw std::runtime_error("Vector of best candidates was empty.");
+		//return node;
 	}
-	auto best = bestCandidates[0];
-	for (const auto& candidate : bestCandidates) {
+	std::shared_ptr<MCTSNode> bestCandidate = vectorOfBestCandidates[0];
+	for (const std::shared_ptr<MCTSNode>& candidate : vectorOfBestCandidates) {
 		if (
-			(candidate->N < best->N) ||
-			(candidate->N == best->N && candidate->P > best->P)
+			(candidate->visitCount < bestCandidate->visitCount) ||
+			(candidate->visitCount == bestCandidate->visitCount && candidate->priorProbability > bestCandidate->priorProbability)
 		) {
-			best = candidate;
+			bestCandidate = candidate;
 		}
 	}
-	return best;
+	return bestCandidate;
 }

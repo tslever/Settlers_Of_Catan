@@ -40,29 +40,35 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\nvJitLink_120_0.dll" "$(Ou
 // Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include\torch\csrc\api\include;`.
 
 
-/* `struct` `NeuralNetworkImpl` is a concrete implementation of neural network that defines network,
-* including architecture and forward pass.
+/* `struct` `NeuralNetworkImpl` is a concrete implementation of a neural network that defines the network.
 * The name `NeuralNetworkImpl` is required by macro `TORCH_MODULE`.
 */
 struct NeuralNetworkImpl : torch::nn::Module {
-    // Mark submodules as mutable so they can be used in a const forward function.
-    mutable torch::nn::Linear fc1{ nullptr };
-    mutable torch::nn::Linear fc2{ nullptr };
-    mutable torch::nn::Linear fc_policy{ nullptr };
-    mutable torch::nn::Linear fc_value{ nullptr };
+    /* Create layers that are members of this structure
+    * so that each layer exists as part of the class's state and can be accessed by any member function.
+    * Mark submodules as mutable so they can be used in a const forward function.
+    */
+    mutable torch::nn::Linear layer1{ nullptr };
+    mutable torch::nn::Linear layer2{ nullptr };
+    mutable torch::nn::Linear layerToCalculateValue{ nullptr };
+    mutable torch::nn::Linear layerToCalculatePolicy{ nullptr };
 
-    NeuralNetworkImpl(int64_t input_dim, int64_t hidden_dim) {
-        fc1 = register_module("fc1", torch::nn::Linear(input_dim, hidden_dim));
-        fc2 = register_module("fc2", torch::nn::Linear(hidden_dim, hidden_dim));
-        fc_policy = register_module("fc_policy", torch::nn::Linear(hidden_dim, 1)); // policy head
-        fc_value = register_module("fc_value", torch::nn::Linear(hidden_dim, 1)); // value head
+    NeuralNetworkImpl(int64_t numberOfFeatures, int64_t numberOfNeurons) {
+        /* Register each layer with libtorch to make libtorch aware of these layers
+        * and to allow automatically managing parameters and integrating layers.
+        */
+        int numberOfOutputs = 1;
+        layer1 = register_module("layer1", torch::nn::Linear(numberOfFeatures, numberOfNeurons));
+        layer2 = register_module("layer2", torch::nn::Linear(numberOfNeurons, numberOfNeurons));
+        layerToCalculateValue = register_module("layerToCalculateValue", torch::nn::Linear(numberOfNeurons, numberOfOutputs));
+        layerToCalculatePolicy = register_module("layerToCalculatePolicy", torch::nn::Linear(numberOfNeurons, numberOfOutputs));
     }
 
     std::vector<torch::Tensor> forward(torch::Tensor inputTensorForBatch) const {
-        torch::Tensor outputOfLayer1 = torch::relu(fc1->forward(inputTensorForBatch));
-        torch::Tensor outputOfLayer2 = torch::relu(fc2->forward(outputOfLayer1));
-        torch::Tensor tensorOfPredictedValues = torch::tanh(fc_value->forward(outputOfLayer2));
-        auto tensorOfPredictedPolicies = torch::sigmoid(fc_policy->forward(outputOfLayer2));
+        torch::Tensor outputOfLayer1 = torch::relu(layer1->forward(inputTensorForBatch));
+        torch::Tensor outputOfLayer2 = torch::relu(layer2->forward(outputOfLayer1));
+        torch::Tensor tensorOfPredictedValues = torch::tanh(layerToCalculateValue->forward(outputOfLayer2));
+        torch::Tensor tensorOfPredictedPolicies = torch::sigmoid(layerToCalculatePolicy->forward(outputOfLayer2));
         return { tensorOfPredictedValues, tensorOfPredictedPolicies };
     }
 };
@@ -82,22 +88,28 @@ private:
     torch::Device device;
 public:
     NeuralNetwork neuralNetwork = nullptr;
-    std::string modelPath;
+    std::string pathToFileOfParameters;
     Board board;
 
-    WrapperOfNeuralNetwork(const std::string& modelPath) : modelPath(modelPath), device(torch::kCPU), board() {
-        const int64_t inputDim = 5;
-        const int64_t hiddenDim = 128;
+    WrapperOfNeuralNetwork(const std::string& pathToFileOfParameters) :
+        pathToFileOfParameters(pathToFileOfParameters),
+        device(torch::kCPU),
+        board()
+    {
+        const int64_t numberOfFeatures = 5;
+        // TODO: Get number of features based on feature vector.
+        const int64_t numberOfNeurons = 128;
+        // TODO: Get number of nuerons from configuration file.
         
-        neuralNetwork = NeuralNetwork(inputDim, hiddenDim);
+        neuralNetwork = NeuralNetwork(numberOfFeatures, numberOfNeurons);
         neuralNetwork->eval();
 
-        if (!std::filesystem::exists(modelPath)) {
-            std::clog << "[WARNING] Model file was not found at " << modelPath << "." << std::endl;
+        if (!std::filesystem::exists(pathToFileOfParameters)) {
+            std::clog << "[WARNING] Model file was not found at " << pathToFileOfParameters << "." << std::endl;
             torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
             try {
-                torch::save(variableListOfParameters, modelPath);
-                std::clog << "[INFO] Default model parameters were saved to " << modelPath << "." << std::endl;
+                torch::save(variableListOfParameters, pathToFileOfParameters);
+                std::clog << "[INFO] Default model parameters were saved to " << pathToFileOfParameters << "." << std::endl;
             }
             catch (const c10::Error& e) {
                 std::cerr << "[ERROR] Saving default model parameters failed with the following error. " << e.what() << std::endl;
@@ -111,9 +123,8 @@ public:
             device = cudaIsAvailable ? torch::kCUDA : torch::kCPU;
             neuralNetwork->to(device);
 
-            // Load the parameters from file.
             std::vector<torch::Tensor> vectorOfParameters;
-            torch::load(vectorOfParameters, modelPath);
+            torch::load(vectorOfParameters, pathToFileOfParameters);
             torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
             if (variableListOfParameters.size() != vectorOfParameters.size()) {
                 std::cerr <<
@@ -122,13 +133,14 @@ public:
                     "There are " << vectorOfParameters.size() << " parameters." << std::endl;
                 throw std::runtime_error("Numbers of parameters are mismatched.");
             }
-            torch::NoGradGuard noGrad; // Disable gradient tracking during parameter copy.
+            // Disable gradient tracking during parameter copy.
+            torch::NoGradGuard noGrad;
             for (size_t i = 0; i < vectorOfParameters.size(); i++) {
                 variableListOfParameters[i].data().copy_(vectorOfParameters[i].data());
             }
-            lastWriteTime = std::filesystem::last_write_time(modelPath);
+            lastWriteTime = std::filesystem::last_write_time(pathToFileOfParameters);
             std::clog <<
-                "[INFO] Model parameters were successfully loaded from " << modelPath <<
+                "[INFO] Model parameters were successfully loaded from " << pathToFileOfParameters <<
                 " on device " << (device == torch::kCUDA ? "CUDA" : "CPU") << "." << std::endl;
         }
         catch (const c10::Error& e) {
@@ -137,40 +149,52 @@ public:
         }
     }
 
-    std::pair<double, double> evaluateStructure(const std::vector<float>& features) {
-        torch::NoGradGuard noGrad; // Disable gradient calculation for inference.
-        torch::Tensor input = torch::tensor(features, torch::TensorOptions().device(device)).unsqueeze(0);
-        auto output = neuralNetwork->forward(input);
-        double value = output[0].item<double>();
-        double policy = output[1].item<double>();
-        return { value, policy };
+    std::pair<double, double> evaluateStructure(const std::vector<float>& featureVector) {
+        // Disable gradient calculation for inference.
+        torch::NoGradGuard noGrad;
+        c10::TensorOptions tensorOptions = torch::TensorOptions().device(device);
+        int dimension = 0;
+        torch::Tensor inputTensor = torch::tensor(featureVector, tensorOptions).unsqueeze(dimension);
+        std::vector<torch::Tensor> vectorOfTensorsOfPredictedValueAndPolicy = neuralNetwork->forward(inputTensor);
+        double value = vectorOfTensorsOfPredictedValueAndPolicy[0].item<double>();
+        double policy = vectorOfTensorsOfPredictedValueAndPolicy[1].item<double>();
+        std::pair<double, double> pairOfPredictedValueAndPolicy = { value, policy };
+        return pairOfPredictedValueAndPolicy;
     }
 
-    std::vector<std::pair<double, double>> evaluateStructures(const std::vector<std::vector<float>>& features) {
+    std::vector<std::pair<double, double>> evaluateStructures(const std::vector<std::vector<float>>& vectorOfFeatureVectors) {
         torch::NoGradGuard noGrad;
-        std::vector<torch::Tensor> tensors;
-        for (const auto& vec : features) {
-            tensors.push_back(torch::tensor(vec, torch::TensorOptions().device(device).dtype(torch::kFloat32)));
+        std::vector<torch::Tensor> vectorOfTensorsOfFeatureVectors;
+        c10::TensorOptions tensorOptions = torch::TensorOptions().device(device).dtype(torch::kFloat32);
+        for (const std::vector<float>& featureVector : vectorOfFeatureVectors) {
+            torch::Tensor tensorOfFeatureVector = torch::tensor(featureVector, tensorOptions);
+            vectorOfTensorsOfFeatureVectors.push_back(tensorOfFeatureVector);
         }
-        torch::Tensor inputTensor = torch::stack(tensors);
-        auto outputs = neuralNetwork->forward(inputTensor);
-        torch::Tensor valuesTensor = outputs[0].cpu().squeeze(1);
-        torch::Tensor policiesTensor = outputs[1].cpu().squeeze(1);
-        std::vector<float> values(valuesTensor.data_ptr<float>(), valuesTensor.data_ptr<float>() + valuesTensor.numel());
-        std::vector<float> policies(policiesTensor.data_ptr<float>(), policiesTensor.data_ptr<float>() + policiesTensor.numel());
-        std::vector<std::pair<double, double>> results;
-        for (size_t i = 0; i < values.size(); i++) {
-            results.push_back({ static_cast<double>(values[i]), static_cast<double>(policies[i]) });
+        torch::Tensor inputTensor = torch::stack(vectorOfTensorsOfFeatureVectors);
+        std::vector<torch::Tensor> vectorOfOutputTensors = neuralNetwork->forward(inputTensor);
+        int dimension = 1;
+        torch::Tensor tensorOfValues = vectorOfOutputTensors[0].cpu().squeeze(dimension);
+        torch::Tensor tensorOfPolicies = vectorOfOutputTensors[1].cpu().squeeze(dimension);
+        std::vector<float> vectorOfValues(tensorOfValues.data_ptr<float>(), tensorOfValues.data_ptr<float>() + tensorOfValues.numel());
+        std::vector<float> vectorOfPolicies(tensorOfPolicies.data_ptr<float>(), tensorOfPolicies.data_ptr<float>() + tensorOfPolicies.numel());
+        std::vector<std::pair<double, double>> vectorOfPairsOfValuesAndPolicies;
+        for (size_t i = 0; i < vectorOfValues.size(); i++) {
+            double value = static_cast<double>(vectorOfValues[i]);
+            // TODO: Consider whether value should be float.
+            double policy = static_cast<double>(vectorOfPolicies[i]);
+            // TODO: Consider whether policy should be float.
+            std::pair<double, double> pairOfValueAndPolicy = { value, policy };
+            vectorOfPairsOfValuesAndPolicies.push_back(pairOfValueAndPolicy);
         }
-        return results;
+        return vectorOfPairsOfValuesAndPolicies;
     }
 
     void reloadIfUpdated() {
         try {
-            auto currentWriteTime = std::filesystem::last_write_time(modelPath);
+            auto currentWriteTime = std::filesystem::last_write_time(pathToFileOfParameters);
             if (currentWriteTime > lastWriteTime) {
                 std::vector<torch::Tensor> vectorOfParameters;
-                torch::load(vectorOfParameters, modelPath);
+                torch::load(vectorOfParameters, pathToFileOfParameters);
                 torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
                 if (variableListOfParameters.size() != vectorOfParameters.size()) {
                     std::cerr << "[ERROR] Numbers of parameters were mismatched during reload." << std::endl;

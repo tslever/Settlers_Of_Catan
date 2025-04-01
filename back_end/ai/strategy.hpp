@@ -10,7 +10,7 @@
 
 
 void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double mixingWeight, double shape) {
-	if (root->children.empty()) {
+	if (root->unorderedMapOfRepresentationsOfMovesToChildren.empty()) {
 		return;
 	}
 	std::vector<double> vectorOfNoise;
@@ -20,7 +20,7 @@ void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double mixingWeight, 
 	std::gamma_distribution<double> gammaDistribution(shape, scale);
 
 	double sumOfNoise = 0.0;
-	for (size_t i = 0; i < root->children.size(); i++) {
+	for (size_t i = 0; i < root->unorderedMapOfRepresentationsOfMovesToChildren.size(); i++) {
 		double noise = gammaDistribution(defaultRandomEngine);
 		vectorOfNoise.push_back(noise);
 		sumOfNoise += noise;
@@ -31,10 +31,10 @@ void injectDirichletNoise(std::shared_ptr<MCTSNode>& root, double mixingWeight, 
 	}
 
 	size_t index = 0;
-	for (std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndNode : root->children) {
+	for (std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndNode : root->unorderedMapOfRepresentationsOfMovesToChildren) {
 		std::shared_ptr<MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndNode.second;
 		// Adjust prior probability using weighted mix of original prior probability and injected noise.
-		child->P = (1 - mixingWeight) * child->P + mixingWeight * vectorOfNoise[index++];
+		child->priorProbability = (1 - mixingWeight) * child->priorProbability + mixingWeight * vectorOfNoise[index++];
 	}
 }
 
@@ -94,7 +94,7 @@ std::pair<std::string, int> runMcts(
 		//	std::clog << "                [EXPAND NO NODE] Node node was visited before and was not expanded." << std::endl;
 		//}
 		//else {
-		if (node->N == 0) {
+		if (node->visitCount == 0) {
 			expandNode(node, db, neuralNet);
 			//std::clog << "                [EXPAND NODE] Node node was not visited before and was expanded." << std::endl;
 			//std::clog << "                [EXPAND NODE] Node node was not visited before and was expanded into the following.\n                " << node->toJson().dump() << std::endl;
@@ -108,17 +108,17 @@ std::pair<std::string, int> runMcts(
 	// TODO: Consider whether selecting moves based on visit count, evaluation scores, and/or other criteria might be better.
 	std::shared_ptr<MCTSNode> bestChild = nullptr;
 	int numberOfVisitsToBestChild = -1;
-	for (const std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndNode : root->children) {
+	for (const std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndNode : root->unorderedMapOfRepresentationsOfMovesToChildren) {
 		std::shared_ptr<MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndNode.second;
-		if (child->N > numberOfVisitsToBestChild) {
-			numberOfVisitsToBestChild = child->N;
+		if (child->visitCount > numberOfVisitsToBestChild) {
+			numberOfVisitsToBestChild = child->visitCount;
 			bestChild = child;
 		}
 	}
 	if (bestChild) {
 		//std::clog << "            [SELECT BEST CHILD] The best child has move " << bestChild->move << "." << std::endl;
 		//std::clog << "            [SELECT BEST CHILD] The child of the root with the highest visit count is the following.\n" << bestChild->toJson().dump() << std::endl;
-		return { bestChild->move, bestChild->N };
+		return { bestChild->move, bestChild->visitCount };
 	}
 	throw std::runtime_error("Best child is not defined.");
 	//return { "", 0 };

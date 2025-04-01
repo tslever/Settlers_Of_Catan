@@ -117,7 +117,7 @@ void trainNeuralNetwork(const std::vector<TrainingExample>& vectorOfTrainingExam
 
     try {
         torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
-        torch::save(variableListOfParameters, wrapperOfNeuralNetwork->modelPath);
+        torch::save(variableListOfParameters, wrapperOfNeuralNetwork->pathToFileOfParameters);
         std::clog << "[TRAINING] Model parameters were saved after training." << std::endl;
     }
     catch (const c10::Error& e) {

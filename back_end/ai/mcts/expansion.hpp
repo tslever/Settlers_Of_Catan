@@ -18,7 +18,7 @@ std::pair<double, double> parseCoordinates(const std::string& stringRepresenting
 std::pair<std::string, std::string> parseEdgeEndpoints(const Board& board, const std::string& edge) {
 	size_t positionOfUnderscore = edge.find('_');
 	if (positionOfUnderscore == std::string::npos) {
-		return { "", "" };
+		throw std::runtime_error("Edge key does not have an underscore.");
 	}
 	std::string stringRepresentingFirstEndpoint = edge.substr(0, positionOfUnderscore);
 	std::string stringRepresentingSecondEndpoint = edge.substr(positionOfUnderscore + 1);
@@ -78,7 +78,7 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNe
 	std::vector<std::vector<float>> vectorOfFeatureVectors;
 	std::vector<std::shared_ptr<MCTSNode>> vectorOfChildren;
 	for (const std::string& labelOfAvailableVertexOrKeyOfAvailableEdge : vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges) {
-		if (node->children.find(labelOfAvailableVertexOrKeyOfAvailableEdge) != node->children.end()) {
+		if (node->unorderedMapOfRepresentationsOfMovesToChildren.find(labelOfAvailableVertexOrKeyOfAvailableEdge) != node->unorderedMapOfRepresentationsOfMovesToChildren.end()) {
 			continue;
 		}
 		GameState gameStateOfChild = node->gameState;
@@ -110,14 +110,14 @@ void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNe
 		std::vector<float> featureVector = board.getFeatureVector(labelOfAvailableVertexOrKeyOfAvailableEdge);
 		vectorOfFeatureVectors.push_back(featureVector);
 		vectorOfChildren.push_back(child);
-		node->children[labelOfAvailableVertexOrKeyOfAvailableEdge] = child;
+		node->unorderedMapOfRepresentationsOfMovesToChildren[labelOfAvailableVertexOrKeyOfAvailableEdge] = child;
 	}
 	if (!vectorOfFeatureVectors.empty()) {
 		std::vector<std::pair<double, double>> vectorOfPairsOfValuesAndPolicies = neuralNet.evaluateStructures(vectorOfFeatureVectors);
 		for (size_t i = 0; i < vectorOfPairsOfValuesAndPolicies.size(); i++) {
 			std::pair<double, double> pairOfValueAndPolicy = vectorOfPairsOfValuesAndPolicies[i];
 			double policy = pairOfValueAndPolicy.second;
-			vectorOfChildren[i]->P = policy;
+			vectorOfChildren[i]->priorProbability = policy;
 		}
 	}
 }
