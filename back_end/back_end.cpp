@@ -12,61 +12,12 @@
 #include "ai/self_play.hpp"
 #include "ai/training.hpp"
 
+#include "config.hpp"
+
 #include "db/database.hpp"
 
 #include "game/game_state.hpp"
 #include "game/phase_state_machine.hpp"
-
-
-// TODO: Prove that collecting training examples will be slower after training the neural network for the first time than before.
-
-
-// TODO: Consider whether `struct` `Config` belongs in another file.
-struct Config {
-	int backEndPort;
-	double cPuct;
-	std::string dbName;
-	std::string dbHost;
-	std::string dbPassword;
-	unsigned int dbPort;
-	std::string dbUsername;
-	std::string modelPath;
-	int modelWatcherInterval;
-	int numberOfSimulations;
-	double tolerance;
-	int trainingThreshold;
-	// TODO: Consider configuring simulation depth.
-	// TODO: Consider configuring number of training epochs.
-};
-
-
-// TODO: Consider whether function `loadConfig` belongs in another file.
-Config loadConfig() {
-	Config config;
-	std::ifstream file("config.json");
-	if (!file.is_open()) {
-		throw std::runtime_error("Configuration file could not be opened.");
-	}
-	std::stringstream buffer;
-	buffer << file.rdbuf();
-	auto configJson = crow::json::load(buffer.str());
-	if (!configJson) {
-		throw std::runtime_error("Parsing configuration file failed.");
-	}
-	config.backEndPort = configJson["backEndPort"].i();
-	config.cPuct = configJson["cPuct"].d();
-	config.dbName = configJson["dbName"].s();
-	config.dbHost = configJson["dbHost"].s();
-	config.dbPassword = configJson["dbPassword"].s();
-	config.dbPort = configJson["dbPort"].i();
-	config.dbUsername = configJson["dbUsername"].s();
-	config.modelPath = configJson["modelPath"].s();
-	config.modelWatcherInterval = configJson["modelWatcherInterval"].i();
-	config.numberOfSimulations = configJson["numberOfSimulations"].i();
-	config.tolerance = configJson["tolerance"].d();
-	config.trainingThreshold = configJson["trainingThreshold"].i();
-	return config;
-}
 
 
 /* TODO: Align this back end with the Python back end.
@@ -145,9 +96,9 @@ static void trainingLoop(
 
 int main() {
 
-	Config config;
+	Config::Config config;
 	try {
-		config = loadConfig();
+		config = config.load("config.json");
 	}
 	catch (const std::exception& e) {
 		std::cerr << "[ERROR] Loading configuration failed with the following error. " << e.what() << std::endl;
