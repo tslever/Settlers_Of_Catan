@@ -18,7 +18,7 @@ public:
 	virtual ~PhaseState() = default;
 	virtual crow::json::wvalue handle(
 		GameState& state,
-		Database& db,
+		DB::Database& db,
 		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
@@ -33,7 +33,7 @@ class PlaceFirstSettlementState : public PhaseState {
 public:
 	crow::json::wvalue handle(
 		GameState& state,
-		Database& db,
+		DB::Database& db,
 		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
@@ -73,7 +73,7 @@ class PlaceFirstRoadState : public PhaseState {
 public:
 	crow::json::wvalue handle(
 		GameState& state,
-		Database& db,
+		DB::Database& db,
 		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
@@ -120,7 +120,7 @@ class PlaceFirstCityState : public PhaseState {
 public:
 	crow::json::wvalue handle(
 		GameState& state,
-		Database& db,
+		DB::Database& db,
 		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
@@ -159,7 +159,7 @@ class PlaceSecondRoadState : public PhaseState {
 public:
 	crow::json::wvalue handle(
 		GameState& state,
-		Database& db,
+		DB::Database& db,
 		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
@@ -201,7 +201,7 @@ class TurnState : public PhaseState {
 public:
 	crow::json::wvalue handle(
 		GameState& state,
-		Database& db,
+		DB::Database& db,
 		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
@@ -246,7 +246,7 @@ class DoneState : public PhaseState {
 public:
 	crow::json::wvalue handle(
 		GameState& state,
-		Database& db,
+		DB::Database& db,
 		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
@@ -276,7 +276,7 @@ public:
 
 	crow::json::wvalue handle(
 		GameState& state,
-		Database& db,
+		DB::Database& db,
 		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,

@@ -11,7 +11,7 @@ namespace AI {
     class Trainer {
     public:
         Trainer(
-            Database* db,
+            DB::Database* db,
             AI::WrapperOfNeuralNetwork* neuralNetToUse,
             int modelWatcherIntervalToUse,
             int trainingThresholdToUse,
@@ -63,7 +63,7 @@ namespace AI {
 
     private:
         // Dependencies and configuration parameters
-        Database* database;
+        DB::Database* database;
         WrapperOfNeuralNetwork* neuralNet;
         int modelWatcherInterval;
         int trainingThreshold;

@@ -24,7 +24,7 @@ namespace AI {
     */
     std::vector<TrainingExample> runSelfPlayGame(
         AI::WrapperOfNeuralNetwork& neuralNet,
-        Database& db,
+        DB::Database& db,
         int numberOfSimulations,
         double cPuct,
         double tolerance

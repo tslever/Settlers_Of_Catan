@@ -8,7 +8,7 @@ namespace AI {
 		/* TODO: Consider whether self playing a full game is sufficient to simulate multiple moves, or
 		* whether multiple moves should be simulated here using a simple multi-step loop with a max depth or using another technique.
 		*/
-		double rollout(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNeuralNetwork& neuralNet) {
+		double rollout(const std::shared_ptr<MCTSNode>& node, DB::Database& db, WrapperOfNeuralNetwork& neuralNet) {
 			Board board;
 			std::string move = node->move;
 			std::vector<float> featureVector = board.getFeatureVector(move);

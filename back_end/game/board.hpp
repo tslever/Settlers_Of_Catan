@@ -315,7 +315,7 @@ public:
 };
 
 // Fuction `getOccupiedVertices` gets a list of occupied vertex labels by querying the database.
-std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(Database& db) {
+std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(DB::Database& db) {
 	std::vector<std::string> listOfLabelsOfOccupiedVertices;
 	std::vector<Settlement> settlements = db.getSettlements();
 	for (const Settlement& s : settlements) {
@@ -328,7 +328,7 @@ std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(Database& db) {
 	return listOfLabelsOfOccupiedVertices;
 }
 
-std::vector<std::string> getVectorOfKeysOfOccupiedEdges(Database& db) {
+std::vector<std::string> getVectorOfKeysOfOccupiedEdges(DB::Database& db) {
 	std::vector<std::string> vectorOfKeysOfOccupiedEdges;
 	std::vector<Road> vectorOfRoads = db.getRoads();
 	for (const Road& road : vectorOfRoads) {

@@ -36,7 +36,7 @@ namespace AI {
 		/* Function `expandNode`, for each move determined to be available by board geometry and current state,
 		* creates a child node and sets its prior probability based on the move type.
 		*/
-		void expandNode(const std::shared_ptr<MCTSNode>& node, Database& db, WrapperOfNeuralNetwork& neuralNet) {
+		void expandNode(const std::shared_ptr<MCTSNode>& node, DB::Database& db, WrapperOfNeuralNetwork& neuralNet) {
 			Board board;
 
 			// Create vector of labels of available vertices or keys of available edges.

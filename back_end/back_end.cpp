@@ -57,7 +57,7 @@ int main() {
 	app.loglevel(crow::LogLevel::Info);
 
 
-    Database db(config.dbName, config.dbHost, config.dbPassword, config.dbPort, config.dbUsername);
+    DB::Database db(config.dbName, config.dbHost, config.dbPassword, config.dbPort, config.dbUsername);
 	try {
 		db.initialize();
 		std::clog << "[INFO] Database was initialized.\n";
