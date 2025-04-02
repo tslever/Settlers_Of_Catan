@@ -168,7 +168,7 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\nvJitLink_120_0.dll" "$(Ou
     <ClInclude Include="ai\neural_network.hpp" />
     <ClInclude Include="ai\self_play.hpp" />
     <ClInclude Include="ai\strategy.hpp" />
-    <ClInclude Include="ai\training.hpp" />
+    <ClInclude Include="ai\trainer.hpp" />
     <ClInclude Include="config.hpp" />
     <ClInclude Include="db\database.hpp" />
     <ClInclude Include="db\models.hpp" />

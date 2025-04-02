@@ -65,9 +65,6 @@
     <ClInclude Include="ai\self_play.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ai\training.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ai\strategy.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -75,6 +72,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="config.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ai\trainer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
