@@ -75,7 +75,7 @@ static void trainingLoop(
 	double cPuct,
 	double tolerance
 ) {
-	std::vector<TrainingExample> trainingData;
+	std::vector<AI::TrainingExample> trainingData;
 	while (!stopTraining.load()) {
 		try {
 			auto trainingExamples = runSelfPlayGame(*neuralNet, *db, numberOfSimulations, cPuct, tolerance);
