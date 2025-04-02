@@ -216,7 +216,8 @@ public:
 
 		int currentPlayer = state.currentPlayer;
 		std::string chosenLabelOfVertexOrEdgeKey = mctsResult.first;
-		if (isLabelOfVertex(chosenLabelOfVertexOrEdgeKey)) {
+		Board board;
+		if (board.isLabelOfVertex(chosenLabelOfVertexOrEdgeKey)) {
 			state.placeSettlement(currentPlayer, chosenLabelOfVertexOrEdgeKey);
 			int settlementId = db.addSettlement(currentPlayer, chosenLabelOfVertexOrEdgeKey);
 			result["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + chosenLabelOfVertexOrEdgeKey + ".";
@@ -227,7 +228,7 @@ public:
 			settlementJson["vertex"] = chosenLabelOfVertexOrEdgeKey;
 			result["settlement"] = std::move(settlementJson);
 		}
-		else if (isEdgeKey(chosenLabelOfVertexOrEdgeKey)) {
+		else if (board.isEdgeKey(chosenLabelOfVertexOrEdgeKey)) {
 			state.placeRoad(currentPlayer, chosenLabelOfVertexOrEdgeKey);
 			int roadId = db.addRoad(currentPlayer, chosenLabelOfVertexOrEdgeKey);
 			result["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + chosenLabelOfVertexOrEdgeKey + ".";

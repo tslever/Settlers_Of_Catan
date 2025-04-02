@@ -77,10 +77,11 @@ namespace AI {
                 gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
             }
             else if (phase == "turn") {
-                if (isLabelOfVertex(labelOfVertexOrEdgeKey)) {
+                Board board;
+                if (board.isLabelOfVertex(labelOfVertexOrEdgeKey)) {
                     gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
                 }
-                else if (isEdgeKey(labelOfVertexOrEdgeKey)) {
+                else if (board.isEdgeKey(labelOfVertexOrEdgeKey)) {
                     gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
                 }
             }

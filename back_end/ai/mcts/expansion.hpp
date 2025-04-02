@@ -27,8 +27,8 @@ namespace AI {
 			std::string stringRepresentingSecondEndpoint = edge.substr(positionOfUnderscore + 1);
 			std::pair<double, double> pairOfCoordinatesOfFirstEndpoint = parseCoordinates(stringRepresentingFirstEndpoint);
 			std::pair<double, double> pairOfCoordinatesOfSecondEndpoint = parseCoordinates(stringRepresentingSecondEndpoint);
-			std::string labelOfFirstEndpoint = board.getVertexLabelByCoordinates(pairOfCoordinatesOfFirstEndpoint.first, pairOfCoordinatesOfFirstEndpoint.second);
-			std::string labelOfSecondEndpoint = board.getVertexLabelByCoordinates(pairOfCoordinatesOfSecondEndpoint.first, pairOfCoordinatesOfSecondEndpoint.second);
+			std::string labelOfFirstEndpoint = board.getLabelOfVertexByCoordinates(pairOfCoordinatesOfFirstEndpoint.first, pairOfCoordinatesOfFirstEndpoint.second);
+			std::string labelOfSecondEndpoint = board.getLabelOfVertexByCoordinates(pairOfCoordinatesOfSecondEndpoint.first, pairOfCoordinatesOfSecondEndpoint.second);
 			return { labelOfFirstEndpoint, labelOfSecondEndpoint };
 		}
 
@@ -43,22 +43,22 @@ namespace AI {
 			std::vector<std::string> vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges;
 			std::string phase = node->gameState.phase;
 			if (phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(db);
+				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(db);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
 			else if (phase == Phase::TO_PLACE_FIRST_ROAD || phase == Phase::TO_PLACE_SECOND_ROAD) {
-				std::vector<std::string> vectorOfKeysOfOccupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
+				std::vector<std::string> vectorOfKeysOfOccupiedEdges = board.getVectorOfKeysOfOccupiedEdges(db);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfKeysOfAvailableEdgesExtendingFromLastBuilding(node->gameState.lastBuilding, vectorOfKeysOfOccupiedEdges);
 			}
 			else if (phase == Phase::TO_PLACE_FIRST_CITY) {
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(db);
+				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(db);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
 			else if (node->gameState.phase == Phase::TURN) {
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(db);
+				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(db);
 				std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 
-				std::vector<std::string> vectorOfKeysOfOccupiedEdges = getVectorOfKeysOfOccupiedEdges(db);
+				std::vector<std::string> vectorOfKeysOfOccupiedEdges = board.getVectorOfKeysOfOccupiedEdges(db);
 				std::vector<std::string> vectorOfKeysOfAvailableEdges = board.getVectorOfKeysOfAvailableEdges(vectorOfKeysOfOccupiedEdges);
 
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.clear();
@@ -100,11 +100,11 @@ namespace AI {
 					moveType = "city";
 				}
 				else if (phase == Phase::TURN) {
-					if (isLabelOfVertex(labelOfAvailableVertexOrKeyOfAvailableEdge)) {
+					if (board.isLabelOfVertex(labelOfAvailableVertexOrKeyOfAvailableEdge)) {
 						gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
 						moveType = "turn";
 					}
-					else if (isEdgeKey(labelOfAvailableVertexOrKeyOfAvailableEdge)) {
+					else if (board.isEdgeKey(labelOfAvailableVertexOrKeyOfAvailableEdge)) {
 						gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
 						moveType = "turn";
 					}
