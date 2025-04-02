@@ -19,7 +19,7 @@ public:
 	virtual crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		WrapperOfNeuralNetwork& neuralNet,
+		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -34,7 +34,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		WrapperOfNeuralNetwork& neuralNet,
+		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -74,7 +74,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		WrapperOfNeuralNetwork& neuralNet,
+		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -121,7 +121,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		WrapperOfNeuralNetwork& neuralNet,
+		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -160,7 +160,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		WrapperOfNeuralNetwork& neuralNet,
+		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -202,7 +202,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		WrapperOfNeuralNetwork& neuralNet,
+		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -247,7 +247,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		WrapperOfNeuralNetwork& neuralNet,
+		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance
@@ -277,7 +277,7 @@ public:
 	crow::json::wvalue handle(
 		GameState& state,
 		Database& db,
-		WrapperOfNeuralNetwork& neuralNet,
+		AI::WrapperOfNeuralNetwork& neuralNet,
 		int numberOfSimulations,
 		double cPuct,
 		double tolerance

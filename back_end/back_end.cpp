@@ -50,7 +50,7 @@ std::atomic<bool> stopTraining{ false };
 
 // Function `modelWatcher` periodically reloads neural network parameters if file of parameters was updated.
 // TODO: Consider whether function `modelWatcher` belongs in another file.
-static void modelWatcher(WrapperOfNeuralNetwork* neuralNet, int modelWatcherInterval) {
+static void modelWatcher(AI::WrapperOfNeuralNetwork* neuralNet, int modelWatcherInterval) {
 	while (!stopModelWatcher.load()) {
 		try {
 			neuralNet->reloadIfUpdated();
@@ -69,7 +69,7 @@ static void modelWatcher(WrapperOfNeuralNetwork* neuralNet, int modelWatcherInte
 // TODO: Consider whether function `trainingLoop` belongs in another file.
 static void trainingLoop(
 	Database* db,
-	WrapperOfNeuralNetwork* neuralNet,
+	AI::WrapperOfNeuralNetwork* neuralNet,
 	int trainingThreshold,
 	int numberOfSimulations,
 	double cPuct,
@@ -121,7 +121,7 @@ int main() {
 	}
 
 
-	WrapperOfNeuralNetwork neuralNet(config.modelPath);
+	AI::WrapperOfNeuralNetwork neuralNet(config.modelPath);
 
 
 	/* Start background threads.

@@ -1,7 +1,7 @@
 #pragma once
 
 
-void trainNeuralNetwork(const std::vector<TrainingExample>& vectorOfTrainingExamples, WrapperOfNeuralNetwork* wrapperOfNeuralNetwork) {
+void trainNeuralNetwork(const std::vector<TrainingExample>& vectorOfTrainingExamples, AI::WrapperOfNeuralNetwork* wrapperOfNeuralNetwork) {
     int numberOfTrainingExamples = vectorOfTrainingExamples.size();
     std::clog << "[TRAINING] Neural network will be trained on " << numberOfTrainingExamples << " examples." << std::endl;
 
@@ -38,7 +38,7 @@ void trainNeuralNetwork(const std::vector<TrainingExample>& vectorOfTrainingExam
     torch::Tensor tensorOfTargetValues = torch::stack(vectorOfTensorsOfTargetValues).view(size);
     torch::Tensor tensorOfTargetPolicies = torch::stack(vectorOfTensorsOfTargetPolicies).view(size);
 
-    NeuralNetwork neuralNetwork = wrapperOfNeuralNetwork->neuralNetwork;
+    AI::NeuralNetwork neuralNetwork = wrapperOfNeuralNetwork->neuralNetwork;
     neuralNetwork->train();
 
     // Configure AdaM optimizer.

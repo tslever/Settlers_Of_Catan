@@ -21,7 +21,7 @@ struct TrainingExample {
 * until the game reaches the done phase when setup is complete.
 */
 std::vector<TrainingExample> runSelfPlayGame(
-    WrapperOfNeuralNetwork& neuralNet,
+    AI::WrapperOfNeuralNetwork& neuralNet,
     Database& db,
     int numberOfSimulations,
     double cPuct,
