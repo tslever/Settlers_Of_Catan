@@ -11,15 +11,13 @@ namespace AI {
     class Trainer {
     public:
         Trainer(
-            DB::Database* db,
             AI::WrapperOfNeuralNetwork* neuralNetToUse,
             int modelWatcherIntervalToUse,
             int trainingThresholdToUse,
             int numberOfSimulationsToUse,
             double cPuctToUse,
             double toleranceToUse
-        ) : database(db),
-            neuralNet(neuralNetToUse),
+        ) : neuralNet(neuralNetToUse),
             modelWatcherInterval(modelWatcherIntervalToUse),
             trainingThreshold(trainingThresholdToUse),
             numberOfSimulations(numberOfSimulationsToUse),
@@ -63,7 +61,6 @@ namespace AI {
 
     private:
         // Dependencies and configuration parameters
-        DB::Database* database;
         WrapperOfNeuralNetwork* neuralNet;
         int modelWatcherInterval;
         int trainingThreshold;
@@ -99,7 +96,6 @@ namespace AI {
                 try {
                     std::vector<AI::TrainingExample> vectorOfTrainingExamplesFromSelfPlayGame = runSelfPlayGame(
                         *neuralNet,
-                        *database,
                         numberOfSimulations,
                         cPuct,
                         tolerance

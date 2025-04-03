@@ -70,7 +70,6 @@ namespace Game {
 			crow::json::wvalue jsonObjectOfMoveInformation;
 			std::pair<std::string, int> pairOfLabelOfBestVertexAndVisitCount = runMcts(
 				state,
-				db,
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
@@ -97,7 +96,6 @@ namespace Game {
 			crow::json::wvalue jsonObjectOfMoveInformation;
 			std::pair<std::string, int> pairOfKeyOfBestEdgeAndVisitCount = runMcts(
 				state,
-				db,
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
@@ -124,7 +122,6 @@ namespace Game {
 			crow::json::wvalue jsonObjectOfMoveInformation;
 			std::pair<std::string, int> pairOfLabelOfBestVertexAndVisitCount = runMcts(
 				state,
-				db,
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
@@ -152,7 +149,6 @@ namespace Game {
 			crow::json::wvalue jsonObjectOfMoveInformation;
 			std::pair<std::string, int> pairOfKeyOfBestEdgeAndVisitCount = runMcts(
 				state,
-				db,
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
@@ -179,7 +175,6 @@ namespace Game {
 			crow::json::wvalue jsonObjectOfMoveInformation;
 			std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = runMcts(
 				state,
-				db,
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
@@ -213,7 +208,6 @@ namespace Game {
 				jsonObjectOfRoadInformation["edge"] = representationOfChosenVertexOrEdge;
 				jsonObjectOfMoveInformation["road"] = std::move(jsonObjectOfRoadInformation);
 			}
-			state.updatePhase();
 			return jsonObjectOfMoveInformation;
 		}
 

@@ -286,15 +286,6 @@ public:
 		return vectorOfPairsOfCoordinates;
 	}
 
-	std::vector<std::string> getVectorOfKeysOfOccupiedEdges(DB::Database& db) {
-		std::vector<std::string> vectorOfKeysOfOccupiedEdges;
-		std::vector<Road> vectorOfRoads = db.getRoads();
-		for (const Road& road : vectorOfRoads) {
-			vectorOfKeysOfOccupiedEdges.push_back(road.edge);
-		}
-		return vectorOfKeysOfOccupiedEdges;
-	}
-
 	bool isLabelOfVertex(std::string s) {
 		std::regex vertexPattern("^V\\d{2}$");
 		if (std::regex_match(s, vertexPattern)) {
@@ -309,19 +300,6 @@ public:
 			return true;
 		}
 		return false;
-	}
-
-	std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(DB::Database& db) {
-		std::vector<std::string> listOfLabelsOfOccupiedVertices;
-		std::vector<Settlement> settlements = db.getSettlements();
-		for (const Settlement& s : settlements) {
-			listOfLabelsOfOccupiedVertices.push_back(s.vertex);
-		}
-		std::vector<City> cities = db.getCities();
-		for (const auto& c : cities) {
-			listOfLabelsOfOccupiedVertices.push_back(c.vertex);
-		}
-		return listOfLabelsOfOccupiedVertices;
 	}
 
 private:

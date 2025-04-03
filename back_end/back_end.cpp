@@ -68,7 +68,6 @@ int main() {
 	AI::WrapperOfNeuralNetwork neuralNet(config.modelPath);
 
 	AI::Trainer trainer(
-		&selfPlayDb,
 		&neuralNet,
 		config.modelWatcherInterval,
 		config.trainingThreshold,

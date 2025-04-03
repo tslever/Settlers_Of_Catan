@@ -33,38 +33,61 @@ namespace AI {
 		}
 
 
+		std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(std::shared_ptr<MCTSNode> node) {
+			std::vector<std::string> vectorOfLabelsOfOccupiedVertices;
+			for (const std::pair<int, std::vector<std::string>>& pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithSettlements : node->gameState.settlements) {
+				std::vector<std::string> vectorOfLabelsOfVerticesWithSettlements = pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithSettlements.second;
+				vectorOfLabelsOfOccupiedVertices.insert(
+					vectorOfLabelsOfOccupiedVertices.end(),
+					vectorOfLabelsOfVerticesWithSettlements.begin(),
+					vectorOfLabelsOfVerticesWithSettlements.end()
+				);
+			}
+			for (const std::pair<int, std::vector<std::string>>& pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithCities : node->gameState.cities) {
+				std::vector<std::string> vectorOfLabelsOfVerticesWithCities = pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithCities.second;
+				vectorOfLabelsOfOccupiedVertices.insert(
+					vectorOfLabelsOfOccupiedVertices.end(),
+					vectorOfLabelsOfVerticesWithCities.begin(),
+					vectorOfLabelsOfVerticesWithCities.end()
+				);
+			}
+			return vectorOfLabelsOfOccupiedVertices;
+		}
+
+
+		std::vector<std::string> getVectorOfKeysOfOccupiedEdges(std::shared_ptr<MCTSNode> node) {
+			return node->gameState.roads[node->gameState.currentPlayer];
+		}
+
+
 		/* Function `expandNode`, for each move determined to be available by board geometry and current state,
 		* creates a child node and sets its prior probability based on the move type.
 		*/
-		void expandNode(const std::shared_ptr<MCTSNode>& node, DB::Database& db, WrapperOfNeuralNetwork& neuralNet) {
+		void expandNode(const std::shared_ptr<MCTSNode>& node, WrapperOfNeuralNetwork& neuralNet) {
 			Board board;
 
 			// Create vector of labels of available vertices or keys of available edges.
 			std::vector<std::string> vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges;
 			std::string phase = node->gameState.phase;
 			if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(db);
+				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
 			else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD || phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
-				std::vector<std::string> vectorOfKeysOfOccupiedEdges = board.getVectorOfKeysOfOccupiedEdges(db);
+				std::vector<std::string> vectorOfKeysOfOccupiedEdges = getVectorOfKeysOfOccupiedEdges(node);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfKeysOfAvailableEdgesExtendingFromLastBuilding(node->gameState.lastBuilding, vectorOfKeysOfOccupiedEdges);
 			}
 			else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(db);
+				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
 			else if (node->gameState.phase == Game::Phase::TURN) {
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(db);
+				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
 				std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 
-				std::vector<std::string> vectorOfKeysOfOccupiedEdges = board.getVectorOfKeysOfOccupiedEdges(db);
+				std::vector<std::string> vectorOfKeysOfOccupiedEdges = getVectorOfKeysOfOccupiedEdges(node);
 				std::vector<std::string> vectorOfKeysOfAvailableEdges = board.getVectorOfKeysOfAvailableEdges(vectorOfKeysOfOccupiedEdges);
 
-				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.clear();
-				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.shrink_to_fit();
-				size_t numberOfSpacesToReserve = vectorOfLabelsOfAvailableVertices.size() + vectorOfKeysOfAvailableEdges.size();
-				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.reserve(numberOfSpacesToReserve);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.insert(
 					vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges.end(),
 					vectorOfLabelsOfAvailableVertices.begin(),

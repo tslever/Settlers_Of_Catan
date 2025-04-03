@@ -48,7 +48,6 @@ void injectDirichletNoise(std::shared_ptr<AI::MCTS::MCTSNode>& root, double mixi
 */
 std::pair<std::string, int> runMcts(
 	GameState& currentState,
-	DB::Database& db,
 	AI::WrapperOfNeuralNetwork& neuralNet,
 	int numberOfSimulations,
 	double cPuct,
@@ -75,7 +74,7 @@ std::pair<std::string, int> runMcts(
 
 	//std::clog << "            [EXPAND ROOT] The root is being expanded." << std::endl;
 	//std::clog << "            [EXPAND ROOT] The following root is being expanded.\n            " << root->toJson().dump() << std::endl;
-	expandNode(root, db, neuralNet);
+	expandNode(root, neuralNet);
 	//std::clog << "            [EXPAND ROOT] The root was expanded into the following.\n            " << root->toJson().dump() << std::endl;
 
 	injectDirichletNoise(root, 0.25, 0.03);
@@ -97,11 +96,11 @@ std::pair<std::string, int> runMcts(
 		//}
 		//else {
 		if (node->visitCount == 0) {
-			expandNode(node, db, neuralNet);
+			expandNode(node, neuralNet);
 			//std::clog << "                [EXPAND NODE] Node node was not visited before and was expanded." << std::endl;
 			//std::clog << "                [EXPAND NODE] Node node was not visited before and was expanded into the following.\n                " << node->toJson().dump() << std::endl;
 		}
-		double value = rollout(node, db, neuralNet);
+		double value = rollout(node, neuralNet);
 		//std::clog << "                [ROLLOUT] The value of node node is " << value << "." << std::endl;
 		backpropagate(node, value);
 		//std::clog << "                [BACKPROPAGATION] Statistics of node node and all parents were updated." << std::endl;

@@ -24,7 +24,6 @@ namespace AI {
     */
     std::vector<TrainingExample> runSelfPlayGame(
         AI::WrapperOfNeuralNetwork& neuralNet,
-        DB::Database& db,
         int numberOfSimulations,
         double cPuct,
         double tolerance
@@ -55,7 +54,6 @@ namespace AI {
             int currentPlayer = gameState.currentPlayer;
             std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = runMcts(
                 gameState,
-                db,
                 neuralNet,
                 numberOfSimulations,
                 cPuct,
@@ -69,28 +67,22 @@ namespace AI {
             std::string phase = gameState.phase;
             if (phase.find("settlement") != std::string::npos) {
                 gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
-                db.addSettlement(currentPlayer, labelOfVertexOrEdgeKey);
             }
             else if (phase.find("city") != std::string::npos) {
                 gameState.placeCity(currentPlayer, labelOfVertexOrEdgeKey);
-                db.addCity(currentPlayer, labelOfVertexOrEdgeKey);
             }
             else if (phase.find("road") != std::string::npos) {
                 gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
-                db.addRoad(currentPlayer, labelOfVertexOrEdgeKey);
             }
             else if (phase == "turn") {
                 Board board;
                 if (board.isLabelOfVertex(labelOfVertexOrEdgeKey)) {
                     gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
-                    db.addSettlement(currentPlayer, labelOfVertexOrEdgeKey);
                 }
                 else if (board.isEdgeKey(labelOfVertexOrEdgeKey)) {
                     gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
-                    db.addRoad(currentPlayer, labelOfVertexOrEdgeKey);
                 }
             }
-            db.updateGameState(gameState);
             TrainingExample trainingExample;
             trainingExample.player = currentPlayer;
             trainingExample.gameState = gameState;
@@ -108,14 +100,6 @@ namespace AI {
         std::clog <<
             "[SELF PLAY] Game simulation completed in " << numberOfMovesSimulated << " moves " <<
             "with winner Player " << gameState.winner << "." << std::endl;
-
-        bool clearingSelfPlayTablesSucceeded = db.resetGame();
-        if (clearingSelfPlayTablesSucceeded) {
-            std::clog << "[SELF PLAY] Clearing self play tables succeeded." << std::endl;
-        }
-        else {
-            throw std::runtime_error("[SELF PLAY] Clearing self play tables failed.");
-        }
 
         return vectorOfTrainingExamples;
     }
