@@ -1,22 +1,9 @@
 #pragma once
 
+#include "phase.hpp"
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-
-
-/* TODO: Keep or replace the following namespace with an enum class and change phase in `oss << "phase: " << phase << "\n";` below
-* to a string representing the enumeration that is lowercase and without underscores as in the strings immediately below.
-*/
-namespace Phase {
-	const std::string TO_PLACE_FIRST_SETTLEMENT = "phase to place first settlement";
-	const std::string TO_PLACE_FIRST_ROAD = "phase to place first road";
-    const std::string TO_PLACE_FIRST_CITY = "phase to place first city";
-	const std::string TO_PLACE_SECOND_ROAD = "phase to place second road";
-	const std::string TURN = "turn";
-    const std::string DONE = "done";
-}
 
 
 class GameState {
@@ -30,7 +17,7 @@ public:
     int winner;
 
     GameState()
-        : currentPlayer(1), phase(Phase::TO_PLACE_FIRST_SETTLEMENT), lastBuilding(""), winner(0)
+        : currentPlayer(1), phase(Game::Phase::TO_PLACE_FIRST_SETTLEMENT), lastBuilding(""), winner(0)
     {
         settlements[1] = {};
         settlements[2] = {};
@@ -45,37 +32,37 @@ public:
 
     // TODO: Consider replacing function `updatePhase` by using the existing phase state machine.
     void updatePhase() {
-        if (phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
-            phase = Phase::TO_PLACE_FIRST_ROAD;
+        if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
+            phase = Game::Phase::TO_PLACE_FIRST_ROAD;
         }
-        else if (phase == Phase::TO_PLACE_FIRST_ROAD) {
+        else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD) {
             if (currentPlayer < 3) {
                 currentPlayer++;
-                phase = Phase::TO_PLACE_FIRST_SETTLEMENT;
+                phase = Game::Phase::TO_PLACE_FIRST_SETTLEMENT;
             }
             else {
-                phase = Phase::TO_PLACE_FIRST_CITY;
+                phase = Game::Phase::TO_PLACE_FIRST_CITY;
             }
         }
-        else if (phase == Phase::TO_PLACE_FIRST_CITY) {
-            phase = Phase::TO_PLACE_SECOND_ROAD;
+        else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
+            phase = Game::Phase::TO_PLACE_SECOND_ROAD;
         }
-        else if (phase == Phase::TO_PLACE_SECOND_ROAD) {
+        else if (phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
             if (currentPlayer > 1) {
                 currentPlayer--;
-                phase = Phase::TO_PLACE_FIRST_CITY;
+                phase = Game::Phase::TO_PLACE_FIRST_CITY;
             }
             else {
-                phase = Phase::TURN;
+                phase = Game::Phase::TURN;
             }
         }
-        else if (phase == Phase::TURN) {
+        else if (phase == Game::Phase::TURN) {
             for (int i = 1; i <= 3; i++) {
                 int numberOfVictoryPoints = settlements[i].size() + cities[i].size();
                 if (numberOfVictoryPoints >= 5) {
                     currentPlayer = i;
                     winner = i;
-                    phase = Phase::DONE;
+                    phase = Game::Phase::DONE;
                     return;
                 }
             }

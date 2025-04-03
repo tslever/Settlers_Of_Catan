@@ -13,17 +13,13 @@
 #include "ai/trainer.hpp"
 
 #include "config.hpp"
-
 #include "db/database.hpp"
-
+#include "game/game.hpp"
 #include "game/game_state.hpp"
-#include "game/phase_state_machine.hpp"
 
 
-/* TODO: Align this back end with the Python back end.
-* Migrate self play and training logic.
-*/
 // TODO: Consider whether database driven state management needs to be implemented more.
+// TODO: Consider using a graph database.
 
 // Structure CorsMiddleware is a simple middleware to add CORS headers.
 struct CorsMiddleware {
@@ -57,20 +53,22 @@ int main() {
 	app.loglevel(crow::LogLevel::Info);
 
 
-    DB::Database db(config.dbName, config.dbHost, config.dbPassword, config.dbPort, config.dbUsername);
+    DB::Database liveDb(config.dbName, config.dbHost, config.dbPassword, config.dbPort, config.dbUsername, "live_");
+	DB::Database selfPlayDb(config.dbName, config.dbHost, config.dbPassword, config.dbPort, config.dbUsername, "self_play_");
 	try {
-		db.initialize();
-		std::clog << "[INFO] Database was initialized.\n";
+		liveDb.initialize();
+		selfPlayDb.initialize();
+		std::clog << "[INFO] Database objects were initialized.\n";
 	}
 	catch (const std::exception& e) {
-		std::cerr << "[ERROR] Database initialization failed with the following error. " << e.what() << std::endl;
+		std::cerr << "[ERROR] Initializing database objects failed with the following error. " << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
 
 	AI::WrapperOfNeuralNetwork neuralNet(config.modelPath);
 
 	AI::Trainer trainer(
-		&db,
+		&selfPlayDb,
 		&neuralNet,
 		config.modelWatcherInterval,
 		config.trainingThreshold,
@@ -82,9 +80,9 @@ int main() {
 	trainer.runTrainingLoop();
 
     CROW_ROUTE(app, "/cities").methods("GET"_method)
-    ([&db]() -> crow::json::wvalue {
+    ([&liveDb]() -> crow::json::wvalue {
 		try {
-			return db.getCitiesJson();
+			return liveDb.getCitiesJson();
 		}
 		catch (const std::exception& e) {
 			crow::json::wvalue error;
@@ -95,14 +93,14 @@ int main() {
 
 
 	CROW_ROUTE(app, "/next").methods("POST"_method)
-	([&db, &neuralNet, &config]() -> crow::json::wvalue {
+	([&liveDb, &neuralNet, &config]() -> crow::json::wvalue {
 		crow::json::wvalue response;
 		try {
 			std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
-			GameState currentGameState = db.getGameState();
-			PhaseStateMachine phaseStateMachine;
-			response = phaseStateMachine.handle(currentGameState, db, neuralNet, config.numberOfSimulations, config.cPuct, config.tolerance);
-			db.updateGameState(currentGameState);
+			GameState currentGameState = liveDb.getGameState();
+			Game::Game game(liveDb, neuralNet, config.numberOfSimulations, config.cPuct, config.tolerance, currentGameState);
+			response = game.handlePhase();
+			liveDb.updateGameState(game.getState());
 		}
 		catch (const std::exception& e) {
 			response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
@@ -113,11 +111,11 @@ int main() {
 
 
 	CROW_ROUTE(app, "/reset").methods("POST"_method)
-	([&db]() -> crow::json::wvalue {
+	([&liveDb]() -> crow::json::wvalue {
 		crow::json::wvalue response;
 		try {
 			std::clog << "[INFO] A user posted to endpoint reset. Game state and database will be reset." << std::endl;
-			bool success = db.resetGame();
+			bool success = liveDb.resetGame();
 			response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
 		}
 		catch (const std::exception& e) {
@@ -129,9 +127,9 @@ int main() {
 
 
 	CROW_ROUTE(app, "/roads").methods("GET"_method)
-	([&db]() -> crow::json::wvalue {
+	([&liveDb]() -> crow::json::wvalue {
 		try {
-			return db.getRoadsJson();
+			return liveDb.getRoadsJson();
 		}
 		catch (const std::exception& e) {
 			crow::json::wvalue error;
@@ -150,9 +148,9 @@ int main() {
 
 
 	CROW_ROUTE(app, "/settlements").methods("GET"_method)
-	([&db]() -> crow::json::wvalue {
+	([&liveDb]() -> crow::json::wvalue {
 		try {
-			return db.getSettlementsJson();
+			return liveDb.getSettlementsJson();
 		}
 		catch (const std::exception& e) {
 			crow::json::wvalue error;

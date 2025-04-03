@@ -24,18 +24,21 @@ namespace DB {
         std::string password;
         unsigned int port;
         std::string username;
+        std::string tablePrefix;
 
         Database(
             const std::string& dbName,
             const std::string& host,
             const std::string& password,
             unsigned int port,
-            const std::string& username
+            const std::string& username,
+            const std::string& tablePrefix
         ) : dbName(dbName),
             host(host),
             password(password),
             port(port),
-            username(username)
+            username(username),
+            tablePrefix(tablePrefix)
         {
             // TODO: Consider setting additional session options if appropriate.
         }
@@ -51,28 +54,28 @@ namespace DB {
                 mysqlx::Schema schema = session.getSchema(dbName);
 
                 session.sql(
-                    "CREATE TABLE IF NOT EXISTS cities ("
+                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "cities ("
                     "id INT AUTO_INCREMENT PRIMARY KEY, "
                     "player INT NOT NULL, "
                     "vertex VARCHAR(50) NOT NULL)"
                 ).execute();
 
                 session.sql(
-                    "CREATE TABLE IF NOT EXISTS settlements ("
+                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "settlements ("
                     "id INT AUTO_INCREMENT PRIMARY KEY, "
                     "player INT NOT NULL, "
                     "vertex VARCHAR(50) NOT NULL)"
                 ).execute();
 
                 session.sql(
-                    "CREATE TABLE IF NOT EXISTS roads ("
+                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "roads ("
                     "id INT AUTO_INCREMENT PRIMARY KEY, "
                     "player INT NOT NULL, "
                     "edge VARCHAR(50) NOT NULL)"
                 ).execute();
 
                 session.sql(
-                    "CREATE TABLE IF NOT EXISTS state ("
+                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "state ("
                     "id INT PRIMARY KEY, "
                     "current_player INT NOT NULL, "
                     "phase VARCHAR(100) NOT NULL, "
@@ -88,7 +91,7 @@ namespace DB {
         int addCity(int player, const std::string& vertex) {
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable("cities");
+            mysqlx::Table table = schema.getTable(tablePrefix + "cities");
             table.insert("player", "vertex").values(player, vertex).execute();
             mysqlx::RowResult res = table
                 .select("id")
@@ -104,7 +107,7 @@ namespace DB {
         int addSettlement(int player, const std::string& vertex) {
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable("settlements");
+            mysqlx::Table table = schema.getTable(tablePrefix + "settlements");
             table.insert("player", "vertex").values(player, vertex).execute();
             mysqlx::RowResult res = table
                 .select("id")
@@ -120,7 +123,7 @@ namespace DB {
         int addRoad(int player, const std::string& edge) {
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable("roads");
+            mysqlx::Table table = schema.getTable(tablePrefix + "roads");
             table.insert("player", "edge").values(player, edge).execute();
             mysqlx::RowResult res = table
                 .select("id")
@@ -137,7 +140,7 @@ namespace DB {
             std::vector<City> cities;
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable("cities");
+            mysqlx::Table table = schema.getTable(tablePrefix + "cities");
             mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
             for (mysqlx::Row row : rowResult) {
                 City c;
@@ -174,7 +177,7 @@ namespace DB {
             GameState gameState;
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable("state");
+            mysqlx::Table table = schema.getTable(tablePrefix + "state");
             mysqlx::RowResult rowResult = table.select("current_player", "phase", "last_building").where("id = 1").execute();
             mysqlx::Row row = rowResult.fetchOne();
             if (row) {
@@ -184,27 +187,27 @@ namespace DB {
             }
             else {
                 gameState = GameState();
-                session.sql("REPLACE INTO state (id, current_player, phase, last_building) VALUES (1, ?, ?, ?)")
+                session.sql("REPLACE INTO " + tablePrefix + "state(id, current_player, phase, last_building) VALUES(1, ? , ? , ? )")
                     .bind(gameState.currentPlayer)
                     .bind(gameState.phase)
                     .bind(gameState.lastBuilding)
                     .execute();
             }
-            mysqlx::Table settlementsTable = schema.getTable("settlements");
+            mysqlx::Table settlementsTable = schema.getTable(tablePrefix + "settlements");
             mysqlx::RowResult settlementsResult = settlementsTable.select("player", "vertex").execute();
             for (mysqlx::Row sRow : settlementsResult) {
                 int player = sRow[0];
                 std::string vertex = sRow[1].get<std::string>();
                 gameState.settlements[player].push_back(vertex);
             }
-            mysqlx::Table citiesTable = schema.getTable("cities");
+            mysqlx::Table citiesTable = schema.getTable(tablePrefix + "cities");
             mysqlx::RowResult citiesResult = citiesTable.select("player", "vertex").execute();
             for (mysqlx::Row cRow : citiesResult) {
                 int player = cRow[0];
                 std::string vertex = cRow[1].get<std::string>();
                 gameState.cities[player].push_back(vertex);
             }
-            mysqlx::Table roadsTable = schema.getTable("roads");
+            mysqlx::Table roadsTable = schema.getTable(tablePrefix + "roads");
             mysqlx::RowResult roadsResult = roadsTable.select("player", "edge").execute();
             for (mysqlx::Row rRow : roadsResult) {
                 int player = rRow[0];
@@ -218,7 +221,7 @@ namespace DB {
             std::vector<Road> roads;
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable("roads");
+            mysqlx::Table table = schema.getTable(tablePrefix + "roads");
             mysqlx::RowResult rowResult = table.select("id", "player", "edge").execute();
             for (mysqlx::Row row : rowResult) {
                 Road r;
@@ -252,7 +255,7 @@ namespace DB {
             std::vector<Settlement> settlements;
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable("settlements");
+            mysqlx::Table table = schema.getTable(tablePrefix + "settlements");
             mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
             for (mysqlx::Row row : rowResult) {
                 Settlement s;
@@ -289,16 +292,16 @@ namespace DB {
                 mysqlx::Schema schema = session.getSchema(dbName);
 
                 // Clear settlements, cities, and roads.
-                schema.getTable("settlements").remove().execute();
-                schema.getTable("cities").remove().execute();
-                schema.getTable("roads").remove().execute();
-                session.sql("ALTER TABLE settlements AUTO_INCREMENT = 1").execute();
-                session.sql("ALTER TABLE cities AUTO_INCREMENT = 1").execute();
-                session.sql("ALTER TABLE roads AUTO_INCREMENT = 1").execute();
+                schema.getTable(tablePrefix + "settlements").remove().execute();
+                schema.getTable(tablePrefix + "cities").remove().execute();
+                schema.getTable(tablePrefix + "roads").remove().execute();
+                session.sql("ALTER TABLE " + tablePrefix + "settlements AUTO_INCREMENT = 1").execute();
+                session.sql("ALTER TABLE " + tablePrefix + "cities AUTO_INCREMENT = 1").execute();
+                session.sql("ALTER TABLE " + tablePrefix + "roads AUTO_INCREMENT = 1").execute();
 
                 // Reset the game state to its initial values.
                 GameState initialState;
-                mysqlx::Table stateTable = schema.getTable("state");
+                mysqlx::Table stateTable = schema.getTable(tablePrefix + "state");
                 stateTable.update()
                     .set("current_player", initialState.currentPlayer)
                     .set("phase", initialState.phase)
@@ -326,7 +329,7 @@ namespace DB {
         void updateGameState(const GameState& gameState) {
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable("state");
+            mysqlx::Table table = schema.getTable(tablePrefix + "state");
             table
                 .update()
                 .set("current_player", gameState.currentPlayer)

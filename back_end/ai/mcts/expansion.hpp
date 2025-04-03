@@ -42,19 +42,19 @@ namespace AI {
 			// Create vector of labels of available vertices or keys of available edges.
 			std::vector<std::string> vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges;
 			std::string phase = node->gameState.phase;
-			if (phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+			if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(db);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
-			else if (phase == Phase::TO_PLACE_FIRST_ROAD || phase == Phase::TO_PLACE_SECOND_ROAD) {
+			else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD || phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
 				std::vector<std::string> vectorOfKeysOfOccupiedEdges = board.getVectorOfKeysOfOccupiedEdges(db);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfKeysOfAvailableEdgesExtendingFromLastBuilding(node->gameState.lastBuilding, vectorOfKeysOfOccupiedEdges);
 			}
-			else if (phase == Phase::TO_PLACE_FIRST_CITY) {
+			else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(db);
 				vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
-			else if (node->gameState.phase == Phase::TURN) {
+			else if (node->gameState.phase == Game::Phase::TURN) {
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(db);
 				std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 
@@ -87,19 +87,19 @@ namespace AI {
 				GameState gameStateOfChild = node->gameState;
 				int currentPlayer = gameStateOfChild.currentPlayer;
 				std::string moveType;
-				if (phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+				if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
 					gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
 					moveType = "settlement";
 				}
-				else if (phase == Phase::TO_PLACE_FIRST_ROAD || phase == Phase::TO_PLACE_SECOND_ROAD) {
+				else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD || phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
 					gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
 					moveType = "road";
 				}
-				else if (phase == Phase::TO_PLACE_FIRST_CITY) {
+				else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
 					gameStateOfChild.placeCity(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
 					moveType = "city";
 				}
-				else if (phase == Phase::TURN) {
+				else if (phase == Game::Phase::TURN) {
 					if (board.isLabelOfVertex(labelOfAvailableVertexOrKeyOfAvailableEdge)) {
 						gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrKeyOfAvailableEdge);
 						moveType = "turn";

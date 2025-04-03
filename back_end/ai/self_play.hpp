@@ -36,20 +36,20 @@ namespace AI {
         // Simulate moves until phase becomes `Phase::DONE`, or up to a maximum number of moves to safeguard against infinite loops.
         int numberOfMovesSimulated = 0;
         const int maximumNumberOfMoves = 100;
-        while (gameState.phase != Phase::DONE && numberOfMovesSimulated < maximumNumberOfMoves) {
-            if (gameState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+        while (gameState.phase != Game::Phase::DONE && numberOfMovesSimulated < maximumNumberOfMoves) {
+            if (gameState.phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
                 std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first settlement is being simulated." << std::endl;
             }
-            else if (gameState.phase == Phase::TO_PLACE_FIRST_ROAD) {
+            else if (gameState.phase == Game::Phase::TO_PLACE_FIRST_ROAD) {
                 std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first road is being simulated." << std::endl;
             }
-            else if (gameState.phase == Phase::TO_PLACE_FIRST_CITY) {
+            else if (gameState.phase == Game::Phase::TO_PLACE_FIRST_CITY) {
                 std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first city is being simulated." << std::endl;
             }
-            else if (gameState.phase == Phase::TO_PLACE_SECOND_ROAD) {
+            else if (gameState.phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
                 std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their second road is being simulated." << std::endl;
             }
-            else if (gameState.phase == Phase::TURN) {
+            else if (gameState.phase == Game::Phase::TURN) {
                 std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " playing their turn is being simulated." << std::endl;
             }
             int currentPlayer = gameState.currentPlayer;
@@ -102,6 +102,15 @@ namespace AI {
         std::clog <<
             "[SELF PLAY] Game simulation completed in " << numberOfMovesSimulated << " moves " <<
             "with winner Player " << gameState.winner << "." << std::endl;
+
+        bool clearingSelfPlayTablesSucceeded = db.resetGame();
+        if (clearingSelfPlayTablesSucceeded) {
+            std::clog << "[SELF PLAY] Clearing self play tables succeeded." << std::endl;
+        }
+        else {
+            throw std::runtime_error("[SELF PLAY] Clearing self play tables failed.");
+        }
+
         return vectorOfTrainingExamples;
     }
 

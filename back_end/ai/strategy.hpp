@@ -59,16 +59,16 @@ std::pair<std::string, int> runMcts(
 
 	// Create root node for current phase.
 	std::string moveType = "";
-	if (currentState.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+	if (currentState.phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
 		moveType = "settlement";
 	}
-	else if (currentState.phase == Phase::TO_PLACE_FIRST_ROAD || currentState.phase == Phase::TO_PLACE_SECOND_ROAD) {
+	else if (currentState.phase == Game::Phase::TO_PLACE_FIRST_ROAD || currentState.phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
 		moveType = "road";
 	}
-	else if (currentState.phase == Phase::TO_PLACE_FIRST_CITY) {
+	else if (currentState.phase == Game::Phase::TO_PLACE_FIRST_CITY) {
 		moveType = "city";
 	}
-	else if (currentState.phase == Phase::TURN) {
+	else if (currentState.phase == Game::Phase::TURN) {
 		moveType = "turn";
 	}
 	std::shared_ptr<AI::MCTS::MCTSNode> root = std::make_shared<AI::MCTS::MCTSNode>(currentState, "", nullptr, moveType);

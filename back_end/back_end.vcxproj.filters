@@ -47,9 +47,6 @@
     <ClInclude Include="game\game_state.hpp">
       <Filter>Header Files\game</Filter>
     </ClInclude>
-    <ClInclude Include="game\phase_state_machine.hpp">
-      <Filter>Header Files\game</Filter>
-    </ClInclude>
     <ClInclude Include="ai\mcts\backpropagation.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -75,6 +72,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ai\trainer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="game\game.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="game\phase.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
