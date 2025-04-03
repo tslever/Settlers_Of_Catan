@@ -69,22 +69,28 @@ namespace AI {
             std::string phase = gameState.phase;
             if (phase.find("settlement") != std::string::npos) {
                 gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
+                db.addSettlement(currentPlayer, labelOfVertexOrEdgeKey);
             }
             else if (phase.find("city") != std::string::npos) {
                 gameState.placeCity(currentPlayer, labelOfVertexOrEdgeKey);
+                db.addCity(currentPlayer, labelOfVertexOrEdgeKey);
             }
             else if (phase.find("road") != std::string::npos) {
                 gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
+                db.addRoad(currentPlayer, labelOfVertexOrEdgeKey);
             }
             else if (phase == "turn") {
                 Board board;
                 if (board.isLabelOfVertex(labelOfVertexOrEdgeKey)) {
                     gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
+                    db.addSettlement(currentPlayer, labelOfVertexOrEdgeKey);
                 }
                 else if (board.isEdgeKey(labelOfVertexOrEdgeKey)) {
                     gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
+                    db.addRoad(currentPlayer, labelOfVertexOrEdgeKey);
                 }
             }
+            db.updateGameState(gameState);
             TrainingExample trainingExample;
             trainingExample.player = currentPlayer;
             trainingExample.gameState = gameState;
