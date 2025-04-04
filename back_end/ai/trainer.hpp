@@ -117,9 +117,18 @@ namespace AI {
             }
         }
 
-        void trainNeuralNetwork(const std::vector<AI::TrainingExample>& vectorOfTrainingExamples, AI::WrapperOfNeuralNetwork* wrapperOfNeuralNetwork) {
+        void trainNeuralNetwork(
+            const std::vector<AI::TrainingExample>& vectorOfTrainingExamples,
+            AI::WrapperOfNeuralNetwork* wrapperOfNeuralNetwork
+        ) {
             int numberOfTrainingExamples = vectorOfTrainingExamples.size();
-            std::clog << "[TRAINING] Neural network will be trained on " << numberOfTrainingExamples << " examples." << std::endl;
+            std::clog <<
+                "[TRAINING] Neural network will be trained on " <<
+                numberOfTrainingExamples << " examples." << std::endl;
+
+			AI::NeuralNetwork neuralNetwork = wrapperOfNeuralNetwork->neuralNetwork;
+			c10::Device device = neuralNetwork->parameters()[0].device();
+			c10::TensorOptions tensorOptions = torch::TensorOptions().dtype(torch::kFloat32).device(device);
 
             std::vector<torch::Tensor> vectorOfInputTensors;
             std::vector<torch::Tensor> vectorOfTensorsOfTargetValues;
@@ -128,7 +137,6 @@ namespace AI {
             Board board;
             for (const AI::TrainingExample& trainingExample : vectorOfTrainingExamples) {
                 std::vector<float> featureVector = board.getFeatureVector(trainingExample.move);
-                c10::TensorOptions tensorOptions = torch::TensorOptions().dtype(torch::kFloat32);
                 torch::Tensor inputTensor = torch::tensor(featureVector, tensorOptions);
                 vectorOfInputTensors.push_back(inputTensor);
 
@@ -149,12 +157,11 @@ namespace AI {
             * Tensor `tensorOfTargetValues` has shape [N, 1].
             * Tensor `tensorOfTargetPolicies` has shape [N, 1].
             */
-            torch::Tensor inputTensor = torch::stack(vectorOfInputTensors);
+            torch::Tensor inputTensor = torch::stack(vectorOfInputTensors).to(device);
             torch::IntArrayRef size = { -1, 1 };
-            torch::Tensor tensorOfTargetValues = torch::stack(vectorOfTensorsOfTargetValues).view(size);
-            torch::Tensor tensorOfTargetPolicies = torch::stack(vectorOfTensorsOfTargetPolicies).view(size);
+            torch::Tensor tensorOfTargetValues = torch::stack(vectorOfTensorsOfTargetValues).view(size).to(device);
+            torch::Tensor tensorOfTargetPolicies = torch::stack(vectorOfTensorsOfTargetPolicies).view(size).to(device);
 
-            AI::NeuralNetwork neuralNetwork = wrapperOfNeuralNetwork->neuralNetwork;
             neuralNetwork->train();
 
             // Configure AdaM optimizer.
@@ -187,8 +194,8 @@ namespace AI {
                         vectorOfIndicesOfSamples.begin() + indexOfFirstSample,
                         vectorOfIndicesOfSamples.begin() + indexOfLastSample
                     );
-                    torch::TensorOptions tensorOptions = torch::TensorOptions().dtype(torch::kInt64);
-                    torch::Tensor tensorOfIndicesOfSamplesInBatch = torch::tensor(vectorOfIndicesOfSamplesInBatch, tensorOptions);
+                    torch::TensorOptions optionsForTensorOfIndicesOfSamplesInBatch = torch::TensorOptions().dtype(torch::kInt64).device(device);
+                    torch::Tensor tensorOfIndicesOfSamplesInBatch = torch::tensor(vectorOfIndicesOfSamplesInBatch, optionsForTensorOfIndicesOfSamplesInBatch);
 
                     torch::Tensor inputTensorForBatch = inputTensor.index_select(dimension, tensorOfIndicesOfSamplesInBatch);
                     torch::Tensor tensorOfTargetValuesForBatch = tensorOfTargetValues.index_select(dimension, tensorOfIndicesOfSamplesInBatch);
@@ -215,8 +222,8 @@ namespace AI {
                 double averageLoss = runningLoss / numberOfSamples;
 
                 std::clog <<
-                    "[TRAINING] Epoch " << (indexOfEpoch + 1) << " of " << numberOfEpochs << " completed " <<
-                    "with average loss " << averageLoss << "." << std::endl;
+                    "[TRAINING] Epoch " << (indexOfEpoch + 1) << " of " << numberOfEpochs <<
+                    "completed with average loss " << averageLoss << "." << std::endl;
             }
 
             try {
@@ -225,7 +232,9 @@ namespace AI {
                 std::clog << "[TRAINING] Model parameters were saved after training." << std::endl;
             }
             catch (const c10::Error& e) {
-                std::cerr << "[TRAINING] The following error occurred when saving model parameters. " << e.what() << std::endl;
+                std::cerr <<
+                    "[TRAINING] The following error occurred when saving model parameters. " <<
+                    e.what() << std::endl;
             }
 
             neuralNetwork->eval();
