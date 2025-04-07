@@ -63,10 +63,9 @@ namespace AI {
 
                 crow::json::wvalue jsonArrayOfChildren(crow::json::type::List);
                 int i = 0;
-                for (std::pair<const std::string, std::shared_ptr<MCTSNode>> pairOfRepresentationOfMoveAndChild : unorderedMapOfRepresentationsOfMovesToChildren) {
-                    std::shared_ptr<MCTSNode> child = pairOfRepresentationOfMoveAndChild.second;
-                    jsonArrayOfChildren[i++] = child->index;
-                }
+				for (const auto& [representationOfMove, child] : unorderedMapOfRepresentationsOfMovesToChildren) {
+					jsonArrayOfChildren[i++] = child->index;
+				}
                 json["children"] = std::move(jsonArrayOfChildren);
 
                 if (std::shared_ptr<MCTSNode> sharedPointerToParent = parent.lock()) {

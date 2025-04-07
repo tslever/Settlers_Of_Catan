@@ -8,6 +8,7 @@
 
 // TODO: Consider whether database driven state management needs to be implemented more.
 // TODO: Consider using a graph database.
+// TODO: Consider allowing branching decisions to be made at compile time.
 
 int main() {
 

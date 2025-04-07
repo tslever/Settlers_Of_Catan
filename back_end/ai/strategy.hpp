@@ -35,8 +35,7 @@ void injectDirichletNoise(std::shared_ptr<AI::MCTS::MCTSNode>& root, double mixi
 	}
 
 	size_t index = 0;
-	for (std::pair<const std::string, std::shared_ptr<AI::MCTS::MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndChild : root->unorderedMapOfRepresentationsOfMovesToChildren) {
-		std::shared_ptr<AI::MCTS::MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndChild.second;
+	for (auto& [move, child] : root->unorderedMapOfRepresentationsOfMovesToChildren) {
 		// Adjust prior probability using weighted mix of original prior probability and injected noise.
 		child->priorProbability = (1 - mixingWeight) * child->priorProbability + mixingWeight * vectorOfNoise[index++];
 	}

@@ -12,12 +12,10 @@ namespace AI {
 		) {
 			double bestScore = -std::numeric_limits<double>::infinity();
 			std::vector<std::shared_ptr<MCTSNode>> vectorOfBestCandidates;
-			for (const std::pair<const std::string, std::shared_ptr<MCTSNode>>& pairOfRepresentationOfMoveAndChild : node->unorderedMapOfRepresentationsOfMovesToChildren) {
-				std::shared_ptr<MCTSNode> child = pairOfRepresentationOfMoveAndChild.second;
+			for (const auto& [representationOfMove, child] : node->unorderedMapOfRepresentationsOfMovesToChildren) {
 				// Exploration bonus U as in AlphaGo Zero
 				double u = cPuct * child->priorProbability * std::sqrt(node->visitCount) / (1.0 + child->visitCount);
-				double averageValue = child->averageValue;
-				double score = averageValue + u;
+				double score = child->averageValue + u;
 				if (score > bestScore + tolerance) {
 					bestScore = score;
 					vectorOfBestCandidates.clear();
