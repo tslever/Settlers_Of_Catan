@@ -191,7 +191,7 @@ public:
 		return vectorOfLabelsOfAvailableVertices;
 	}
 
-	std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::vector<std::string> vectorOfKeysOfOccupiedEdges) {
+	std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::vector<std::string> vectorOfKeysOfOccupiedEdges) const {
 		crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometryCache["edges"];
 		std::vector<std::string> vectorOfKeysOfAvailableEdges;
 		for (const crow::json::rvalue& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
@@ -286,7 +286,7 @@ public:
 		return vectorOfPairsOfCoordinates;
 	}
 
-	bool isLabelOfVertex(std::string s) {
+	bool isLabelOfVertex(std::string s) const {
 		std::regex vertexPattern("^V\\d{2}$");
 		if (std::regex_match(s, vertexPattern)) {
 			return true;

@@ -33,7 +33,7 @@ namespace AI {
 		}
 
 
-		std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(std::shared_ptr<MCTSNode> node) {
+		std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(const std::shared_ptr<MCTSNode>& node) {
 			std::vector<std::string> vectorOfLabelsOfOccupiedVertices;
 			for (const std::pair<int, std::vector<std::string>>& pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithSettlements : node->gameState.settlements) {
 				std::vector<std::string> vectorOfLabelsOfVerticesWithSettlements = pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithSettlements.second;

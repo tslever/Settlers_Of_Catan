@@ -46,7 +46,7 @@ void injectDirichletNoise(std::shared_ptr<AI::MCTS::MCTSNode>& root, double mixi
 * running a number of simulations, and returning the best move.
 */
 std::pair<std::string, int> runMcts(
-	GameState& currentState,
+	const GameState& currentState,
 	AI::WrapperOfNeuralNetwork& neuralNet,
 	int numberOfSimulations,
 	double cPuct,

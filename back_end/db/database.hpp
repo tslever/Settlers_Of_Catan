@@ -136,7 +136,7 @@ namespace DB {
             return -1;
         }
 
-        std::vector<City> getCities() {
+        std::vector<City> getCities() const {
             std::vector<City> cities;
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
@@ -152,7 +152,7 @@ namespace DB {
             return cities;
         }
 
-        crow::json::wvalue getCitiesJson() {
+        crow::json::wvalue getCitiesJson() const {
             crow::json::wvalue result;
             try {
                 std::vector<City> cities = getCities();
@@ -217,7 +217,7 @@ namespace DB {
             return gameState;
         }
 
-        std::vector<Road> getRoads() {
+        std::vector<Road> getRoads() const {
             std::vector<Road> roads;
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
@@ -233,7 +233,7 @@ namespace DB {
             return roads;
         }
 
-        crow::json::wvalue getRoadsJson() {
+        crow::json::wvalue getRoadsJson() const {
             crow::json::wvalue result;
             try {
                 std::vector<Road> roads = getRoads();
@@ -251,7 +251,7 @@ namespace DB {
             return result;
         }
 
-        std::vector<Settlement> getSettlements() {
+        std::vector<Settlement> getSettlements() const {
             std::vector<Settlement> settlements;
             mysqlx::Session session = createSession();
             mysqlx::Schema schema = session.getSchema(dbName);
@@ -267,7 +267,7 @@ namespace DB {
             return settlements;
         }
 
-        crow::json::wvalue getSettlementsJson() {
+        crow::json::wvalue getSettlementsJson() const {
             crow::json::wvalue result;
             try {
                 std::vector<Settlement> settlements = getSettlements();
@@ -275,6 +275,7 @@ namespace DB {
                 for (size_t i = 0; i < settlements.size(); ++i) {
                     settlementsJson[i]["id"] = settlements[i].id;
                     settlementsJson[i]["player"] = settlements[i].player;
+                    settlementsJson[i]["vertex"] = settlements[i].vertex;
                     settlementsJson[i]["vertex"] = settlements[i].vertex;
                 }
                 result["settlements"] = std::move(settlementsJson);

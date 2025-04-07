@@ -151,7 +151,7 @@ namespace AI {
             }
         }
 
-        std::pair<double, double> evaluateStructure(const std::vector<float>& featureVector) {
+        std::pair<double, double> evaluateStructure(const std::vector<float>& featureVector) const {
             // Disable gradient calculation for inference.
             torch::NoGradGuard noGrad;
             c10::TensorOptions tensorOptions = torch::TensorOptions().device(device);
@@ -164,7 +164,7 @@ namespace AI {
             return pairOfPredictedValueAndPolicy;
         }
 
-        std::vector<std::pair<double, double>> evaluateStructures(const std::vector<std::vector<float>>& vectorOfFeatureVectors) {
+        std::vector<std::pair<double, double>> evaluateStructures(const std::vector<std::vector<float>>& vectorOfFeatureVectors) const {
             torch::NoGradGuard noGrad;
             std::vector<torch::Tensor> vectorOfTensorsOfFeatureVectors;
             c10::TensorOptions tensorOptions = torch::TensorOptions().device(device).dtype(torch::kFloat32);

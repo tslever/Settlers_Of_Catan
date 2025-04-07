@@ -30,7 +30,6 @@ public:
         roads[3] = {};
     }
 
-    // TODO: Consider replacing function `updatePhase` by using the existing phase state machine.
     void updatePhase() {
         if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
             phase = Game::Phase::TO_PLACE_FIRST_ROAD;
