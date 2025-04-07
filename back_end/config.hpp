@@ -1,15 +1,9 @@
 #pragma once
 
-
-#include <string>
 #include <fstream>
+#include <crow/json.h>
 #include <sstream>
-
-#include "crow/json.h"
-/* Add the following to Additional Include Directories:
-- $(SolutionDir)\dependencies\Crow_1_2_1_2\include;
-- $(SolutionDir)\dependencies\asio\asio\include;
-*/
+#include <string>
 
 
 namespace Config {

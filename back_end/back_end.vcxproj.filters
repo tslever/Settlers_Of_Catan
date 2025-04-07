@@ -80,5 +80,8 @@
     <ClInclude Include="game\phase.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="server.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

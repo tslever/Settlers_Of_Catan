@@ -176,6 +176,7 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\nvJitLink_120_0.dll" "$(Ou
     <ClInclude Include="game\game.hpp" />
     <ClInclude Include="game\game_state.hpp" />
     <ClInclude Include="game\phase.hpp" />
+    <ClInclude Include="server.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
