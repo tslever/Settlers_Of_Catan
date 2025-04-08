@@ -17,13 +17,17 @@ namespace Game {
 			int numberOfSimulationsToUse,
 			double cPuctToUse,
 			double toleranceToUse,
-			const GameState& gameStateToUse
+			const GameState& gameStateToUse,
+			double dirichletMixingWeightToUse,
+			double dirichletShapeToUse
 		) : db(dbToUse),
 			wrapperOfNeuralNetwork(wrapperOfNeuralNetworkToUse),
 			numberOfSimulations(numberOfSimulationsToUse),
 			cPuct(cPuctToUse),
 			tolerance(toleranceToUse),
-			state(gameStateToUse)
+			state(gameStateToUse),
+			dirichletMixingWeight(dirichletMixingWeightToUse),
+			dirichletShape(dirichletShapeToUse)
 		{
 			// Do nothing.
 		}
@@ -65,6 +69,8 @@ namespace Game {
 		int numberOfSimulations;
 		double cPuct;
 		double tolerance;
+		double dirichletMixingWeight;
+		double dirichletShape;
 
 		crow::json::wvalue handleFirstSettlement() {
 			crow::json::wvalue jsonObjectOfMoveInformation;
@@ -73,7 +79,9 @@ namespace Game {
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
-				tolerance
+				tolerance,
+				dirichletMixingWeight,
+				dirichletShape
 			);
 			std::string labelOfChosenVertex = pairOfLabelOfBestVertexAndVisitCount.first;
 			if (labelOfChosenVertex.empty()) {
@@ -99,7 +107,9 @@ namespace Game {
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
-				tolerance
+				tolerance,
+				dirichletMixingWeight,
+				dirichletShape
 			);
 			std::string keyOfChosenEdge = pairOfKeyOfBestEdgeAndVisitCount.first;
 			if (keyOfChosenEdge.empty()) {
@@ -125,7 +135,9 @@ namespace Game {
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
-				tolerance
+				tolerance,
+				dirichletMixingWeight,
+				dirichletShape
 			);
 			std::string labelOfChosenVertex = pairOfLabelOfBestVertexAndVisitCount.first;
 			if (labelOfChosenVertex.empty()) {
@@ -152,7 +164,9 @@ namespace Game {
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
-				tolerance
+				tolerance,
+				dirichletMixingWeight,
+				dirichletShape
 			);
 			std::string keyOfChosenEdge = pairOfKeyOfBestEdgeAndVisitCount.first;
 			if (keyOfChosenEdge.empty()) {
@@ -178,7 +192,9 @@ namespace Game {
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
 				cPuct,
-				tolerance
+				tolerance,
+				dirichletMixingWeight,
+				dirichletShape
 			);
 			std::string representationOfChosenVertexOrEdge = pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount.first;
 			if (representationOfChosenVertexOrEdge.empty()) {

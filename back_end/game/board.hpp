@@ -6,12 +6,18 @@
 #include <regex>
 
 
+constexpr double MARGIN_OF_ERROR = 0.01;
+constexpr double NUMBER_BY_WHICH_TO_NORMALIZE_COORDINATE = 100.0;
+constexpr double NUMBER_BY_WHICH_TO_NORMALIZE_NUMBER_OF_HEXES = 3.0;
+constexpr double NUMBER_OF_HEXES_THAT_SPAN_BOARD = 6.0;
+constexpr double WIDTH_OF_BOARD_IN_VMIN = 100.0;
+
+constexpr double WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD;
+
+
 class Board {
 public:
 	static crow::json::rvalue boardGeometryCache;
-	double numberOfHexesThatSpanBoard = 6.0;
-	double widthOfBoardInVmin = 100.0;
-	double widthOfHex = widthOfBoardInVmin / numberOfHexesThatSpanBoard;
 
 	Board() {
 		loadBoardGeometry();
@@ -62,8 +68,6 @@ public:
 		if (!jsonArrayOfHexInformation || jsonArrayOfHexInformation.size() == 0) {
 			throw std::runtime_error("Board geometry file does not contain hex information.");
 		}
-		const double marginOfError = 0.01;
-		// TODO: Move margin of error to configuration file.
 		std::unordered_map<std::string, int> mapOfIdOfHexToNumberOfToken = {
 			{"H01", 10},
 			{"H02", 2},
@@ -108,7 +112,8 @@ public:
 			for (const std::pair<double, double> pairOfCoordinatesOfVertex : vectorOfPairsOfCoordinatesOfVertices) {
 				double dx = pairOfCoordinatesOfVertex.first - x;
 				double dy = pairOfCoordinatesOfVertex.second - y;
-				if (std::sqrt(dx * dx + dy * dy) < marginOfError) {
+				double distance = std::sqrt(dx * dx + dy * dy);
+				if (distance < MARGIN_OF_ERROR) {
 					std::string idOfHex = jsonObjectOfHexInformation["id"].s();
 					std::unordered_map<std::string, int>::iterator iteratorOfIdOfHexAndNumberOfToken = mapOfIdOfHexToNumberOfToken.find(idOfHex);
 					if (iteratorOfIdOfHexAndNumberOfToken != mapOfIdOfHexToNumberOfToken.end()) {
@@ -126,9 +131,9 @@ public:
 		// Use hardcoded boarded width 100.0 `vmin` to normalize x and 100.0 to normalized y.
 		// TODO: Consider revising feature vector to include more information relating to both vertices and edges.
 		float normalizedNumberOfPips = (numberOfHexes > 0) ? totalNumberOfPips / (numberOfHexes * 5.0f) : 0.0f;
-		float normalizedXCoordinate = x / 100.0f;
-		float normalizedYCoordinate = y / 100.0f;
-		float normalizedNumberOfHexes = numberOfHexes / 3.0f;
+		float normalizedXCoordinate = x / NUMBER_BY_WHICH_TO_NORMALIZE_COORDINATE;
+		float normalizedYCoordinate = y / NUMBER_BY_WHICH_TO_NORMALIZE_COORDINATE;
+		float normalizedNumberOfHexes = numberOfHexes / NUMBER_BY_WHICH_TO_NORMALIZE_NUMBER_OF_HEXES;
 		//float bias = 1.0f;
 		return { normalizedNumberOfPips, normalizedXCoordinate, normalizedYCoordinate, normalizedNumberOfHexes, 1.0f };
 	}
@@ -149,9 +154,7 @@ public:
 			unorderedMapOfLabelOfVertexToPairOfCoordinates[labelOfVertex] = pairOfCoordinates;
 		}
 
-		double lengthOfSideOfHex = widthOfHex * std::tan(M_PI / 6);
-		double marginOfError = 0.01;
-		// TODO: Move margin of error to configuration file.
+		double lengthOfSideOfHex = WIDTH_OF_HEX * std::tan(M_PI / 6);
 
 		std::vector<std::string> vectorOfLabelsOfAvailableVertices;
 		for (const std::pair<std::string, std::pair<double, double>>& pairOfLabelOfVertexAndPairOfCoordinates : unorderedMapOfLabelOfVertexToPairOfCoordinates) {
@@ -178,7 +181,7 @@ public:
 					double dx = xCoordinateOfPotentiallyAvailableVertex - xCoordinateOfOccupiedVertex;
 					double dy = yCoordinateOfPotentiallyAvailableVertex - yCoordinateOfOccupiedVertex;
 					double distance = std::sqrt(dx * dx + dy * dy);
-					if (distance < lengthOfSideOfHex + marginOfError) {
+					if (distance < lengthOfSideOfHex + MARGIN_OF_ERROR) {
 						potentiallyAvailableVertexIsTooCloseToOccupiedVertex = true;
 						break;
 					}
@@ -249,8 +252,6 @@ public:
 	}
 
 	std::string getLabelOfVertexByCoordinates(double potentialXCoordinate, double potentialYCoordinate) const {
-		double marginOfError = 1e-2;
-		// TODO: Move margin of error to configuration file.
 		crow::json::rvalue jsonArrayOfVertexInformation = boardGeometryCache["vertices"];
 		if (!jsonArrayOfVertexInformation || jsonArrayOfVertexInformation.size() == 0) {
 			throw std::runtime_error("Board geometry file does not contain vertices.");
@@ -259,8 +260,8 @@ public:
 			double actualXCoordinate = jsonObjectOfVertexInformation["x"].d();
 			double actualYCoordinate = jsonObjectOfVertexInformation["y"].d();
 			if (
-				std::abs(actualXCoordinate - potentialXCoordinate) < marginOfError &&
-				std::abs(actualYCoordinate - potentialYCoordinate) < marginOfError
+				std::abs(actualXCoordinate - potentialXCoordinate) < MARGIN_OF_ERROR &&
+				std::abs(actualYCoordinate - potentialYCoordinate) < MARGIN_OF_ERROR
 			) {
 				return jsonObjectOfVertexInformation["label"].s();
 			}
@@ -269,7 +270,7 @@ public:
 	}
 
 	std::vector<std::pair<double, double>> getVectorOfPairsOfCoordinatesOfVertices(crow::json::rvalue jsonObjectOfHexInformation) const {
-		double heightOfHex = widthOfHex * 2 * std::tan(M_PI / 6);
+		double heightOfHex = WIDTH_OF_HEX * 2 * std::tan(M_PI / 6);
 		
 		// Get the coordinates of the hex's top-left, reference point.
 		double x = jsonObjectOfHexInformation["x"].d();
@@ -277,10 +278,10 @@ public:
 
 		std::vector<std::pair<double, double>> vectorOfPairsOfCoordinates;
 		// Get six pairs of coordinates of vertices starting from the top vertex and going clockwise.
-		vectorOfPairsOfCoordinates.push_back({ x + 0.5 * widthOfHex, y });
-		vectorOfPairsOfCoordinates.push_back({ x + widthOfHex, y + 0.25 * heightOfHex });
-		vectorOfPairsOfCoordinates.push_back({ x + widthOfHex, y + 0.75 * heightOfHex });
-		vectorOfPairsOfCoordinates.push_back({ x + 0.5 * widthOfHex, y + heightOfHex });
+		vectorOfPairsOfCoordinates.push_back({ x + 0.5 * WIDTH_OF_HEX, y });
+		vectorOfPairsOfCoordinates.push_back({ x + WIDTH_OF_HEX, y + 0.25 * heightOfHex });
+		vectorOfPairsOfCoordinates.push_back({ x + WIDTH_OF_HEX, y + 0.75 * heightOfHex });
+		vectorOfPairsOfCoordinates.push_back({ x + 0.5 * WIDTH_OF_HEX, y + heightOfHex });
 		vectorOfPairsOfCoordinates.push_back({ x, y + 0.75 * heightOfHex });
 		vectorOfPairsOfCoordinates.push_back({ x, y + 0.25 * heightOfHex });
 		return vectorOfPairsOfCoordinates;
@@ -294,12 +295,9 @@ public:
 		return false;
 	}
 
-	bool isEdgeKey(std::string s) const {
+	bool isEdgeKey(const std::string& s) const {
 		std::regex edgePattern("^(\\d+\\.\\d{2})-(\\d+\\.\\d{2})_(\\d+\\.\\d{2})-(\\d+\\.\\d{2})$");
-		if (std::regex_match(s, edgePattern)) {
-			return true;
-		}
-		return false;
+		return std::regex_match(s, edgePattern);
 	}
 
 private:
@@ -320,11 +318,9 @@ private:
 	}
 	
 	std::string getEdgeKey(double x1, double y1, double x2, double y2) const {
-		double marginOfError = 1e-2;
-		// TODO: Move margin of error to configuration file.
 		char bufferRepresentingEdgeKey[50];
-		// TODO: Consider replacing 50 with the maximum length of an edge key.
-		if ((x1 < x2) || (std::abs(x1 - x2) < marginOfError && y1 <= y2)) {
+		// TODO: Consider replacing 50 with the maximum length of an edge key or using `std::ostringstream`.
+		if ((x1 < x2) || (std::abs(x1 - x2) < MARGIN_OF_ERROR && y1 <= y2)) {
 			std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
 		}
 		else {

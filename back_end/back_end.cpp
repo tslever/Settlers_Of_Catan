@@ -36,7 +36,7 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
-	AI::WrapperOfNeuralNetwork neuralNet(config.modelPath);
+	AI::WrapperOfNeuralNetwork neuralNet(config.modelPath, config.numberOfNeurons);
 
 	AI::Trainer trainer(
 		&neuralNet,
@@ -44,7 +44,12 @@ int main() {
 		config.trainingThreshold,
 		config.numberOfSimulations,
 		config.cPuct,
-		config.tolerance
+		config.tolerance,
+		config.learningRate,
+		config.numberOfEpochs,
+		config.batchSize,
+		config.dirichletMixingWeight,
+		config.dirichletShape
 	);
 	trainer.startModelWatcher();
 	trainer.runTrainingLoop();

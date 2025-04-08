@@ -10,19 +10,24 @@ namespace Config {
 	class Config {
 	public:
 		int backEndPort;
+		int batchSize;
 		double cPuct;
+		double dirichletMixingWeight;
+		double dirichletShape;
 		std::string dbName;
 		std::string dbHost;
 		std::string dbPassword;
 		unsigned int dbPort;
 		std::string dbUsername;
+		double learningRate;
 		std::string modelPath;
 		int modelWatcherInterval;
+		int numberOfEpochs;
+		int numberOfNeurons;
 		int numberOfSimulations;
 		double tolerance;
 		int trainingThreshold;
 		// TODO: Consider configuring simulation depth.
-		// TODO: Consider configuring number of training epochs.
 
 		static Config load(const std::string& path) {
 			Config config;
@@ -37,14 +42,20 @@ namespace Config {
 				throw std::runtime_error("Parsing configuration file failed.");
 			}
 			config.backEndPort = configJson["backEndPort"].i();
+			config.batchSize = configJson["batchSize"].i();
 			config.cPuct = configJson["cPuct"].d();
+			config.dirichletMixingWeight = configJson["dirichletMixingWeight"].d();
+			config.dirichletShape = configJson["dirichletShape"].d();
 			config.dbName = configJson["dbName"].s();
 			config.dbHost = configJson["dbHost"].s();
 			config.dbPassword = configJson["dbPassword"].s();
 			config.dbPort = configJson["dbPort"].i();
 			config.dbUsername = configJson["dbUsername"].s();
+			config.learningRate = configJson["learningRate"].d();
 			config.modelPath = configJson["modelPath"].s();
 			config.modelWatcherInterval = configJson["modelWatcherInterval"].i();
+			config.numberOfEpochs = configJson["numberOfEpochs"].i();
+			config.numberOfNeurons = configJson["numberOfNeurons"].i();
 			config.numberOfSimulations = configJson["numberOfSimulations"].i();
 			config.tolerance = configJson["tolerance"].d();
 			config.trainingThreshold = configJson["trainingThreshold"].i();

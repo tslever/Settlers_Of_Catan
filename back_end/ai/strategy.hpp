@@ -66,7 +66,9 @@ std::pair<std::string, int> runMcts(
 	AI::WrapperOfNeuralNetwork& neuralNet,
 	int numberOfSimulations,
 	double cPuct,
-	double tolerance
+	double tolerance,
+	double dirichletMixingWeight,
+	double dirichletShape
 ) {
 	//std::clog << "        [MCTS] MCTS is being started." << std::endl
 	AI::MCTS::MCTSNode::nextIndex = 0;
@@ -92,7 +94,7 @@ std::pair<std::string, int> runMcts(
 	expandNode(root, neuralNet);
 	//std::clog << "            [EXPAND ROOT] The root was expanded into the following.\n            " << root->toJson().dump() << std::endl;
 
-	injectDirichletNoise(root, 0.25, 0.03);
+	injectDirichletNoise(root, dirichletMixingWeight, dirichletShape);
 
 	for (int i = 0; i < numberOfSimulations; i++) {
 		//std::clog << "            [MCTS SIMULATION] MCTS simulation " << i + 1 << " of " << numberOfSimulations << " is running." << std::endl;

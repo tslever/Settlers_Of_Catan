@@ -93,15 +93,13 @@ namespace AI {
         std::string pathToFileOfParameters;
         Board board;
 
-        WrapperOfNeuralNetwork(const std::string& pathToFileOfParameters) :
+        WrapperOfNeuralNetwork(const std::string& pathToFileOfParameters, const int numberOfNeurons) :
             pathToFileOfParameters(pathToFileOfParameters),
             device(torch::kCPU),
             board()
         {
             const int64_t numberOfFeatures = 5;
             // TODO: Get number of features based on feature vector.
-            const int64_t numberOfNeurons = 128;
-            // TODO: Get number of nuerons from configuration file.
 
             neuralNetwork = NeuralNetwork(numberOfFeatures, numberOfNeurons);
             neuralNetwork->eval();

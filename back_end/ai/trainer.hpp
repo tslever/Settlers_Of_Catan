@@ -16,13 +16,23 @@ namespace AI {
             int trainingThresholdToUse,
             int numberOfSimulationsToUse,
             double cPuctToUse,
-            double toleranceToUse
+            double toleranceToUse,
+            double learningRateToUse,
+			int numberOfEpochsToUse,
+            int batchSizeToUse,
+			double dirichletMixingWeightToUse,
+			double dirichletShapeToUse
         ) : neuralNet(neuralNetToUse),
             modelWatcherInterval(modelWatcherIntervalToUse),
             trainingThreshold(trainingThresholdToUse),
             numberOfSimulations(numberOfSimulationsToUse),
             cPuct(cPuctToUse),
             tolerance(toleranceToUse),
+			learningRate(learningRateToUse),
+			numberOfEpochs(numberOfEpochsToUse),
+			batchSize(batchSizeToUse),
+			dirichletMixingWeight(dirichletMixingWeightToUse),
+			dirichletShape(dirichletShapeToUse),
             // Atomic `stopModelWatcher` is a global flag to stop thread for reloading parameters for neural network on shutdown.
             // Atomic `stopTraining` is a global flag to top training neural network on shutdown.
             atomicToStopModelWatcher(false),
@@ -60,17 +70,21 @@ namespace AI {
         }
 
     private:
-        // Dependencies and configuration parameters
-        WrapperOfNeuralNetwork* neuralNet;
-        int modelWatcherInterval;
-        int trainingThreshold;
-        int numberOfSimulations;
-        double cPuct;
-        double tolerance;
         std::atomic<bool> atomicToStopModelWatcher;
         std::atomic<bool> atomicToStopTraining;
+        int batchSize;
+        double cPuct;
+        double learningRate;
+        int modelWatcherInterval;
         std::thread modelWatcherThread;
+        WrapperOfNeuralNetwork* neuralNet;
+        int numberOfEpochs;
+        int numberOfSimulations;
+        double tolerance;
         std::thread trainingThread;
+        int trainingThreshold;
+		double dirichletMixingWeight;
+		double dirichletShape;
 
         /* Function `modelWatcher` runs on a background thread and
         * periodically reloads neural network parameters if file of parameters was updated.
@@ -98,7 +112,9 @@ namespace AI {
                         *neuralNet,
                         numberOfSimulations,
                         cPuct,
-                        tolerance
+                        tolerance,
+                        dirichletMixingWeight,
+                        dirichletShape
                     );
                     vectorOfTrainingExamples.insert(
                         vectorOfTrainingExamples.end(),
@@ -166,13 +182,10 @@ namespace AI {
 
             // Configure AdaM optimizer.
             torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
-            double learningRate = 1e-3;
             torch::optim::AdamOptions adamOptions(learningRate);
             torch::optim::Adam adam(variableListOfParameters, adamOptions);
 
             // Define training parameters.
-            const int numberOfEpochs = 10;
-            const int batchSize = 32;
             int64_t dimension = 0;
             const int numberOfSamples = inputTensor.size(dimension);
 

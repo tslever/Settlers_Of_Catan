@@ -51,7 +51,16 @@ namespace Server {
 			try {
 				std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
 				GameState currentGameState = liveDb.getGameState();
-				Game::Game game(liveDb, wrapperOfNeuralNetwork, config.numberOfSimulations, config.cPuct, config.tolerance, currentGameState);
+				Game::Game game(
+					liveDb,
+					wrapperOfNeuralNetwork,
+					config.numberOfSimulations,
+					config.cPuct,
+					config.tolerance,
+					currentGameState,
+					config.dirichletMixingWeight,
+					config.dirichletShape
+				);
 				response = game.handlePhase();
 				liveDb.updateGameState(game.getState());
 			}

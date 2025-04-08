@@ -9,6 +9,8 @@
 
 namespace AI {
 
+    constexpr int MAXIMUM_NUMBER_OF_MOVES = 100;
+
     // TODO: Consider recording additional data such as full game trajectory, move probabilities, and/or everything about the board and structures on the board.
     struct TrainingExample {
         int player; // player represents player who made move.
@@ -26,7 +28,9 @@ namespace AI {
         AI::WrapperOfNeuralNetwork& neuralNet,
         int numberOfSimulations,
         double cPuct,
-        double tolerance
+        double tolerance,
+		double dirichletMixingWeight,
+		double dirichletShape
     ) {
         std::clog << "[SELF PLAY GAME] A self play game is running." << std::endl;
         std::vector<TrainingExample> vectorOfTrainingExamples;
@@ -34,8 +38,7 @@ namespace AI {
         GameState gameState;
         // Simulate moves until phase becomes `Phase::DONE`, or up to a maximum number of moves to safeguard against infinite loops.
         int numberOfMovesSimulated = 0;
-        const int maximumNumberOfMoves = 100;
-        while (gameState.phase != Game::Phase::DONE && numberOfMovesSimulated < maximumNumberOfMoves) {
+        while (gameState.phase != Game::Phase::DONE && numberOfMovesSimulated < MAXIMUM_NUMBER_OF_MOVES) {
             if (gameState.phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
                 std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first settlement is being simulated." << std::endl;
             }
@@ -57,7 +60,9 @@ namespace AI {
                 neuralNet,
                 numberOfSimulations,
                 cPuct,
-                tolerance
+                tolerance,
+                dirichletMixingWeight,
+                dirichletShape
             );
             std::string labelOfVertexOrEdgeKey = pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount.first;
             if (labelOfVertexOrEdgeKey.empty()) {
