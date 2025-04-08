@@ -60,6 +60,7 @@ paths_of_back_end_files = [
 
     r'back_end\db\database.hpp',
     r'back_end\db\models.hpp',
+    r'back_end\db\query_builder.hpp',
 
     r'back_end\game\board.hpp',
     r'back_end\game\game.hpp',

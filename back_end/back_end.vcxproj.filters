@@ -83,5 +83,8 @@
     <ClInclude Include="server.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="db\query_builder.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

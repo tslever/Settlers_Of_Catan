@@ -1,9 +1,8 @@
 #pragma once
 
 #include "../game/game_state.hpp"
-
 #include "models.hpp"
-
+#include "query_builder.hpp"
 #include <mysqlx/xdevapi.h>
 /* Add to Additional Include Directories `$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\include;`.
 * Add to Additional Library Directories `$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\lib64\debug\vs14;`.
@@ -43,14 +42,9 @@ namespace DB {
             // TODO: Consider setting additional session options if appropriate.
         }
 
-        mysqlx::Session createSession() const {
-            mysqlx::Session session(host, port, username, password, dbName);
-            return session;
-        }
-
         void initialize() {
             try {
-                mysqlx::Session session = createSession();
+                mysqlx::Session session(host, port, username, password, dbName);
                 mysqlx::Schema schema = session.getSchema(dbName);
 
                 session.sql(
@@ -88,48 +82,16 @@ namespace DB {
             }
         }
 
-        int addCity(int player, const std::string& vertex) {
-            mysqlx::Session session = createSession();
+        int addStructure(const std::string& structureSuffix, int player, const std::string& location, const std::string& locationField) {
+            mysqlx::Session session(host, port, username, password, dbName);
             mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable(tablePrefix + "cities");
-            table.insert("player", "vertex").values(player, vertex).execute();
-            mysqlx::RowResult res = table
+            mysqlx::Table table = schema.getTable(tablePrefix + structureSuffix);
+            table.insert("player", locationField).values(player, location).execute();
+            mysqlx::RowResult rowResult = table
                 .select("id")
-                .where("player = " + std::to_string(player) + " AND vertex = '" + vertex + "'")
+                .where("player = " + std::to_string(player) + " AND " + locationField + " = '" + location + "'")
                 .execute();
-            mysqlx::Row row = res.fetchOne();
-            if (row) {
-                return row[0];
-            }
-            return -1;
-        }
-
-        int addSettlement(int player, const std::string& vertex) {
-            mysqlx::Session session = createSession();
-            mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable(tablePrefix + "settlements");
-            table.insert("player", "vertex").values(player, vertex).execute();
-            mysqlx::RowResult res = table
-                .select("id")
-                .where("player = " + std::to_string(player) + " AND vertex = '" + vertex + "'")
-                .execute();
-            mysqlx::Row row = res.fetchOne();
-            if (row) {
-                return row[0];
-            }
-            return -1;
-        }
-
-        int addRoad(int player, const std::string& edge) {
-            mysqlx::Session session = createSession();
-            mysqlx::Schema schema = session.getSchema(dbName);
-            mysqlx::Table table = schema.getTable(tablePrefix + "roads");
-            table.insert("player", "edge").values(player, edge).execute();
-            mysqlx::RowResult res = table
-                .select("id")
-                .where("player = " + std::to_string(player) + " AND edge = '" + edge + "'")
-                .execute();
-            mysqlx::Row row = res.fetchOne();
+            mysqlx::Row row = rowResult.fetchOne();
             if (row) {
                 return row[0];
             }
@@ -138,7 +100,7 @@ namespace DB {
 
         std::vector<City> getCities() const {
             std::vector<City> cities;
-            mysqlx::Session session = createSession();
+            mysqlx::Session session(host, port, username, password, dbName);
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "cities");
             mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
@@ -153,21 +115,15 @@ namespace DB {
         }
 
         crow::json::wvalue getCitiesJson() const {
-            crow::json::wvalue result;
+            crow::json::wvalue jsonObject;
             try {
                 std::vector<City> cities = getCities();
-                crow::json::wvalue citiesJson;
-                for (size_t i = 0; i < cities.size(); ++i) {
-                    citiesJson[i]["id"] = cities[i].id;
-                    citiesJson[i]["player"] = cities[i].player;
-                    citiesJson[i]["vertex"] = cities[i].vertex;
-                }
-                result["cities"] = std::move(citiesJson);
+                jsonObject["cities"] = QueryJsonBuilder::convertVectorOfCitiesToJsonObject(cities);
             }
             catch (const std::exception& e) {
-                result["error"] = std::string("The following error occurred while retrieving cities from the database.") + e.what();
+                jsonObject["error"] = std::string("The following error occurred while retrieving cities from the database. ") + e.what();
             }
-            return result;
+            return jsonObject;
         }
 
         /* Method `getGameState` returns the current game state stored in the state table.
@@ -175,7 +131,7 @@ namespace DB {
         */
         GameState getGameState() {
             GameState gameState;
-            mysqlx::Session session = createSession();
+            mysqlx::Session session(host, port, username, password, dbName);
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "state");
             mysqlx::RowResult rowResult = table.select("current_player", "phase", "last_building").where("id = 1").execute();
@@ -219,7 +175,7 @@ namespace DB {
 
         std::vector<Road> getRoads() const {
             std::vector<Road> roads;
-            mysqlx::Session session = createSession();
+            mysqlx::Session session(host, port, username, password, dbName);
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "roads");
             mysqlx::RowResult rowResult = table.select("id", "player", "edge").execute();
@@ -234,26 +190,20 @@ namespace DB {
         }
 
         crow::json::wvalue getRoadsJson() const {
-            crow::json::wvalue result;
+            crow::json::wvalue jsonObject;
             try {
                 std::vector<Road> roads = getRoads();
-                crow::json::wvalue roadsJson;
-                for (size_t i = 0; i < roads.size(); ++i) {
-                    roadsJson[i]["id"] = roads[i].id;
-                    roadsJson[i]["player"] = roads[i].player;
-                    roadsJson[i]["edge"] = roads[i].edge;
-                }
-                result["roads"] = std::move(roadsJson);
+                jsonObject["roads"] = QueryJsonBuilder::convertVectorOfRoadsToJsonObject(roads);
             }
             catch (const std::exception& e) {
-                result["error"] = std::string("The following error occurred while retrieving roads from the database.") + e.what();
+                jsonObject["error"] = std::string("The following error occurred while retrieving roads from the database. ") + e.what();
             }
-            return result;
+            return jsonObject;
         }
 
         std::vector<Settlement> getSettlements() const {
             std::vector<Settlement> settlements;
-            mysqlx::Session session = createSession();
+            mysqlx::Session session(host, port, username, password, dbName);
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "settlements");
             mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
@@ -268,28 +218,21 @@ namespace DB {
         }
 
         crow::json::wvalue getSettlementsJson() const {
-            crow::json::wvalue result;
+            crow::json::wvalue jsonObject;
             try {
                 std::vector<Settlement> settlements = getSettlements();
-                crow::json::wvalue settlementsJson;
-                for (size_t i = 0; i < settlements.size(); ++i) {
-                    settlementsJson[i]["id"] = settlements[i].id;
-                    settlementsJson[i]["player"] = settlements[i].player;
-                    settlementsJson[i]["vertex"] = settlements[i].vertex;
-                    settlementsJson[i]["vertex"] = settlements[i].vertex;
-                }
-                result["settlements"] = std::move(settlementsJson);
+                jsonObject["settlements"] = QueryJsonBuilder::convertVectorOfSettlementsToJsonObject(settlements);
             }
             catch (const std::exception& e) {
-                result["error"] = std::string("The following error occurred while retrieving settlements from the database.") + e.what();
+                jsonObject["error"] = std::string("The following error occurred while retrieving cities from the database. ") + e.what();
             }
-            return result;
+            return jsonObject;
         }
 
         // Reset game state (delete all settlements, cities, and roads and reset auto-increments).
         bool resetGame() {
             try {
-                mysqlx::Session session = createSession();
+                mysqlx::Session session(host, port, username, password, dbName);
                 mysqlx::Schema schema = session.getSchema(dbName);
 
                 // Clear settlements, cities, and roads.
@@ -328,7 +271,7 @@ namespace DB {
 
         // Method `updateGameState` updates the state table with the current game state.
         void updateGameState(const GameState& gameState) {
-            mysqlx::Session session = createSession();
+            mysqlx::Session session(host, port, username, password, dbName);
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "state");
             table

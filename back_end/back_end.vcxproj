@@ -172,6 +172,7 @@ xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\nvJitLink_120_0.dll" "$(Ou
     <ClInclude Include="config.hpp" />
     <ClInclude Include="db\database.hpp" />
     <ClInclude Include="db\models.hpp" />
+    <ClInclude Include="db\query_builder.hpp" />
     <ClInclude Include="game\board.hpp" />
     <ClInclude Include="game\game.hpp" />
     <ClInclude Include="game\game_state.hpp" />
