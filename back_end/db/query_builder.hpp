@@ -1,3 +1,6 @@
+#pragma once
+
+
 #include "crow/json.h"
 #include "models.hpp"
 

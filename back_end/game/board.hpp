@@ -3,16 +3,12 @@
 
 #include <corecrt_math_defines.h>
 #include "../db/database.hpp"
+#include "geometry_helper.hpp"
 #include <regex>
 
 
-constexpr double MARGIN_OF_ERROR = 0.01;
 constexpr double NUMBER_BY_WHICH_TO_NORMALIZE_COORDINATE = 100.0;
 constexpr double NUMBER_BY_WHICH_TO_NORMALIZE_NUMBER_OF_HEXES = 3.0;
-constexpr double NUMBER_OF_HEXES_THAT_SPAN_BOARD = 6.0;
-constexpr double WIDTH_OF_BOARD_IN_VMIN = 100.0;
-
-constexpr double WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD;
 
 
 class Board {
@@ -110,10 +106,10 @@ public:
 		for (const crow::json::rvalue jsonObjectOfHexInformation : jsonArrayOfHexInformation) {
 			std::vector<std::pair<double, double>> vectorOfPairsOfCoordinatesOfVertices = getVectorOfPairsOfCoordinatesOfVertices(jsonObjectOfHexInformation);
 			for (const std::pair<double, double> pairOfCoordinatesOfVertex : vectorOfPairsOfCoordinatesOfVertices) {
-				double dx = pairOfCoordinatesOfVertex.first - x;
-				double dy = pairOfCoordinatesOfVertex.second - y;
-				double distance = std::sqrt(dx * dx + dy * dy);
-				if (distance < MARGIN_OF_ERROR) {
+				double xCoordinateOfVertex = pairOfCoordinatesOfVertex.first;
+				double yCoordinateOfVertex = pairOfCoordinatesOfVertex.second;
+				double distance = GeometryHelper::distance(x, y, xCoordinateOfVertex, yCoordinateOfVertex);
+				if (distance < GeometryHelper::MARGIN_OF_ERROR) {
 					std::string idOfHex = jsonObjectOfHexInformation["id"].s();
 					std::unordered_map<std::string, int>::iterator iteratorOfIdOfHexAndNumberOfToken = mapOfIdOfHexToNumberOfToken.find(idOfHex);
 					if (iteratorOfIdOfHexAndNumberOfToken != mapOfIdOfHexToNumberOfToken.end()) {
@@ -130,10 +126,10 @@ public:
 		}
 		// Use hardcoded boarded width 100.0 `vmin` to normalize x and 100.0 to normalized y.
 		// TODO: Consider revising feature vector to include more information relating to both vertices and edges.
-		float normalizedNumberOfPips = (numberOfHexes > 0) ? totalNumberOfPips / (numberOfHexes * 5.0f) : 0.0f;
+		float normalizedNumberOfPips = totalNumberOfPips / (numberOfHexes * 5.0f);
 		float normalizedXCoordinate = x / NUMBER_BY_WHICH_TO_NORMALIZE_COORDINATE;
 		float normalizedYCoordinate = y / NUMBER_BY_WHICH_TO_NORMALIZE_COORDINATE;
-		float normalizedNumberOfHexes = numberOfHexes / NUMBER_BY_WHICH_TO_NORMALIZE_NUMBER_OF_HEXES;
+		float normalizedNumberOfHexes = static_cast<float>(numberOfHexes) / NUMBER_BY_WHICH_TO_NORMALIZE_NUMBER_OF_HEXES;
 		//float bias = 1.0f;
 		return { normalizedNumberOfPips, normalizedXCoordinate, normalizedYCoordinate, normalizedNumberOfHexes, 1.0f };
 	}
@@ -154,13 +150,11 @@ public:
 			unorderedMapOfLabelOfVertexToPairOfCoordinates[labelOfVertex] = pairOfCoordinates;
 		}
 
-		double lengthOfSideOfHex = WIDTH_OF_HEX * std::tan(M_PI / 6);
-
+		double lengthOfSideOfHex = GeometryHelper::getLengthOfSideOfHex();
 		std::vector<std::string> vectorOfLabelsOfAvailableVertices;
-		for (const std::pair<std::string, std::pair<double, double>>& pairOfLabelOfVertexAndPairOfCoordinates : unorderedMapOfLabelOfVertexToPairOfCoordinates) {
-			const std::string& labelOfVertex = pairOfLabelOfVertexAndPairOfCoordinates.first;
-			double xCoordinateOfPotentiallyAvailableVertex = pairOfLabelOfVertexAndPairOfCoordinates.second.first;
-			double yCoordinateOfPotentiallyAvailableVertex = pairOfLabelOfVertexAndPairOfCoordinates.second.second;
+		for (const auto& [labelOfVertex, pairOfCoordinates] : unorderedMapOfLabelOfVertexToPairOfCoordinates) {
+			double xCoordinateOfPotentiallyAvailableVertex = pairOfCoordinates.first;
+			double yCoordinateOfPotentiallyAvailableVertex = pairOfCoordinates.second;
 
 			if (
 				std::find(
@@ -178,10 +172,13 @@ public:
 				if (iterator != unorderedMapOfLabelOfVertexToPairOfCoordinates.end()) {
 					double xCoordinateOfOccupiedVertex = iterator->second.first;
 					double yCoordinateOfOccupiedVertex = iterator->second.second;
-					double dx = xCoordinateOfPotentiallyAvailableVertex - xCoordinateOfOccupiedVertex;
-					double dy = yCoordinateOfPotentiallyAvailableVertex - yCoordinateOfOccupiedVertex;
-					double distance = std::sqrt(dx * dx + dy * dy);
-					if (distance < lengthOfSideOfHex + MARGIN_OF_ERROR) {
+					double distance = GeometryHelper::distance(
+						xCoordinateOfPotentiallyAvailableVertex,
+						yCoordinateOfPotentiallyAvailableVertex,
+						xCoordinateOfOccupiedVertex,
+						yCoordinateOfOccupiedVertex
+					);
+					if (distance < lengthOfSideOfHex + GeometryHelper::MARGIN_OF_ERROR) {
 						potentiallyAvailableVertexIsTooCloseToOccupiedVertex = true;
 						break;
 					}
@@ -202,7 +199,7 @@ public:
 			double y1 = jsonObjectOfEdgeInformation["y1"].d();
 			double x2 = jsonObjectOfEdgeInformation["x2"].d();
 			double y2 = jsonObjectOfEdgeInformation["y2"].d();
-			std::string edgeKey = getEdgeKey(x1, y1, x2, y2);
+			std::string edgeKey = GeometryHelper::getEdgeKey(x1, y1, x2, y2);
 			if (
 				std::find(
 					vectorOfKeysOfOccupiedEdges.begin(),
@@ -233,7 +230,7 @@ public:
 			std::string labelOfFirstVertex = getLabelOfVertexByCoordinates(x1, y1);
 			std::string labelOfSecondVertex = getLabelOfVertexByCoordinates(x2, y2);
 			if (labelOfFirstVertex == labelOfVertexOfLastBuilding || labelOfSecondVertex == labelOfVertexOfLastBuilding) {
-				std::string edgeKey = getEdgeKey(x1, y1, x2, y2);
+				std::string edgeKey = GeometryHelper::getEdgeKey(x1, y1, x2, y2);
 				if (
 					std::find(
 						vectorOfKeysOfOccupiedEdges.begin(),
@@ -260,8 +257,8 @@ public:
 			double actualXCoordinate = jsonObjectOfVertexInformation["x"].d();
 			double actualYCoordinate = jsonObjectOfVertexInformation["y"].d();
 			if (
-				std::abs(actualXCoordinate - potentialXCoordinate) < MARGIN_OF_ERROR &&
-				std::abs(actualYCoordinate - potentialYCoordinate) < MARGIN_OF_ERROR
+				std::abs(actualXCoordinate - potentialXCoordinate) < GeometryHelper::MARGIN_OF_ERROR &&
+				std::abs(actualYCoordinate - potentialYCoordinate) < GeometryHelper::MARGIN_OF_ERROR
 			) {
 				return jsonObjectOfVertexInformation["label"].s();
 			}
@@ -270,7 +267,7 @@ public:
 	}
 
 	std::vector<std::pair<double, double>> getVectorOfPairsOfCoordinatesOfVertices(crow::json::rvalue jsonObjectOfHexInformation) const {
-		double heightOfHex = WIDTH_OF_HEX * 2 * std::tan(M_PI / 6);
+		double heightOfHex = GeometryHelper::WIDTH_OF_HEX * 2 * std::tan(M_PI / 6);
 		
 		// Get the coordinates of the hex's top-left, reference point.
 		double x = jsonObjectOfHexInformation["x"].d();
@@ -278,10 +275,10 @@ public:
 
 		std::vector<std::pair<double, double>> vectorOfPairsOfCoordinates;
 		// Get six pairs of coordinates of vertices starting from the top vertex and going clockwise.
-		vectorOfPairsOfCoordinates.push_back({ x + 0.5 * WIDTH_OF_HEX, y });
-		vectorOfPairsOfCoordinates.push_back({ x + WIDTH_OF_HEX, y + 0.25 * heightOfHex });
-		vectorOfPairsOfCoordinates.push_back({ x + WIDTH_OF_HEX, y + 0.75 * heightOfHex });
-		vectorOfPairsOfCoordinates.push_back({ x + 0.5 * WIDTH_OF_HEX, y + heightOfHex });
+		vectorOfPairsOfCoordinates.push_back({ x + 0.5 * GeometryHelper::WIDTH_OF_HEX, y });
+		vectorOfPairsOfCoordinates.push_back({ x + GeometryHelper::WIDTH_OF_HEX, y + 0.25 * heightOfHex });
+		vectorOfPairsOfCoordinates.push_back({ x + GeometryHelper::WIDTH_OF_HEX, y + 0.75 * heightOfHex });
+		vectorOfPairsOfCoordinates.push_back({ x + 0.5 * GeometryHelper::WIDTH_OF_HEX, y + heightOfHex });
 		vectorOfPairsOfCoordinates.push_back({ x, y + 0.75 * heightOfHex });
 		vectorOfPairsOfCoordinates.push_back({ x, y + 0.25 * heightOfHex });
 		return vectorOfPairsOfCoordinates;
@@ -315,19 +312,6 @@ private:
 				throw std::runtime_error("Board geometry file could not be parsed.");
 			}
 		}
-	}
-	
-	std::string getEdgeKey(double x1, double y1, double x2, double y2) const {
-		char bufferRepresentingEdgeKey[50];
-		// TODO: Consider replacing 50 with the maximum length of an edge key or using `std::ostringstream`.
-		if ((x1 < x2) || (std::abs(x1 - x2) < MARGIN_OF_ERROR && y1 <= y2)) {
-			std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x1, y1, x2, y2);
-		}
-		else {
-			std::snprintf(bufferRepresentingEdgeKey, sizeof(bufferRepresentingEdgeKey), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
-		}
-		std::string edgeKey = std::string(bufferRepresentingEdgeKey);
-		return edgeKey;
 	}
 };
 
