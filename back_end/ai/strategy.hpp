@@ -42,6 +42,22 @@ void injectDirichletNoise(std::shared_ptr<AI::MCTS::MCTSNode>& root, double mixi
 }
 
 
+bool comparePairsOfRepresentationsOfMovesAndChildren(
+	const std::pair<std::string, std::shared_ptr<AI::MCTS::MCTSNode>>& firstPairOfRepresentationOfMoveAndChild,
+	const std::pair<std::string, std::shared_ptr<AI::MCTS::MCTSNode>>& secondPairOfRepresentationOfMoveAndChild
+) {
+	std::shared_ptr<AI::MCTS::MCTSNode> firstChild = firstPairOfRepresentationOfMoveAndChild.second;
+	std::shared_ptr<AI::MCTS::MCTSNode> secondChild = secondPairOfRepresentationOfMoveAndChild.second;
+	if (firstChild->visitCount < secondChild->visitCount) {
+		return true;
+	}
+	else if ((firstChild->visitCount == secondChild->visitCount) && (firstChild->priorProbability < secondChild->priorProbability)) {
+		return true;
+	}
+	return false;
+}
+
+
 /* Function `runMcts` runs MCTS by creating a root node from the current game state,
 * running a number of simulations, and returning the best move.
 */
@@ -105,20 +121,18 @@ std::pair<std::string, int> runMcts(
 		//std::clog << "                [BACKPROPAGATION] Statistics of node node and all parents were updated." << std::endl;
 	}
 
-	// TODO: Consider whether selecting moves based on visit count, evaluation scores, and/or other criteria might be better.
-	std::shared_ptr<AI::MCTS::MCTSNode> bestChild = nullptr;
-	int numberOfVisitsToBestChild = -1;
-	for (const std::pair<const std::string, std::shared_ptr<AI::MCTS::MCTSNode>>& pairOfLabelOfVertexOrEdgeKeyAndChild : root->unorderedMapOfRepresentationsOfMovesToChildren) {
-		std::shared_ptr<AI::MCTS::MCTSNode> child = pairOfLabelOfVertexOrEdgeKeyAndChild.second;
-		if (child->visitCount > numberOfVisitsToBestChild) {
-			numberOfVisitsToBestChild = child->visitCount;
-			bestChild = child;
-		}
-	}
-	if (!bestChild) {
+
+	std::unordered_map<std::string, std::shared_ptr<AI::MCTS::MCTSNode>>::iterator iterator = std::max_element(
+		root->unorderedMapOfRepresentationsOfMovesToChildren.begin(),
+		root->unorderedMapOfRepresentationsOfMovesToChildren.end(),
+		comparePairsOfRepresentationsOfMovesAndChildren
+	);
+	if (iterator == root->unorderedMapOfRepresentationsOfMovesToChildren.end()) {
 		throw std::runtime_error("Best child is not defined.");
-		//return { "", 0 };
 	}
+	std::shared_ptr<AI::MCTS::MCTSNode> bestChild = iterator->second;
+
+
 	//std::clog << "            [SELECT BEST CHILD] The best child has move " << bestChild->move << "." << std::endl;
 	//std::clog << "            [SELECT BEST CHILD] The child of the root with the highest visit count is the following.\n" << bestChild->toJson().dump() << std::endl;
 	std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = { bestChild->move, bestChild->visitCount };

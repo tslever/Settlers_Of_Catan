@@ -223,7 +223,7 @@ namespace AI {
 
                 std::clog <<
                     "[TRAINING] Epoch " << (indexOfEpoch + 1) << " of " << numberOfEpochs <<
-                    "completed with average loss " << averageLoss << "." << std::endl;
+                    " completed with average loss " << averageLoss << "." << std::endl;
             }
 
             try {
