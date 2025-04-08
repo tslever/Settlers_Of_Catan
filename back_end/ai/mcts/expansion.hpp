@@ -33,7 +33,7 @@ namespace AI {
 		}
 
 
-		std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(const std::shared_ptr<MCTSNode>& node) {
+		std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(const MCTSNode* node) {
 			std::vector<std::string> vectorOfLabelsOfOccupiedVertices;
 			for (const std::pair<int, std::vector<std::string>>& pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithSettlements : node->gameState.settlements) {
 				std::vector<std::string> vectorOfLabelsOfVerticesWithSettlements = pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithSettlements.second;
@@ -55,15 +55,15 @@ namespace AI {
 		}
 
 
-		std::vector<std::string> getVectorOfKeysOfOccupiedEdges(std::shared_ptr<MCTSNode> node) {
-			return node->gameState.roads[node->gameState.currentPlayer];
+		std::vector<std::string> getVectorOfKeysOfOccupiedEdges(const MCTSNode* node) {
+			return node->gameState.roads.at(node->gameState.currentPlayer);
 		}
 
 
 		/* Function `expandNode`, for each move determined to be available by board geometry and current state,
 		* creates a child node and sets its prior probability based on the move type.
 		*/
-		void expandNode(const std::shared_ptr<MCTSNode>& node, WrapperOfNeuralNetwork& neuralNet) {
+		void expandNode(MCTSNode* node, WrapperOfNeuralNetwork& neuralNet) {
 			Board board;
 
 			// Create vector of labels of available vertices or keys of available edges.
@@ -102,7 +102,7 @@ namespace AI {
 
 			// Create a child for each label of available vertex or key of available edge.
 			std::vector<std::vector<float>> vectorOfFeatureVectors;
-			std::vector<std::shared_ptr<MCTSNode>> vectorOfChildren;
+			std::vector<MCTSNode*> vectorOfChildren;
 			for (const std::string& labelOfAvailableVertexOrKeyOfAvailableEdge : vectorOfLabelsOfAvailableVerticesOrKeysOfAvailableEdges) {
 				if (node->unorderedMapOfRepresentationsOfMovesToChildren.find(labelOfAvailableVertexOrKeyOfAvailableEdge) != node->unorderedMapOfRepresentationsOfMovesToChildren.end()) {
 					continue;
@@ -132,11 +132,17 @@ namespace AI {
 						moveType = "turn";
 					}
 				}
-				auto child = std::make_shared<MCTSNode>(gameStateOfChild, labelOfAvailableVertexOrKeyOfAvailableEdge, node, moveType);
+				std::unique_ptr<AI::MCTS::MCTSNode> child = std::make_unique<MCTSNode>(
+					gameStateOfChild,
+					labelOfAvailableVertexOrKeyOfAvailableEdge,
+					node,
+					moveType
+				);
+				MCTSNode* pointerToChild = child.get();
 				std::vector<float> featureVector = board.getFeatureVector(labelOfAvailableVertexOrKeyOfAvailableEdge);
 				vectorOfFeatureVectors.push_back(featureVector);
-				vectorOfChildren.push_back(child);
-				node->unorderedMapOfRepresentationsOfMovesToChildren[labelOfAvailableVertexOrKeyOfAvailableEdge] = child;
+				vectorOfChildren.push_back(pointerToChild);
+				node->unorderedMapOfRepresentationsOfMovesToChildren[labelOfAvailableVertexOrKeyOfAvailableEdge] = std::move(child);
 			}
 			if (!vectorOfFeatureVectors.empty()) {
 				std::vector<std::pair<double, double>> vectorOfPairsOfValuesAndPolicies = neuralNet.evaluateStructures(vectorOfFeatureVectors);

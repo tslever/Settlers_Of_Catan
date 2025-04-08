@@ -12,7 +12,7 @@
 /* Function `injectDirichletNoise` injects Dirichlet noise at the root to encourage exploration
 * by changing the prior probabilities of the children of the root.
 */
-void injectDirichletNoise(std::shared_ptr<AI::MCTS::MCTSNode>& root, double mixingWeight, double shape) {
+void injectDirichletNoise(AI::MCTS::MCTSNode* root, double mixingWeight, double shape) {
 	if (root->unorderedMapOfRepresentationsOfMovesToChildren.empty()) {
 		return;
 	}
@@ -43,15 +43,18 @@ void injectDirichletNoise(std::shared_ptr<AI::MCTS::MCTSNode>& root, double mixi
 
 
 bool comparePairsOfRepresentationsOfMovesAndChildren(
-	const std::pair<std::string, std::shared_ptr<AI::MCTS::MCTSNode>>& firstPairOfRepresentationOfMoveAndChild,
-	const std::pair<std::string, std::shared_ptr<AI::MCTS::MCTSNode>>& secondPairOfRepresentationOfMoveAndChild
+	const std::pair<const std::string, std::unique_ptr<AI::MCTS::MCTSNode>>& firstPairOfRepresentationOfMoveAndChild,
+	const std::pair<const std::string, std::unique_ptr<AI::MCTS::MCTSNode>>& secondPairOfRepresentationOfMoveAndChild
 ) {
-	std::shared_ptr<AI::MCTS::MCTSNode> firstChild = firstPairOfRepresentationOfMoveAndChild.second;
-	std::shared_ptr<AI::MCTS::MCTSNode> secondChild = secondPairOfRepresentationOfMoveAndChild.second;
+	const AI::MCTS::MCTSNode* firstChild = firstPairOfRepresentationOfMoveAndChild.second.get();
+	const AI::MCTS::MCTSNode* secondChild = secondPairOfRepresentationOfMoveAndChild.second.get();
 	if (firstChild->visitCount < secondChild->visitCount) {
 		return true;
 	}
-	else if ((firstChild->visitCount == secondChild->visitCount) && (firstChild->priorProbability < secondChild->priorProbability)) {
+	else if (
+		firstChild->visitCount == secondChild->visitCount &&
+		firstChild->priorProbability < secondChild->priorProbability
+	) {
 		return true;
 	}
 	return false;
@@ -87,19 +90,19 @@ std::pair<std::string, int> runMcts(
 	else if (currentState.phase == Game::Phase::TURN) {
 		moveType = "turn";
 	}
-	std::shared_ptr<AI::MCTS::MCTSNode> root = std::make_shared<AI::MCTS::MCTSNode>(currentState, "", nullptr, moveType);
+	std::unique_ptr<AI::MCTS::MCTSNode> root = std::make_unique<AI::MCTS::MCTSNode>(currentState, "", nullptr, moveType);
 
 	//std::clog << "            [EXPAND ROOT] The root is being expanded." << std::endl;
 	//std::clog << "            [EXPAND ROOT] The following root is being expanded.\n            " << root->toJson().dump() << std::endl;
-	expandNode(root, neuralNet);
+	expandNode(root.get(), neuralNet);
 	//std::clog << "            [EXPAND ROOT] The root was expanded into the following.\n            " << root->toJson().dump() << std::endl;
 
-	injectDirichletNoise(root, dirichletMixingWeight, dirichletShape);
+	injectDirichletNoise(root.get(), dirichletMixingWeight, dirichletShape);
 
 	for (int i = 0; i < numberOfSimulations; i++) {
 		//std::clog << "            [MCTS SIMULATION] MCTS simulation " << i + 1 << " of " << numberOfSimulations << " is running." << std::endl;
 		//std::clog << "                [MCTS SIMULATION] Node node is being set to root." << std::endl;
-		std::shared_ptr<AI::MCTS::MCTSNode> node = root;
+		AI::MCTS::MCTSNode* node = root.get();
 		//if (node->isLeaf()) {
 		//	std::clog << "                [SELECT NO NODE] Node node is leaf and will not be reset to a child." << std::endl;
 		//}
@@ -124,7 +127,7 @@ std::pair<std::string, int> runMcts(
 	}
 
 
-	std::unordered_map<std::string, std::shared_ptr<AI::MCTS::MCTSNode>>::iterator iterator = std::max_element(
+	auto iterator = std::max_element(
 		root->unorderedMapOfRepresentationsOfMovesToChildren.begin(),
 		root->unorderedMapOfRepresentationsOfMovesToChildren.end(),
 		comparePairsOfRepresentationsOfMovesAndChildren
@@ -132,7 +135,7 @@ std::pair<std::string, int> runMcts(
 	if (iterator == root->unorderedMapOfRepresentationsOfMovesToChildren.end()) {
 		throw std::runtime_error("Best child is not defined.");
 	}
-	std::shared_ptr<AI::MCTS::MCTSNode> bestChild = iterator->second;
+	AI::MCTS::MCTSNode* bestChild = iterator->second.get();
 
 
 	//std::clog << "            [SELECT BEST CHILD] The best child has move " << bestChild->move << "." << std::endl;

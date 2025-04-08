@@ -9,12 +9,12 @@ namespace AI {
 
 		// Backpropagate the rollout value up the tree.
 		// TODO: Consider adding discount factors or more advanced statistics.
-		void backpropagate(std::shared_ptr<MCTSNode> node, double value) {
-			while (node) {
+		void backpropagate(MCTSNode* node, double value) {
+			while (node != nullptr) {
 				node->visitCount += 1;
 				node->totalValue += value;
 				node->averageValue = node->totalValue / node->visitCount;
-				node = node->parent.lock();
+				node = node->parent;
 			}
 		}
 

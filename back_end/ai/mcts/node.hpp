@@ -24,13 +24,13 @@ namespace AI {
             double totalValue;
             double averageValue;
             double priorProbability;
-            std::unordered_map<std::string, std::shared_ptr<MCTSNode>> unorderedMapOfRepresentationsOfMovesToChildren;
-            std::weak_ptr<MCTSNode> parent;
+            std::unordered_map<std::string, std::unique_ptr<MCTSNode>> unorderedMapOfRepresentationsOfMovesToChildren;
+            MCTSNode* parent;
 
             MCTSNode(
                 const GameState& gameState,
                 const std::string& move = "",
-                std::shared_ptr<MCTSNode> parent = nullptr,
+                MCTSNode* parent = nullptr,
                 const std::string& moveType = ""
             ) :
                 index(nextIndex++),
@@ -68,12 +68,7 @@ namespace AI {
 				}
                 json["children"] = std::move(jsonArrayOfChildren);
 
-                if (std::shared_ptr<MCTSNode> sharedPointerToParent = parent.lock()) {
-                    json["parent"] = sharedPointerToParent->index;
-                }
-                else {
-                    json["parent"] = nullptr;
-                }
+				json["parent"] = parent ? std::to_string(parent->index) : "null";
                 return json;
             }
         };
