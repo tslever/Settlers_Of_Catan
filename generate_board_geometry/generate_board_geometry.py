@@ -2,16 +2,27 @@
 from typing import Dict
 from typing import List
 from typing import Tuple
-from Python_back_end.game.board import HEIGHT_OF_HEX
-from Python_back_end.game.board import MARGIN_OF_ERROR
-from Python_back_end.game.board import WIDTH_OF_BOARD_IN_VMIN
-from Python_back_end.game.board import WIDTH_OF_HEX
-from Python_back_end.game.board import Board
 import json
 import logging
-from Python_back_end.logger import set_up_logging
-from Python_back_end.settings import settings
+import sys
 
+from board import Board
+from board import WIDTH_OF_BOARD_IN_VMIN
+from board import WIDTH_OF_HEX
+from board import HEIGHT_OF_HEX
+from board import MARGIN_OF_ERROR
+from board import BOARD_GEOMETRY_PATH
+
+
+def set_up_logging(level = logging.INFO):
+    formatter = logging.Formatter(fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    root = logging.getLogger()
+    root.setLevel(level)
+    if root.hasHandlers():
+        root.handlers.clear()
+    root.addHandler(handler)
 
 set_up_logging()
 logger = logging.getLogger(__name__)
@@ -36,10 +47,10 @@ class BoardGeometryGenerator:
         hex_height: float,
         margin_of_error: float
     ):
-        self.board_layout = board_layout,
-        self.board_width = board_width,
-        self.hex_width = hex_width,
-        self.hex_height = hex_height,
+        self.board_layout = board_layout
+        self.board_width = board_width
+        self.hex_width = hex_width
+        self.hex_height = hex_height
         self.margin_of_error = margin_of_error
 
         self.distance_between_bottom_of_hex_in_first_row_and_top_of_hex_in_second_row = self.hex_height / 4
@@ -151,11 +162,11 @@ class BoardGeometryGenerator:
 
     def _vertex_already_exists(
         self,
-        tuple_of_vertex_coordinates: Tuple[float, float],
+        candidate_tuple_of_vertex_coordinates: Tuple[float, float],
         list_of_tuples_of_vertex_coordinates: List[Tuple[float, float]]
     ) -> bool:
         '''
-        Check whether a tuple of vertex coordinates is matches a tuple of vertex coordinates in the given list.
+        Check whether a tuple of vertex coordinates matches a tuple of vertex coordinates in the given list.
 
         Arguments:
             tuple_of_vertex_coordinates: Tuple[float, float] -- a tuple of vertex coordinates of the form (x1, y1)
@@ -166,7 +177,7 @@ class BoardGeometryGenerator:
             True if the given tuple of vertex coordinates matches a tuple in the list; False otherwise
         '''
         for tuple_of_vertex_coordinates in list_of_tuples_of_vertex_coordinates:
-            if self._tuples_of_coordinates_are_close(tuple_of_vertex_coordinates, tuple_of_vertex_coordinates):
+            if self._tuples_of_coordinates_are_close(candidate_tuple_of_vertex_coordinates, tuple_of_vertex_coordinates):
                 return True
         return False
 
@@ -230,16 +241,16 @@ def main():
         hex_height = HEIGHT_OF_HEX,
         margin_of_error = MARGIN_OF_ERROR
     )
-    board = Board()
+    board = Board(indicator_of_whether_board_geometry_should_be_generated = True)
     dictionary_of_board_geometry: Dict[str, List[Dict[str, str | float] | Dict[str, float]]] = generator.generate_board_geometry(board)
     number_of_hexes: int = len(dictionary_of_board_geometry["hexes"])
     number_of_vertices: int = len(dictionary_of_board_geometry["vertices"])
     number_of_edges: int = len(dictionary_of_board_geometry["edges"])
     logger.info(f"Geometry generated with {number_of_hexes} hexes, {number_of_vertices} vertices, {number_of_edges} edges")
 
-    with open(settings.board_geometry_path, "w") as f:
+    with open(BOARD_GEOMETRY_PATH, "w") as f:
         json.dump(dictionary_of_board_geometry, f, indent = 4)
-    logger.info(f"A dictionary of board geometry was written to {settings.board_geometry_path}.")
+    logger.info(f"A dictionary of board geometry was written to {BOARD_GEOMETRY_PATH}.")
 
 
 if __name__ == "__main__":

@@ -323,7 +323,7 @@ private:
 
 	void loadBoardGeometry() {
 		if (!boardGeometryCache) {
-			std::ifstream file("../board_geometry.json");
+			std::ifstream file("../generate_board_geometry/board_geometry.json");
 			if (!file.is_open()) {
 				throw std::runtime_error("Board geometry file could not be opened.");
 			}

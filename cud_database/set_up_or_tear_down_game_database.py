@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
-from Python_back_end.settings import settings
 import pymysql
+from settings import settings
 
 
 ADMIN_HOST = settings.mysql_host

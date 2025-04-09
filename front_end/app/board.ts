@@ -1,7 +1,7 @@
 import type { Edge } from "./types";
 import type { HexInformation } from "./types";
 import type { VertexInformation } from "./types";
-import boardGeometry from "../../board_geometry.json";
+import boardGeometry from "../../generate_board_geometry/board_geometry.json";
 
 
 export interface BoardGeometry {

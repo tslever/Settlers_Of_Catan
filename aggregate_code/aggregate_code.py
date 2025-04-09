@@ -1,6 +1,5 @@
 import os
 import re
-from paths_of_important_files import paths_of_Python_back_end_files
 from paths_of_important_files import paths_of_back_end_files
 from paths_of_important_files import paths_of_configuration_files
 from paths_of_important_files import paths_of_files_to_alter_database

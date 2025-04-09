@@ -5,10 +5,14 @@ from typing import Tuple
 import json
 import math
 import numpy as np
-from Python_back_end.settings import settings
 
 
+BOARD_GEOMETRY_PATH = "board_geometry.json"
+MARGIN_OF_ERROR = 0.01
+NUMBER_OF_HEXES_THAT_SPAN_BOARD = 6.0
 RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX = math.tan(math.pi / 6)
+WIDTH_OF_BOARD_IN_VMIN = 100.0
+
 TOKEN_DOT_MAPPING = {
     2: 1,
     3: 2,
@@ -44,7 +48,7 @@ TOKEN_MAPPING = {
 }
 
 RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX = 2 * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
-WIDTH_OF_HEX = settings.width_of_board_in_vmin / settings.number_of_hexes_that_span_board
+WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD
 HEIGHT_OF_HEX = WIDTH_OF_HEX * RATIO_OF_HEIGHT_OF_HEX_AND_WIDTH_OF_HEX
 LENGTH_OF_SIDE_OF_HEX = WIDTH_OF_HEX * RATIO_OF_LENGTH_OF_SIDE_OF_HEX_AND_WIDTH_OF_HEX
 
@@ -55,20 +59,19 @@ def euclidean_distance_between_vertices_with_coordinates(x1: float, y1: float, x
 
 class Board:
 
-    def __init__(self, geometry_file: Optional[str] = None):
-        if geometry_file is None:
-            geometry_file = settings.board_geometry_path
-        with open(geometry_file, "r") as f:
-            data = json.load(f)
-        self.hexes: List[Dict] = data["hexes"]
-        self.vertices: List[Dict] = data["vertices"]
-        self.edges: List[Dict] = data["edges"]
-
+    def __init__(self, indicator_of_whether_board_geometry_should_be_generated):
         self._hex_vertex_cache: Dict[str, List[Tuple[float, float]]] = {}
+        
+        if (not indicator_of_whether_board_geometry_should_be_generated):
+            with open(BOARD_GEOMETRY_PATH, "r") as f:
+                data = json.load(f)
+            self.hexes: List[Dict] = data["hexes"]
+            self.vertices: List[Dict] = data["vertices"]
+            self.edges: List[Dict] = data["edges"]
 
-        self._vertex_feature_map = {}
-        for vertex in self.vertices:
-            self._vertex_feature_map[vertex["label"]] = self.compute_vertex_feature(vertex)
+            self._vertex_feature_map = {}
+            for vertex in self.vertices:
+                self._vertex_feature_map[vertex["label"]] = self.compute_vertex_feature(vertex)
 
 
     @staticmethod
@@ -91,7 +94,7 @@ class Board:
             array_of_coordinates_of_vertices_of_hex = np.array(self.get_hex_vertices(dictionary_of_hex_information))
             if np.any(
                 np.all(
-                    np.abs(array_of_coordinates_of_vertices_of_hex - array_of_coordinates) < settings.margin_of_error,
+                    np.abs(array_of_coordinates_of_vertices_of_hex - array_of_coordinates) < MARGIN_OF_ERROR,
                     axis = 1
                 )
             ):
@@ -102,7 +105,7 @@ class Board:
                     total_number_of_pips += number_of_pips
                     number_of_hexes += 1
         normalized_total_number_of_pips = total_number_of_pips / (number_of_hexes * 5) if number_of_hexes > 0 else 0.0
-        normalized_x_coordinate = x / settings.width_of_board_in_vmin
+        normalized_x_coordinate = x / WIDTH_OF_BOARD_IN_VMIN
         normalized_y_coordinate = y / 100.0
         normalized_number_of_hexes = number_of_hexes / 3.0
         return [normalized_total_number_of_pips, normalized_x_coordinate, normalized_y_coordinate, normalized_number_of_hexes, 1.0]
@@ -167,7 +170,7 @@ class Board:
             x1 = dictionary_of_vertex_information["x"]
             y1 = dictionary_of_vertex_information["y"]
             if any(
-                euclidean_distance_between_vertices_with_coordinates(x1, y1, x2, y2) < (LENGTH_OF_SIDE_OF_HEX + settings.margin_of_error)
+                euclidean_distance_between_vertices_with_coordinates(x1, y1, x2, y2) < (LENGTH_OF_SIDE_OF_HEX + MARGIN_OF_ERROR)
                 for x2, y2 in list_of_tuples_of_coordinates_of_occupied_vertices
             ):
                 continue
@@ -188,8 +191,8 @@ class Board:
             v1 = (edge["x1"], edge["y1"])
             v2 = (edge["x2"], edge["y2"])
             if (
-                (math.isclose(v1[0], settlement_or_city_coord[0], abs_tol = settings.margin_of_error) and math.isclose(v1[1], settlement_or_city_coord[1], abs_tol = settings.margin_of_error)) or
-                (math.isclose(v2[0], settlement_or_city_coord[0], abs_tol = settings.margin_of_error) and math.isclose(v2[1], settlement_or_city_coord[1], abs_tol = settings.margin_of_error))
+                (math.isclose(v1[0], settlement_or_city_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v1[1], settlement_or_city_coord[1], abs_tol = MARGIN_OF_ERROR)) or
+                (math.isclose(v2[0], settlement_or_city_coord[0], abs_tol = MARGIN_OF_ERROR) and math.isclose(v2[1], settlement_or_city_coord[1], abs_tol = MARGIN_OF_ERROR))
             ):
                 edge_key = self.get_edge_key(v1, v2)
                 if edge_key not in used_edge_keys:
