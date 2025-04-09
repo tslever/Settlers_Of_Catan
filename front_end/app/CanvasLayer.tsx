@@ -35,6 +35,16 @@ const CanvasLayer: React.FC = () => {
             context.lineTo(toCanvasX(edge.x2), toCanvasY(edge.y2));
             context.stroke();
         });
+        context.fillStyle = 'red';
+        context.font = '12px sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        memoizedEdges.forEach((edge, index) => {
+            const midX = (toCanvasX(edge.x1) + toCanvasX(edge.x2)) / 2;
+            const midY = (toCanvasY(edge.y1) + toCanvasY(edge.y2)) / 2;
+            const label = `E${(index + 1).toString().padStart(2, '0')}`;
+            context.fillText(label, midX, midY);
+        });
         memoizedVertices.forEach((vertex, index) => {
             const x = toCanvasX(vertex.x);
             const y = toCanvasY(vertex.y);
