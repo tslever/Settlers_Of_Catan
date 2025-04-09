@@ -19,6 +19,28 @@ public:
 		loadBoardGeometry();
 	}
 
+	std::string getEdgeLabel(const std::string& providedEdgeKey) const {
+		if (!boardGeometryCache || boardGeometryCache["edges"].size() == 0) {
+			throw std::runtime_error("Board geometry file does not contain edges.");
+		}
+		const crow::json::rvalue& jsonArrayOfEdgeInformation = boardGeometryCache["edges"];
+		for (size_t i = 0; i < jsonArrayOfEdgeInformation.size(); i++) {
+			const crow::json::rvalue& jsonObjectOfEdgeInformation = jsonArrayOfEdgeInformation[i];
+			double x1 = jsonObjectOfEdgeInformation["x1"].d();
+			double y1 = jsonObjectOfEdgeInformation["y1"].d();
+			double x2 = jsonObjectOfEdgeInformation["x2"].d();
+			double y2 = jsonObjectOfEdgeInformation["y2"].d();
+			std::string edgeKey = GeometryHelper::getEdgeKey(x1, y1, x2, y2);
+			if (edgeKey == providedEdgeKey) {
+				char buffer[10];
+				std::snprintf(buffer, sizeof(buffer), "E%02zu", i + 1);
+				std::string edgeLabel = std::string(buffer);
+				return edgeLabel;
+			}
+		}
+		throw std::runtime_error("An edge label was not returned.");
+	}
+
 	/* Function `getFeatureVector` computes and returns a 5 element feature vector for a given vertex label or edge key.
 	* Features include:
 	* - normalized total number of pips,

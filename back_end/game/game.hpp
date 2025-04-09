@@ -118,7 +118,9 @@ namespace Game {
 			int currentPlayer = state.currentPlayer;
 			state.placeRoad(currentPlayer, keyOfChosenEdge);
 			int roadId = db.addStructure("roads", currentPlayer, keyOfChosenEdge, "edge");
-			jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + keyOfChosenEdge + ".";
+			Board board;
+			std::string edgeLabel = board.getEdgeLabel(keyOfChosenEdge);
+			jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + edgeLabel + ".";
 			jsonObjectOfMoveInformation["moveType"] = "road";
 			crow::json::wvalue jsonObjectOfRoadInformation;
 			jsonObjectOfRoadInformation["id"] = roadId;
@@ -175,7 +177,9 @@ namespace Game {
 			int currentPlayer = state.currentPlayer;
 			state.placeRoad(currentPlayer, keyOfChosenEdge);
 			int roadId = db.addStructure("roads", currentPlayer, keyOfChosenEdge, "edge");
-			jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + keyOfChosenEdge + ".";
+			Board board;
+			std::string edgeLabel = board.getEdgeLabel(keyOfChosenEdge);
+			jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + edgeLabel + ".";
 			jsonObjectOfMoveInformation["moveType"] = "road";
 			crow::json::wvalue jsonObjectOfRoadInformation;
 			jsonObjectOfRoadInformation["id"] = roadId;
@@ -216,7 +220,8 @@ namespace Game {
 			else if (board.isEdgeKey(representationOfChosenVertexOrEdge)) {
 				state.placeRoad(currentPlayer, representationOfChosenVertexOrEdge);
 				int roadId = db.addStructure("roads", currentPlayer, representationOfChosenVertexOrEdge, "edge");
-				jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + representationOfChosenVertexOrEdge + ".";
+				std::string edgeLabel = board.getEdgeLabel(representationOfChosenVertexOrEdge);
+				jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + edgeLabel + ".";
 				jsonObjectOfMoveInformation["moveType"] = "turn";
 				crow::json::wvalue jsonObjectOfRoadInformation;
 				jsonObjectOfRoadInformation["id"] = roadId;
