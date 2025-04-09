@@ -18,7 +18,7 @@ To start the back end,
 
 7. Execute configuration.
 
-8. Change MySQL password in `back_end/settings.py`.
+8. Change MySQL password in `cud_database/settings.py`.
 
 9. Install Python 3.13.2.
 
@@ -30,11 +30,21 @@ To start the back end,
 
 13. Run `python -m pip install --upgrade pip`.
 
-14. Run `pip install -r Python_back_end/requirements.txt`.
+14. TODO: Create `requirements.txt`.
 
 15. Run `python -m set_up_or_tear_down_game_database --set_up`.
 
-16. Run `python -m Python_back_end.app`.
+16. Install [asio 1.30.2](https://think-async.com/Asio/Download.html).
+    
+18. Install [Crow 1.2.1.2](https://github.com/CrowCpp/Crow).
+
+19. Install [Windows (x86, 64-bit), ZIP Archive Debug Binaries for MySQL Connector 9.2.0](https://dev.mysql.com/downloads/connector/cpp/).
+
+20. Install [libtorch 2.6.0 for Windows, C++/Java, and CUDA 12.6](https://download.pytorch.org/libtorch/cu126/libtorch-win-shared-with-deps-debug-2.6.0%2Bcu126.zip).
+
+21. Install [stb_image_write.h](https://github.com/nothings/stb/blob/master/stb_image_write.h).
+
+22. Clean, build, and debug back end in Visual Studio.
 
 To start the front end,
 
