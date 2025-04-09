@@ -180,9 +180,8 @@ namespace AI {
             std::vector<std::pair<double, double>> vectorOfPairsOfValuesAndPolicies;
             for (size_t i = 0; i < vectorOfValues.size(); i++) {
                 double value = static_cast<double>(vectorOfValues[i]);
-                // TODO: Consider whether value should be float.
+                // TODO: Consider whether double values should be float.
                 double policy = static_cast<double>(vectorOfPolicies[i]);
-                // TODO: Consider whether policy should be float.
                 std::pair<double, double> pairOfValueAndPolicy = { value, policy };
                 vectorOfPairsOfValuesAndPolicies.push_back(pairOfValueAndPolicy);
             }
