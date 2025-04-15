@@ -182,7 +182,10 @@ namespace AI {
             torch::Tensor tensorOfTargetValues = torch::stack(vectorOfTensorsOfTargetValues).view(size).to(device);
             torch::Tensor tensorOfTargetPolicies = torch::stack(vectorOfTensorsOfTargetPolicies).view(size).to(device);
 
-            neuralNetwork->train();
+            {
+				std::lock_guard<std::mutex> netLock(wrapperOfNeuralNetwork->mutex);
+                neuralNetwork->train();
+            }
 
             // Configure AdaM optimizer.
             torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();

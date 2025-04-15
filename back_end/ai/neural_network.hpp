@@ -92,6 +92,7 @@ namespace AI {
         NeuralNetwork neuralNetwork = nullptr;
         std::string pathToFileOfParameters;
         Board board;
+        mutable std::mutex mutex;
 
         WrapperOfNeuralNetwork(const std::string& pathToFileOfParameters, const int numberOfNeurons) :
             pathToFileOfParameters(pathToFileOfParameters),
@@ -150,6 +151,7 @@ namespace AI {
         }
 
         std::pair<double, double> evaluateStructure(const std::vector<float>& featureVector) const {
+			std::lock_guard<std::mutex> lock(mutex);
             // Disable gradient calculation for inference.
             torch::NoGradGuard noGrad;
             c10::TensorOptions tensorOptions = torch::TensorOptions().device(device);
@@ -163,6 +165,7 @@ namespace AI {
         }
 
         std::vector<std::pair<double, double>> evaluateStructures(const std::vector<std::vector<float>>& vectorOfFeatureVectors) const {
+			std::lock_guard<std::mutex> lock(mutex);
             torch::NoGradGuard noGrad;
             std::vector<torch::Tensor> vectorOfTensorsOfFeatureVectors;
             c10::TensorOptions tensorOptions = torch::TensorOptions().device(device).dtype(torch::kFloat32);
@@ -189,6 +192,7 @@ namespace AI {
         }
 
         void reloadIfUpdated() {
+			std::lock_guard<std::mutex> lock(mutex);
             try {
                 auto currentWriteTime = std::filesystem::last_write_time(pathToFileOfParameters);
                 if (currentWriteTime > lastWriteTime) {
