@@ -1,6 +1,6 @@
 // Solution `back_end` is a C++ back end for playing Settlers of Catan.
 
-// Change C++ Language Standard to ISO C++17 Standard (/std:c++17).
+// Change C++ Language Standard to ISO C++20 Standard (/std:c++20).
 
 #include "config.hpp"
 #include "server.hpp"

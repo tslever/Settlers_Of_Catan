@@ -13,7 +13,7 @@ namespace GeometryHelper {
 	constexpr double WIDTH_OF_BOARD_IN_VMIN = 100.0;
 	constexpr double WIDTH_OF_HEX = WIDTH_OF_BOARD_IN_VMIN / NUMBER_OF_HEXES_THAT_SPAN_BOARD;
 
-	inline bool areNearlyEqual(double x1, double x2, double epsilon) {
+	bool areNearlyEqual(double x1, double x2, double epsilon) {
 		return std::fabs(x2 - x1) < epsilon;
 	}
 
