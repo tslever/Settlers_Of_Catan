@@ -45,7 +45,7 @@ def main():
         )
     )
     #aggregated_string = replace_import_groups(aggregated_string)
-    output_path = os.path.join(base_path, 'aggregated_contents.txt')
+    output_path = os.path.join(base_path, 'aggregate_code', 'aggregated_contents.txt')
     try:
         with open(output_path, 'w', encoding='utf-8') as output_file:
             output_file.write(aggregated_string)

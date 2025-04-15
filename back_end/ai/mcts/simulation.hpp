@@ -11,7 +11,8 @@ namespace AI {
 		double rollout(MCTSNode* node, WrapperOfNeuralNetwork& neuralNet) {
 			Board board;
 			std::string move = node->move;
-			std::vector<float> featureVector = board.getFeatureVector(move);
+			std::string moveType = node->moveType;
+			std::vector<float> featureVector = board.getGridRepresentationForMove(move, moveType);
 			std::vector<std::vector<float>> vectorOfFeatureVectors = { featureVector };
 			auto eval = neuralNet.evaluateStructures(vectorOfFeatureVectors)[0];
 			return eval.first;

@@ -152,7 +152,9 @@ namespace AI {
 
             Board board;
             for (const AI::TrainingExample& trainingExample : vectorOfTrainingExamples) {
-                std::vector<float> featureVector = board.getFeatureVector(trainingExample.move);
+				std::string move = trainingExample.move;
+                std::string moveType = trainingExample.moveType;
+                std::vector<float> featureVector = board.getGridRepresentationForMove(move, moveType);
                 torch::Tensor inputTensor = torch::tensor(featureVector, tensorOptions);
                 vectorOfInputTensors.push_back(inputTensor);
 

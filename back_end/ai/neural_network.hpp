@@ -98,7 +98,7 @@ namespace AI {
             device(torch::kCPU),
             board()
         {
-            const int64_t numberOfFeatures = 5;
+            const int64_t numberOfFeatures = 21 * 21;
             // TODO: Get number of features based on feature vector.
 
             neuralNetwork = NeuralNetwork(numberOfFeatures, numberOfNeurons);

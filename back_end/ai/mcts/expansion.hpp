@@ -139,7 +139,7 @@ namespace AI {
 					moveType
 				);
 				MCTSNode* pointerToChild = child.get();
-				std::vector<float> featureVector = board.getFeatureVector(labelOfAvailableVertexOrKeyOfAvailableEdge);
+				std::vector<float> featureVector = board.getGridRepresentationForMove(labelOfAvailableVertexOrKeyOfAvailableEdge, moveType);
 				vectorOfFeatureVectors.push_back(featureVector);
 				vectorOfChildren.push_back(pointerToChild);
 				node->unorderedMapOfRepresentationsOfMovesToChildren[labelOfAvailableVertexOrKeyOfAvailableEdge] = std::move(child);
