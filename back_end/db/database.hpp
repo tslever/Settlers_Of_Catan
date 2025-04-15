@@ -16,6 +16,35 @@ xcopy /Y /I "$(SolutionDir)\dependencies\debug_version_of_MySQL_Connector_9_2_0\
 
 namespace DB {
 
+    class WrapperOfSession {
+    public:
+        WrapperOfSession(
+			const std::string& dbName,
+            const std::string& host,
+			const std::string& password,
+			unsigned int port,
+            const std::string& username
+        ) : session(host, port, username, password, dbName) {
+            // TODO: Consider performing additional configuration on the session.
+        }
+
+		mysqlx::Session& getSession() {
+			return session;
+		}
+
+        ~WrapperOfSession() {
+            try {
+                session.close();
+            }
+            catch (const mysqlx::Error& error) {
+				std::cerr << "The following error occurred while closing session. " << error.what() << std::endl;
+            }
+        }
+
+    private:
+        mysqlx::Session session;
+    };
+
     class Database {
     public:
         std::string dbName;
@@ -39,12 +68,13 @@ namespace DB {
             username(username),
             tablePrefix(tablePrefix)
         {
-            // TODO: Consider setting additional session options if appropriate.
+            // TODO: Consider performing additional configuration on the database.
         }
 
         void initialize() {
             try {
-                mysqlx::Session session(host, port, username, password, dbName);
+                WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+				mysqlx::Session& session = wrapperOfSession.getSession();
                 mysqlx::Schema schema = session.getSchema(dbName);
 
                 session.sql(
@@ -76,14 +106,20 @@ namespace DB {
                     "last_building VARCHAR(50))"
                 ).execute();
             }
-            catch (const mysqlx::Error& err) {
-                std::cerr << "The following error occurred while the database was being initialized." << err.what() << std::endl;
+            catch (const mysqlx::Error& error) {
+                std::cerr << "The following error occurred while the database was being initialized." << error.what() << std::endl;
                 throw;
             }
         }
 
-        int addStructure(const std::string& structureSuffix, int player, const std::string& location, const std::string& locationField) {
-            mysqlx::Session session(host, port, username, password, dbName);
+        int addStructure(
+            const std::string& structureSuffix,
+            int player,
+            const std::string& location,
+            const std::string& locationField
+        ) {
+            WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+            mysqlx::Session& session = wrapperOfSession.getSession();
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + structureSuffix);
             table.insert("player", locationField).values(player, location).execute();
@@ -100,7 +136,8 @@ namespace DB {
 
         std::vector<City> getCities() const {
             std::vector<City> cities;
-            mysqlx::Session session(host, port, username, password, dbName);
+            WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+            mysqlx::Session& session = wrapperOfSession.getSession();
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "cities");
             mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
@@ -131,7 +168,8 @@ namespace DB {
         */
         GameState getGameState() {
             GameState gameState;
-            mysqlx::Session session(host, port, username, password, dbName);
+            WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+            mysqlx::Session& session = wrapperOfSession.getSession();
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "state");
             mysqlx::RowResult rowResult = table.select("current_player", "phase", "last_building").where("id = 1").execute();
@@ -175,7 +213,8 @@ namespace DB {
 
         std::vector<Road> getRoads() const {
             std::vector<Road> roads;
-            mysqlx::Session session(host, port, username, password, dbName);
+            WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+            mysqlx::Session& session = wrapperOfSession.getSession();
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "roads");
             mysqlx::RowResult rowResult = table.select("id", "player", "edge").execute();
@@ -203,7 +242,8 @@ namespace DB {
 
         std::vector<Settlement> getSettlements() const {
             std::vector<Settlement> settlements;
-            mysqlx::Session session(host, port, username, password, dbName);
+            WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+            mysqlx::Session& session = wrapperOfSession.getSession();
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "settlements");
             mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
@@ -232,7 +272,8 @@ namespace DB {
         // Reset game state (delete all settlements, cities, and roads and reset auto-increments).
         bool resetGame() {
             try {
-                mysqlx::Session session(host, port, username, password, dbName);
+                WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+                mysqlx::Session& session = wrapperOfSession.getSession();
                 mysqlx::Schema schema = session.getSchema(dbName);
 
                 // Clear settlements, cities, and roads.
@@ -271,7 +312,8 @@ namespace DB {
 
         // Method `updateGameState` updates the state table with the current game state.
         void updateGameState(const GameState& gameState) {
-            mysqlx::Session session(host, port, username, password, dbName);
+            WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+            mysqlx::Session& session = wrapperOfSession.getSession();
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + "state");
             table
