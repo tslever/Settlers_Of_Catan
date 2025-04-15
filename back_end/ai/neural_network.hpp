@@ -59,7 +59,7 @@ namespace AI {
             /* Register each layer with libtorch to make libtorch aware of these layers
             * and to allow automatically managing parameters and integrating layers.
             */
-            int numberOfOutputs = 1;
+            constexpr int64_t numberOfOutputs = 1;
             layer1 = register_module("layer1", torch::nn::Linear(numberOfFeatures, numberOfNeurons));
             layer2 = register_module("layer2", torch::nn::Linear(numberOfNeurons, numberOfNeurons));
             layerToCalculateValue = register_module("layerToCalculateValue", torch::nn::Linear(numberOfNeurons, numberOfOutputs));

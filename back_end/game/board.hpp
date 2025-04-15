@@ -13,10 +13,6 @@
 */
 
 
-constexpr double NUMBER_BY_WHICH_TO_NORMALIZE_COORDINATE = 100.0;
-constexpr double NUMBER_BY_WHICH_TO_NORMALIZE_NUMBER_OF_HEXES = 3.0;
-
-
 class Board {
 public:
 	static crow::json::rvalue boardGeometryCache;
@@ -48,7 +44,8 @@ public:
 	}
 
 	void setPixel(std::vector<unsigned char>& image, int widthOfImage, int x, int y, int r, int g, int b) const {
-		int index = (y * widthOfImage + x) * 3;
+		constexpr int NUMBER_OF_CHANNELS = 3;
+		int index = (y * widthOfImage + x) * NUMBER_OF_CHANNELS;
 		image[index + 0] = static_cast<unsigned char>(r);
 		image[index + 1] = static_cast<unsigned char>(g);
 		image[index + 2] = static_cast<unsigned char>(b);
@@ -58,7 +55,8 @@ public:
 
 		// Create a 21 x 21 grid of integers initialized to 0.
 		// Index as grid[index_of_row][index_of_column].
-		std::vector<std::vector<int>> grid(21, std::vector<int>(21, 0));
+		constexpr int DIMENSION_OF_GRID = 21;
+		std::vector<std::vector<int>> grid(DIMENSION_OF_GRID, std::vector<int>(DIMENSION_OF_GRID, 0));
 
 		/* TODO: The following vectors represent coordinates pairs in the grid and
 		* isometric coordinates of the centers of the hexes in the board.
@@ -267,7 +265,6 @@ public:
 		}
 
 		/*
-		const int dimensionOfGrid = grid.size();
 		const int dimensionOfCell = 10;
 		const int widthOfImage = dimensionOfCell * dimensionOfGrid;
 		const int heightOfImage = dimensionOfCell * dimensionOfGrid;
@@ -497,12 +494,9 @@ public:
 		return vectorOfPairsOfCoordinates;
 	}
 
-	bool isLabelOfVertex(std::string s) const {
-		std::regex vertexPattern("^V\\d{2}$");
-		if (std::regex_match(s, vertexPattern)) {
-			return true;
-		}
-		return false;
+	bool isLabelOfVertex(const std::string& s) const {
+		const std::regex vertexPattern("^V\\d{2}$");
+		return std::regex_match(s, vertexPattern);
 	}
 
 	bool isEdgeKey(const std::string& s) const {

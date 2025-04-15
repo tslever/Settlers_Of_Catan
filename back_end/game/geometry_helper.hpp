@@ -17,17 +17,17 @@ namespace GeometryHelper {
 		return std::fabs(x2 - x1) < epsilon;
 	}
 
-	inline double distance(double x1, double y1, double x2, double y2) {
+	double distance(double x1, double y1, double x2, double y2) {
 		double dx = x2 - x1;
 		double dy = y2 - y1;
 		return std::sqrt(dx * dx + dy * dy);
 	}
 
-	inline double getLengthOfSideOfHex() {
+	double getLengthOfSideOfHex() {
 		return WIDTH_OF_HEX * std::tan(M_PI / 6);
 	}
 
-	inline std::string getEdgeKey(double x1, double y1, double x2, double y2) {
+	std::string getEdgeKey(double x1, double y1, double x2, double y2) {
 		// TODO: Consider replacing 50 with the maximum length of an edge key or using `std::ostringstream`.
 		char buffer[50];
 		if ((x1 < x2) || (areNearlyEqual(x1, x2, MARGIN_OF_ERROR) && y1 <= y2)) {
@@ -36,7 +36,6 @@ namespace GeometryHelper {
 		else {
 			std::snprintf(buffer, sizeof(buffer), "%.2f-%.2f_%.2f-%.2f", x2, y2, x1, y1);
 		}
-		std::string edgeKey = std::string(buffer);
-		return edgeKey;
+		return std::string(buffer);
 	}
 }
