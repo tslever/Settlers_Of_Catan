@@ -104,13 +104,13 @@ public:
         json["lastBuilding"] = lastBuilding;
 
         crow::json::wvalue settlementsJson(crow::json::type::Object);
-        for (const auto& pair : settlements) {
+        for (const auto& [player, vertices] : settlements) {
             crow::json::wvalue arr(crow::json::type::List);
             int i = 0;
-            for (const auto& vertex : pair.second) {
+            for (const auto& vertex : vertices) {
                 arr[i++] = vertex;
             }
-            settlementsJson["Player " + std::to_string(pair.first)] = std::move(arr);
+            settlementsJson["Player " + std::to_string(player)] = std::move(arr);
         }
         json["settlements"] = std::move(settlementsJson);
 

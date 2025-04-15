@@ -37,7 +37,6 @@ def main():
         base_path,
         (
             paths_of_back_end_files +
-            #paths_of_Python_back_end_files +
             paths_of_configuration_files +
             paths_of_files_to_alter_database +
             paths_of_files_to_generate_board_geometry +

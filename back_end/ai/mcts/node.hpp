@@ -67,7 +67,6 @@ namespace AI {
 					jsonArrayOfChildren[i++] = child->index;
 				}
                 json["children"] = std::move(jsonArrayOfChildren);
-
 				json["parent"] = parent ? std::to_string(parent->index) : "null";
                 return json;
             }

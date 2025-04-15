@@ -23,7 +23,7 @@ void injectDirichletNoise(AI::MCTS::MCTSNode* root, double mixingWeight, double 
 	std::gamma_distribution<double> gammaDistribution(shape, scale);
 
 	double sumOfNoise = 0.0;
-	for (size_t i = 0; i < root->unorderedMapOfRepresentationsOfMovesToChildren.size(); i++) {
+	for (const auto& pair : root->unorderedMapOfRepresentationsOfMovesToChildren) {
 		double noise = gammaDistribution(defaultRandomEngine);
 		vectorOfNoise.push_back(noise);
 		sumOfNoise += noise;
@@ -46,15 +46,12 @@ bool comparePairsOfRepresentationsOfMovesAndChildren(
 	const std::pair<const std::string, std::unique_ptr<AI::MCTS::MCTSNode>>& firstPairOfRepresentationOfMoveAndChild,
 	const std::pair<const std::string, std::unique_ptr<AI::MCTS::MCTSNode>>& secondPairOfRepresentationOfMoveAndChild
 ) {
-	const AI::MCTS::MCTSNode* firstChild = firstPairOfRepresentationOfMoveAndChild.second.get();
-	const AI::MCTS::MCTSNode* secondChild = secondPairOfRepresentationOfMoveAndChild.second.get();
-	if (firstChild->visitCount < secondChild->visitCount) {
+	const auto& [move1, child1] = firstPairOfRepresentationOfMoveAndChild;
+	const auto& [move2, child2] = secondPairOfRepresentationOfMoveAndChild;
+	if (child1->visitCount < child2->visitCount) {
 		return true;
 	}
-	else if (
-		firstChild->visitCount == secondChild->visitCount &&
-		firstChild->priorProbability < secondChild->priorProbability
-	) {
+	else if (child1->visitCount == child2->visitCount && child1->priorProbability < child2->priorProbability) {
 		return true;
 	}
 	return false;

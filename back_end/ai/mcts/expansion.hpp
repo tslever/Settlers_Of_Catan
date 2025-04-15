@@ -35,16 +35,14 @@ namespace AI {
 
 		std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(const MCTSNode* node) {
 			std::vector<std::string> vectorOfLabelsOfOccupiedVertices;
-			for (const std::pair<int, std::vector<std::string>>& pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithSettlements : node->gameState.settlements) {
-				std::vector<std::string> vectorOfLabelsOfVerticesWithSettlements = pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithSettlements.second;
+			for (const auto& [player, vectorOfLabelsOfVerticesWithSettlements] : node->gameState.settlements) {
 				vectorOfLabelsOfOccupiedVertices.insert(
 					vectorOfLabelsOfOccupiedVertices.end(),
 					vectorOfLabelsOfVerticesWithSettlements.begin(),
 					vectorOfLabelsOfVerticesWithSettlements.end()
 				);
 			}
-			for (const std::pair<int, std::vector<std::string>>& pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithCities : node->gameState.cities) {
-				std::vector<std::string> vectorOfLabelsOfVerticesWithCities = pairOfNumberOfPlayerAndVectorOfLabelsOfVerticesWithCities.second;
+			for (const auto& [player, vectorOfLabelsOfVerticesWithCities] : node->gameState.cities) {
 				vectorOfLabelsOfOccupiedVertices.insert(
 					vectorOfLabelsOfOccupiedVertices.end(),
 					vectorOfLabelsOfVerticesWithCities.begin(),
@@ -146,10 +144,9 @@ namespace AI {
 			}
 			if (!vectorOfFeatureVectors.empty()) {
 				std::vector<std::pair<double, double>> vectorOfPairsOfValuesAndPolicies = neuralNet.evaluateStructures(vectorOfFeatureVectors);
-				for (size_t i = 0; i < vectorOfPairsOfValuesAndPolicies.size(); i++) {
-					std::pair<double, double> pairOfValueAndPolicy = vectorOfPairsOfValuesAndPolicies[i];
-					double policy = pairOfValueAndPolicy.second;
-					vectorOfChildren[i]->priorProbability = policy;
+				size_t i = 0;
+				for (const auto& [value, policy] : vectorOfPairsOfValuesAndPolicies) {
+					vectorOfChildren[i++]->priorProbability = policy;
 				}
 			}
 		}

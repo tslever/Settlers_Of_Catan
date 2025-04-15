@@ -14,8 +14,9 @@ public:
 		const std::function<crow::json::wvalue(const T&)>& convertItemToJsonObject
 	) {
 		crow::json::wvalue arr(crow::json::type::List);
-		for (size_t i = 0; i < vectorOfItems.size(); ++i) {
-			arr[i] = convertItemToJsonObject(vectorOfItems[i]);
+		size_t i = 0;
+		for (const auto& item : vectorOfItems) {
+			arr[i++] = convertItemToJsonObject(item);
 		}
 		return arr;
 	}

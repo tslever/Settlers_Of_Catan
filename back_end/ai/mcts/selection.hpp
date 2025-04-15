@@ -8,9 +8,10 @@ namespace AI {
 		MCTSNode* selectChild(MCTSNode* node, double cPuct, double tolerance) {
 			double bestScore = -std::numeric_limits<double>::infinity();
 			std::vector<MCTSNode*> vectorOfBestCandidates;
-			for (const auto& pairOfRepresentationOfMoveAndChild : node->unorderedMapOfRepresentationsOfMovesToChildren) {
+
+			for (const auto& [move, pointerToChild] : node->unorderedMapOfRepresentationsOfMovesToChildren) {
+				MCTSNode* child = pointerToChild.get();
 				// Exploration bonus U as in AlphaGo Zero
-				MCTSNode* child = pairOfRepresentationOfMoveAndChild.second.get();
 				double u = cPuct * child->priorProbability * std::sqrt(node->visitCount) / (1.0 + child->visitCount);
 				double score = child->averageValue + u;
 				if (score > bestScore + tolerance) {
@@ -24,7 +25,6 @@ namespace AI {
 			}
 			if (vectorOfBestCandidates.empty()) {
 				throw std::runtime_error("No best candidate was selected during MCTS.");
-				//return node;
 			}
 			MCTSNode* bestCandidate = vectorOfBestCandidates[0];
 			for (MCTSNode* candidate : vectorOfBestCandidates) {

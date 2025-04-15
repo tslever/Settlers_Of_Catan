@@ -259,16 +259,16 @@ public:
 			}
 		}
 
-		const int dimensionOfGrid = grid.size();
 		std::vector<float> vectorRepresentingGrid;
-		vectorRepresentingGrid.reserve(dimensionOfGrid * dimensionOfGrid);
-		for (int row = 0; row < dimensionOfGrid; row++) {
-			for (int col = 0; col < dimensionOfGrid; col++) {
-				vectorRepresentingGrid.push_back(static_cast<float>(grid[row][col]));
+		for (const auto& row : grid) {
+			for (const auto& cell : row) {
+				vectorRepresentingGrid.push_back(static_cast<float>(cell));
 			}
 		}
 
-		/*const int dimensionOfCell = 10;
+		/*
+		const int dimensionOfGrid = grid.size();
+		const int dimensionOfCell = 10;
 		const int widthOfImage = dimensionOfCell * dimensionOfGrid;
 		const int heightOfImage = dimensionOfCell * dimensionOfGrid;
 
