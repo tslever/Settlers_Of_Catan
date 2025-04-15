@@ -67,7 +67,9 @@ namespace AI {
 
     private:
         int batchSize;
+		std::condition_variable trainingConditionVariable;
         double cPuct;
+        std::deque<TrainingExample> trainingQueue;
         double learningRate;
         int modelWatcherInterval;
         std::jthread modelWatcherThread;
@@ -75,6 +77,7 @@ namespace AI {
         int numberOfEpochs;
         int numberOfSimulations;
         double tolerance;
+        std::mutex trainingMutex;
         std::jthread trainingThread;
         int trainingThreshold;
 		double dirichletMixingWeight;
@@ -99,7 +102,6 @@ namespace AI {
         * triggers training when enough examples have been collected.
         */
         void trainingLoop(std::stop_token stopToken) {
-            std::vector<AI::TrainingExample> vectorOfTrainingExamples;
             while (!stopToken.stop_requested()) {
                 try {
                     std::vector<AI::TrainingExample> vectorOfTrainingExamplesFromSelfPlayGame = runSelfPlayGame(
@@ -110,17 +112,25 @@ namespace AI {
                         dirichletMixingWeight,
                         dirichletShape
                     );
-                    vectorOfTrainingExamples.insert(
-                        vectorOfTrainingExamples.end(),
-                        vectorOfTrainingExamplesFromSelfPlayGame.begin(),
-                        vectorOfTrainingExamplesFromSelfPlayGame.end()
-                    );
-                    std::clog << "[TRAINING] " << vectorOfTrainingExamples.size() << " training examples were collected." << std::endl;
-                    if (vectorOfTrainingExamples.size() >= static_cast<size_t>(trainingThreshold)) {
-                        trainNeuralNetwork(vectorOfTrainingExamples, neuralNet);
-                        vectorOfTrainingExamples.clear();
-                        vectorOfTrainingExamples.shrink_to_fit();
+                    {
+                        std::lock_guard<std::mutex> lock(trainingMutex);
+                        for (const auto& trainingExample : vectorOfTrainingExamplesFromSelfPlayGame) {
+                            trainingQueue.push_back(trainingExample);
+                        }
                     }
+                    trainingConditionVariable.notify_one();
+                    {
+                        std::unique_lock<std::mutex> lock(trainingMutex);
+                        if (trainingQueue.size() < static_cast<size_t>(trainingThreshold)) {
+                            lock.unlock();
+                            continue;
+                        }
+                        std::vector<TrainingExample> batch(trainingQueue.begin(), trainingQueue.end());
+                        trainingQueue.clear();
+                        lock.unlock();
+                        trainNeuralNetwork(batch, neuralNet);
+                    }
+                    std::this_thread::yield();
                 } catch (const std::exception& e) {
                     std::cerr << "[TRAINING] Exception: " << e.what() << std::endl;
                 }
@@ -132,9 +142,7 @@ namespace AI {
             AI::WrapperOfNeuralNetwork* wrapperOfNeuralNetwork
         ) {
             int numberOfTrainingExamples = vectorOfTrainingExamples.size();
-            std::clog <<
-                "[TRAINING] Neural network will be trained on " <<
-                numberOfTrainingExamples << " examples." << std::endl;
+            std::clog << "[TRAINING] Neural network will be trained on " << numberOfTrainingExamples << " examples." << std::endl;
 
 			AI::NeuralNetwork neuralNetwork = wrapperOfNeuralNetwork->neuralNetwork;
 			c10::Device device = neuralNetwork->parameters()[0].device();
@@ -218,11 +226,11 @@ namespace AI {
                     torch::Tensor tensorOfValueLoss = torch::mse_loss(tensorOfPredictedValues, tensorOfTargetValuesForBatch);
                     torch::Tensor tensorOfPolicyLoss = torch::binary_cross_entropy(tensorOfPredictedPolicies, tensorOfTargetPoliciesForBatch);
                     torch::Tensor tensorOfLoss = tensorOfValueLoss + tensorOfPolicyLoss;
-                    double loss = tensorOfLoss.item<double>();
 
                     tensorOfLoss.backward();
                     adam.step();
 
+                    double loss = tensorOfLoss.item<double>();
                     int numberOfSamplesInBatch = indexOfLastSample - indexOfFirstSample + 1;
                     double lossForBatch = loss * numberOfSamplesInBatch;
                     runningLoss += lossForBatch;
@@ -241,9 +249,7 @@ namespace AI {
                 std::clog << "[TRAINING] Model parameters were saved after training." << std::endl;
             }
             catch (const c10::Error& e) {
-                std::cerr <<
-                    "[TRAINING] The following error occurred when saving model parameters. " <<
-                    e.what() << std::endl;
+                std::cerr << "[TRAINING] The following error occurred when saving model parameters. " << e.what() << std::endl;
             }
 
             neuralNetwork->eval();
