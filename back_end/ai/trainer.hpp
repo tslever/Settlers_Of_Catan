@@ -32,11 +32,7 @@ namespace AI {
 			numberOfEpochs(numberOfEpochsToUse),
 			batchSize(batchSizeToUse),
 			dirichletMixingWeight(dirichletMixingWeightToUse),
-			dirichletShape(dirichletShapeToUse),
-            // Atomic `stopModelWatcher` is a global flag to stop thread for reloading parameters for neural network on shutdown.
-            // Atomic `stopTraining` is a global flag to top training neural network on shutdown.
-            atomicToStopModelWatcher(false),
-            atomicToStopTraining(false)
+			dirichletShape(dirichletShapeToUse)
         {
             // Do nothing.
         }
@@ -47,41 +43,39 @@ namespace AI {
 
         // Function `startModelWatcher` starts a model watcher thread.
         void startModelWatcher() {
-            atomicToStopModelWatcher = false;
-            modelWatcherThread = std::thread(&Trainer::modelWatcher, this);
+			modelWatcherThread = std::jthread([this](std::stop_token stopToken) {
+				modelWatcher(stopToken);
+            });
         }
 
         // Function `runTrainingLoop` starts a training loop thread.
         void runTrainingLoop() {
-            atomicToStopTraining = false;
-            trainingThread = std::thread(&Trainer::trainingLoop, this);
+            trainingThread = std::jthread([this](std::stop_token stopToken) {
+				trainingLoop(stopToken);
+            });
         }
 
         // Function `stop` stops the model watcher and training threads and joins them to the main thread.
         void stop() {
-            atomicToStopModelWatcher.store(true);
-            atomicToStopTraining.store(true);
             if (modelWatcherThread.joinable()) {
-                modelWatcherThread.join();
+                modelWatcherThread.request_stop();
             }
             if (trainingThread.joinable()) {
-                trainingThread.join();
+                trainingThread.request_stop();
             }
         }
 
     private:
-        std::atomic<bool> atomicToStopModelWatcher;
-        std::atomic<bool> atomicToStopTraining;
         int batchSize;
         double cPuct;
         double learningRate;
         int modelWatcherInterval;
-        std::thread modelWatcherThread;
+        std::jthread modelWatcherThread;
         WrapperOfNeuralNetwork* neuralNet;
         int numberOfEpochs;
         int numberOfSimulations;
         double tolerance;
-        std::thread trainingThread;
+        std::jthread trainingThread;
         int trainingThreshold;
 		double dirichletMixingWeight;
 		double dirichletShape;
@@ -89,8 +83,8 @@ namespace AI {
         /* Function `modelWatcher` runs on a background thread and
         * periodically reloads neural network parameters if file of parameters was updated.
         */
-        void modelWatcher() {
-            while (!atomicToStopModelWatcher.load()) {
+        void modelWatcher(std::stop_token stopToken) {
+            while (!stopToken.stop_requested()) {
                 try {
                     neuralNet->reloadIfUpdated();
                 } catch (const std::exception& e) {
@@ -104,9 +98,9 @@ namespace AI {
         * continuously runs full self play games to collect training examples and
         * triggers training when enough examples have been collected.
         */
-        void trainingLoop() {
+        void trainingLoop(std::stop_token stopToken) {
             std::vector<AI::TrainingExample> vectorOfTrainingExamples;
-            while (!atomicToStopTraining.load()) {
+            while (!stopToken.stop_requested()) {
                 try {
                     std::vector<AI::TrainingExample> vectorOfTrainingExamplesFromSelfPlayGame = runSelfPlayGame(
                         *neuralNet,
