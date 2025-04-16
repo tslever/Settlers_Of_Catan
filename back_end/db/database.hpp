@@ -33,12 +33,7 @@ namespace DB {
 		}
 
         ~WrapperOfSession() {
-            try {
-                session.close();
-            }
-            catch (const mysqlx::Error& e) {
-                Logger::error("WrapperOfSession", e);
-            }
+            session.close();
         }
 
     private:
@@ -72,44 +67,38 @@ namespace DB {
         }
 
         void initialize() {
-            try {
-                WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
-				mysqlx::Session& session = wrapperOfSession.getSession();
-                mysqlx::Schema schema = session.getSchema(dbName);
+            WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+			mysqlx::Session& session = wrapperOfSession.getSession();
+            mysqlx::Schema schema = session.getSchema(dbName);
 
-                session.sql(
-                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "cities ("
-                    "id INT AUTO_INCREMENT PRIMARY KEY, "
-                    "player INT NOT NULL, "
-                    "vertex VARCHAR(50) NOT NULL)"
-                ).execute();
+            session.sql(
+                "CREATE TABLE IF NOT EXISTS " + tablePrefix + "cities ("
+                "id INT AUTO_INCREMENT PRIMARY KEY, "
+                "player INT NOT NULL, "
+                "vertex VARCHAR(50) NOT NULL)"
+            ).execute();
 
-                session.sql(
-                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "settlements ("
-                    "id INT AUTO_INCREMENT PRIMARY KEY, "
-                    "player INT NOT NULL, "
-                    "vertex VARCHAR(50) NOT NULL)"
-                ).execute();
+            session.sql(
+                "CREATE TABLE IF NOT EXISTS " + tablePrefix + "settlements ("
+                "id INT AUTO_INCREMENT PRIMARY KEY, "
+                "player INT NOT NULL, "
+                "vertex VARCHAR(50) NOT NULL)"
+            ).execute();
 
-                session.sql(
-                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "roads ("
-                    "id INT AUTO_INCREMENT PRIMARY KEY, "
-                    "player INT NOT NULL, "
-                    "edge VARCHAR(50) NOT NULL)"
-                ).execute();
+            session.sql(
+                "CREATE TABLE IF NOT EXISTS " + tablePrefix + "roads ("
+                "id INT AUTO_INCREMENT PRIMARY KEY, "
+                "player INT NOT NULL, "
+                "edge VARCHAR(50) NOT NULL)"
+            ).execute();
 
-                session.sql(
-                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "state ("
-                    "id INT PRIMARY KEY, "
-                    "current_player INT NOT NULL, "
-                    "phase VARCHAR(100) NOT NULL, "
-                    "last_building VARCHAR(50))"
-                ).execute();
-            }
-            catch (const mysqlx::Error& e) {
-                Logger::error("initialize for database", e);
-                throw;
-            }
+            session.sql(
+                "CREATE TABLE IF NOT EXISTS " + tablePrefix + "state ("
+                "id INT PRIMARY KEY, "
+                "current_player INT NOT NULL, "
+                "phase VARCHAR(100) NOT NULL, "
+                "last_building VARCHAR(50))"
+            ).execute();
         }
 
         int addStructure(

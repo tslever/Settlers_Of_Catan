@@ -88,11 +88,7 @@ namespace AI {
         */
         void modelWatcher(std::stop_token stopToken) {
             while (!stopToken.stop_requested()) {
-                try {
-                    neuralNet->reloadIfUpdated();
-                } catch (const std::exception& e) {
-                    Logger::error("modelWatcher", e);
-                }
+                neuralNet->reloadIfUpdated();
                 std::this_thread::sleep_for(std::chrono::seconds(modelWatcherInterval));
             }
         }
@@ -103,37 +99,34 @@ namespace AI {
         */
         void trainingLoop(std::stop_token stopToken) {
             while (!stopToken.stop_requested()) {
-                try {
-                    std::vector<AI::TrainingExample> vectorOfTrainingExamplesFromSelfPlayGame = runSelfPlayGame(
-                        *neuralNet,
-                        numberOfSimulations,
-                        cPuct,
-                        tolerance,
-                        dirichletMixingWeight,
-                        dirichletShape
-                    );
-                    {
-                        std::lock_guard<std::mutex> lock(trainingMutex);
-                        for (const auto& trainingExample : vectorOfTrainingExamplesFromSelfPlayGame) {
-                            trainingQueue.push_back(trainingExample);
-                        }
+                std::vector<AI::TrainingExample> vectorOfTrainingExamplesFromSelfPlayGame = runSelfPlayGame(
+                    *neuralNet,
+                    numberOfSimulations,
+                    cPuct,
+                    tolerance,
+                    dirichletMixingWeight,
+                    dirichletShape
+                );
+                {
+                    std::lock_guard<std::mutex> lock(trainingMutex);
+                    for (const auto& trainingExample : vectorOfTrainingExamplesFromSelfPlayGame) {
+                        trainingQueue.push_back(trainingExample);
                     }
-                    trainingConditionVariable.notify_one();
-                    {
-                        std::unique_lock<std::mutex> lock(trainingMutex);
-                        if (trainingQueue.size() < static_cast<size_t>(trainingThreshold)) {
-                            lock.unlock();
-                            continue;
-                        }
-                        std::vector<TrainingExample> batch(trainingQueue.begin(), trainingQueue.end());
-                        trainingQueue.clear();
-                        lock.unlock();
-                        trainNeuralNetwork(batch, neuralNet);
-                    }
-                    std::this_thread::yield();
-                } catch (const std::exception& e) {
-                    Logger::error("trainingLoop", e);
                 }
+                trainingConditionVariable.notify_one();
+                {
+                    std::unique_lock<std::mutex> lock(trainingMutex);
+                    if (trainingQueue.size() < static_cast<size_t>(trainingThreshold)) {
+                        lock.unlock();
+                        continue;
+                    }
+                    std::vector<TrainingExample> batch(trainingQueue.begin(), trainingQueue.end());
+                    trainingQueue.clear();
+                    lock.unlock();
+                    trainNeuralNetwork(batch, neuralNet);
+                }
+                std::this_thread::yield();
+
             }
         }
 
