@@ -91,7 +91,7 @@ namespace AI {
                 try {
                     neuralNet->reloadIfUpdated();
                 } catch (const std::exception& e) {
-                    std::cerr << "[MODEL WATCHER ERROR] " << e.what() << std::endl;
+                    Logger::error("modelWatcher", e);
                 }
                 std::this_thread::sleep_for(std::chrono::seconds(modelWatcherInterval));
             }
@@ -132,7 +132,7 @@ namespace AI {
                     }
                     std::this_thread::yield();
                 } catch (const std::exception& e) {
-                    std::cerr << "[TRAINING] Exception: " << e.what() << std::endl;
+                    Logger::error("trainingLoop", e);
                 }
             }
         }
@@ -142,7 +142,7 @@ namespace AI {
             AI::WrapperOfNeuralNetwork* wrapperOfNeuralNetwork
         ) {
             int numberOfTrainingExamples = vectorOfTrainingExamples.size();
-            std::clog << "[TRAINING] Neural network will be trained on " << numberOfTrainingExamples << " examples." << std::endl;
+            Logger::info("[TRAINING] Neural network will be trained on " + std::to_string(numberOfTrainingExamples) + " examples.");
 
 			AI::NeuralNetwork neuralNetwork = wrapperOfNeuralNetwork->neuralNetwork;
 			c10::Device device = neuralNetwork->parameters()[0].device();
@@ -241,19 +241,15 @@ namespace AI {
 
                 double averageLoss = runningLoss / numberOfSamples;
 
-                std::clog <<
-                    "[TRAINING] Epoch " << (indexOfEpoch + 1) << " of " << numberOfEpochs <<
-                    " completed with average loss " << averageLoss << "." << std::endl;
+                Logger::info(
+                    "[TRAINING] Epoch " + std::to_string(indexOfEpoch + 1) + " of " + std::to_string(numberOfEpochs) +
+                    " completed with average loss " + std::to_string(averageLoss) + "."
+                );
             }
 
-            try {
-                torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
-                torch::save(variableListOfParameters, wrapperOfNeuralNetwork->pathToFileOfParameters);
-                std::clog << "[TRAINING] Model parameters were saved after training." << std::endl;
-            }
-            catch (const c10::Error& e) {
-                std::cerr << "[TRAINING] The following error occurred when saving model parameters. " << e.what() << std::endl;
-            }
+            variableListOfParameters = neuralNetwork->parameters();
+            torch::save(variableListOfParameters, wrapperOfNeuralNetwork->pathToFileOfParameters);
+            Logger::info("[TRAINING] Model parameters were saved after training.");
 
             neuralNetwork->eval();
         }

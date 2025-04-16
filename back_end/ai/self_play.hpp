@@ -33,7 +33,7 @@ namespace AI {
 		double dirichletMixingWeight,
 		double dirichletShape
     ) {
-        std::clog << "[SELF PLAY GAME] A self play game is running." << std::endl;
+        Logger::info("[SELF PLAY GAME] A self play game is running.");
         std::vector<TrainingExample> vectorOfTrainingExamples;
         // Initialize game state using default settings, including initial phase `Phase::TO_PLACE_FIRST_SETTLEMENT`.
         GameState gameState;
@@ -41,19 +41,19 @@ namespace AI {
         int numberOfMovesSimulated = 0;
         while (gameState.phase != Game::Phase::DONE && numberOfMovesSimulated < MAXIMUM_NUMBER_OF_MOVES) {
             if (gameState.phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
-                std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first settlement is being simulated." << std::endl;
+                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their first settlement is being simulated.");
             }
             else if (gameState.phase == Game::Phase::TO_PLACE_FIRST_ROAD) {
-                std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first road is being simulated." << std::endl;
+                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their first road is being simulated.");
             }
             else if (gameState.phase == Game::Phase::TO_PLACE_FIRST_CITY) {
-                std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their first city is being simulated." << std::endl;
+                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their first city is being simulated.");
             }
             else if (gameState.phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
-                std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " placing their second road is being simulated." << std::endl;
+                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their second road is being simulated.");
             }
             else if (gameState.phase == Game::Phase::TURN) {
-                std::clog << "    [SELF PLAY PHASE] Player " << gameState.currentPlayer << " playing their turn is being simulated." << std::endl;
+                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " playing their turn is being simulated.");
             }
             int currentPlayer = gameState.currentPlayer;
             std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = runMcts(
@@ -121,9 +121,10 @@ namespace AI {
         for (TrainingExample& trainingExample : vectorOfTrainingExamples) {
             trainingExample.value = (trainingExample.player == gameState.winner) ? 1.0 : -1.0;
         }
-        std::clog <<
-            "[SELF PLAY] Game simulation completed in " << numberOfMovesSimulated << " moves " <<
-            "with winner Player " << gameState.winner << "." << std::endl;
+        Logger::info(
+            "[SELF PLAY] Game simulation completed in " + std::to_string(numberOfMovesSimulated) + " moves " +
+            "with winner Player " + std::to_string(gameState.winner) + "."
+        );
 
         return vectorOfTrainingExamples;
     }

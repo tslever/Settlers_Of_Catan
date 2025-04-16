@@ -106,48 +106,45 @@ namespace AI {
             neuralNetwork->eval();
 
             if (!std::filesystem::exists(pathToFileOfParameters)) {
-                std::clog << "[WARNING] Model file was not found at " << pathToFileOfParameters << "." << std::endl;
+				Logger::warn("WrapperOfNeuralNetwork", "Model parameters file does not exist.");
                 torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
-                try {
-                    torch::save(variableListOfParameters, pathToFileOfParameters);
-                    std::clog << "[INFO] Default model parameters were saved to " << pathToFileOfParameters << "." << std::endl;
-                }
-                catch (const c10::Error& e) {
-                    std::cerr << "[ERROR] Saving default model parameters failed with the following error. " << e.what() << std::endl;
-                    throw std::runtime_error("Saving default model parameters failed.");
-                }
+                torch::save(variableListOfParameters, pathToFileOfParameters);
+				Logger::info("Default model parameters were saved to " + pathToFileOfParameters + ".");
             }
+            bool cudaIsAvailable = torch::cuda::is_available();
+            std::string message = "CUDA ";
+			if (cudaIsAvailable) {
+				message += "is";
+			}
+			else {
+				message += "is not";
+			}
+			message += " available.";
+            Logger::info(message);
+            device = cudaIsAvailable ? torch::kCUDA : torch::kCPU;
+            neuralNetwork->to(device);
 
-            try {
-                bool cudaIsAvailable = torch::cuda::is_available();
-                std::clog << "[INFO] CUDA " << (cudaIsAvailable ? "is" : "is not") << " available." << std::endl;
-                device = cudaIsAvailable ? torch::kCUDA : torch::kCPU;
-                neuralNetwork->to(device);
-
-                std::vector<torch::Tensor> vectorOfParameters;
-                torch::load(vectorOfParameters, pathToFileOfParameters);
-                torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
-                if (variableListOfParameters.size() != vectorOfParameters.size()) {
-                    std::cerr <<
-                        "[ERROR] Numbers of parameters are mismatched. " <<
-                        variableListOfParameters.size() << " parameters were expected. " <<
-                        "There are " << vectorOfParameters.size() << " parameters." << std::endl;
-                    throw std::runtime_error("Numbers of parameters are mismatched.");
-                }
-                // Disable gradient tracking during parameter copy.
-                torch::NoGradGuard noGrad;
-                for (size_t i = 0; i < vectorOfParameters.size(); i++) {
-                    variableListOfParameters[i].data().copy_(vectorOfParameters[i].data());
-                }
-                lastWriteTime = std::filesystem::last_write_time(pathToFileOfParameters);
-                std::clog <<
-                    "[INFO] Model parameters were successfully loaded from " << pathToFileOfParameters <<
-                    " on device " << (device == torch::kCUDA ? "CUDA" : "CPU") << "." << std::endl;
+            std::vector<torch::Tensor> vectorOfParameters;
+            torch::load(vectorOfParameters, pathToFileOfParameters);
+            torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
+            if (variableListOfParameters.size() != vectorOfParameters.size()) {
+                throw std::runtime_error("Numbers of parameters are mismatched.");
             }
-            catch (const c10::Error& e) {
-                std::cerr << "[ERROR] The following exception occurred while loading model. " << e.what() << std::endl;
-                throw std::runtime_error("An exception occurred while loading model.");
+            // Disable gradient tracking during parameter copy.
+            torch::NoGradGuard noGrad;
+            for (size_t i = 0; i < vectorOfParameters.size(); i++) {
+                variableListOfParameters[i].data().copy_(vectorOfParameters[i].data());
             }
+            lastWriteTime = std::filesystem::last_write_time(pathToFileOfParameters);
+			message = "Model parameters were successfully loaded from " + pathToFileOfParameters + " on device ";
+            if (device == torch::kCUDA) {
+                message += "CUDA";
+			}
+			else {
+				message += "CPU";
+			}
+			message += ".";
+            Logger::info(message);
         }
 
         std::pair<double, double> evaluateStructure(const std::vector<float>& featureVector) const {
@@ -193,26 +190,20 @@ namespace AI {
 
         void reloadIfUpdated() {
 			std::lock_guard<std::mutex> lock(mutex);
-            try {
-                auto currentWriteTime = std::filesystem::last_write_time(pathToFileOfParameters);
-                if (currentWriteTime > lastWriteTime) {
-                    std::vector<torch::Tensor> vectorOfParameters;
-                    torch::load(vectorOfParameters, pathToFileOfParameters);
-                    torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
-                    if (variableListOfParameters.size() != vectorOfParameters.size()) {
-                        std::cerr << "[ERROR] Numbers of parameters were mismatched during reload." << std::endl;
-                        throw std::runtime_error("Numbers of parameters were mismatched during reload.");
-                    }
-                    torch::NoGradGuard noGrad;
-                    for (size_t i = 0; i < vectorOfParameters.size(); i++) {
-                        variableListOfParameters[i].data().copy_(vectorOfParameters[i].data());
-                    }
-                    lastWriteTime = currentWriteTime;
-                    std::clog << "[INFO] Model was reloaded after updated model parameters were detected." << std::endl;
+            auto currentWriteTime = std::filesystem::last_write_time(pathToFileOfParameters);
+            if (currentWriteTime > lastWriteTime) {
+                std::vector<torch::Tensor> vectorOfParameters;
+                torch::load(vectorOfParameters, pathToFileOfParameters);
+                torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
+                if (variableListOfParameters.size() != vectorOfParameters.size()) {
+                    throw std::runtime_error("Numbers of parameters were mismatched during reload.");
                 }
-            }
-            catch (const std::exception& e) {
-                std::cerr << "[ERROR] The following exception occurred. " << e.what() << std::endl;
+                torch::NoGradGuard noGrad;
+                for (size_t i = 0; i < vectorOfParameters.size(); i++) {
+                    variableListOfParameters[i].data().copy_(vectorOfParameters[i].data());
+                }
+                lastWriteTime = currentWriteTime;
+                Logger::info("Model was reloaded after updated model parameters were detected.");
             }
         }
     };

@@ -338,7 +338,7 @@ public:
 			std::cout << "Image successfully written to output.png" << std::endl;
 		}
 		else {
-			std::cerr << "Error writing the image." << std::endl;
+			Logger::error("getGridRepresentationForMove", "Writing image failed.");
 		}*/
 
 		return vectorRepresentingGrid;

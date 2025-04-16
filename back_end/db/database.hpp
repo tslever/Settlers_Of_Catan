@@ -36,8 +36,8 @@ namespace DB {
             try {
                 session.close();
             }
-            catch (const mysqlx::Error& error) {
-				std::cerr << "The following error occurred while closing session. " << error.what() << std::endl;
+            catch (const mysqlx::Error& e) {
+                Logger::error("WrapperOfSession", e);
             }
         }
 
@@ -106,8 +106,8 @@ namespace DB {
                     "last_building VARCHAR(50))"
                 ).execute();
             }
-            catch (const mysqlx::Error& error) {
-                std::cerr << "The following error occurred while the database was being initialized." << error.what() << std::endl;
+            catch (const mysqlx::Error& e) {
+                Logger::error("initialize for database", e);
                 throw;
             }
         }
@@ -296,16 +296,16 @@ namespace DB {
 
                 return true;
             }
-            catch (const mysqlx::Error& err) {
-                std::cerr << "MySQL X DevAPI Error: " << err.what() << std::endl;
+            catch (const mysqlx::Error& e) {
+                Logger::error("resetGame", e);
                 return false;
             }
-            catch (std::exception& ex) {
-                std::cerr << "STD Exception: " << ex.what() << std::endl;
+            catch (std::exception& e) {
+                Logger::error("resetGame", e);
                 return false;
             }
             catch (...) {
-                std::cerr << "An unknown error occurred while resetting the game." << std::endl;
+				Logger::error("resetGame", "An unknown error occurred.");
                 return false;
             }
         }

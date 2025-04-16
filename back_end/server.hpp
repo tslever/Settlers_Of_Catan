@@ -49,7 +49,7 @@ namespace Server {
 			([&liveDb, &wrapperOfNeuralNetwork, &config]() -> crow::json::wvalue {
 			crow::json::wvalue response;
 			try {
-				std::clog << "[INFO] A user posted to endpoint next. The game state will be transitioned." << std::endl;
+				Logger::info("A user posted to endpoint next. The game state will be transitioned.");
 				GameState currentGameState = liveDb.getGameState();
 				Game::Game game(
 					liveDb,
@@ -66,7 +66,7 @@ namespace Server {
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
-				std::cerr << "[ERROR] " << std::string("The following error occurred while transitioning the game state. ") + e.what() << std::endl;
+				Logger::error("setUpRoutes", e);
 			}
 			return response;
 		});
@@ -75,13 +75,13 @@ namespace Server {
 			([&liveDb]() -> crow::json::wvalue {
 			crow::json::wvalue response;
 			try {
-				std::clog << "[INFO] A user posted to endpoint reset. Game state and database will be reset." << std::endl;
+				Logger::info("A user posted to endpoint reset. Game state and database will be reset.");
 				bool success = liveDb.resetGame();
 				response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("Resetting game failed with the following error. ") + e.what();
-				std::cerr << "[ERROR] " << std::string("Resetting game failed with the following error. ") + e.what() << std::endl;
+				Logger::error("setUpRoutes", e);
 			}
 			return response;
 		});

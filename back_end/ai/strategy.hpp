@@ -70,7 +70,7 @@ std::pair<std::string, int> runMcts(
 	double dirichletMixingWeight,
 	double dirichletShape
 ) {
-	//std::clog << "        [MCTS] MCTS is being started." << std::endl
+	//Logger::info("        [MCTS] MCTS is being started.");
 	AI::MCTS::MCTSNode::nextIndex = 0;
 
 	// Create root node for current phase.
@@ -89,38 +89,38 @@ std::pair<std::string, int> runMcts(
 	}
 	std::unique_ptr<AI::MCTS::MCTSNode> root = std::make_unique<AI::MCTS::MCTSNode>(currentState, "", nullptr, moveType);
 
-	//std::clog << "            [EXPAND ROOT] The root is being expanded." << std::endl;
-	//std::clog << "            [EXPAND ROOT] The following root is being expanded.\n            " << root->toJson().dump() << std::endl;
+	//Logger::info("            [EXPAND ROOT] The root is being expanded.");
+	//Logger::info("            [EXPAND ROOT] The following root is being expanded.\n            " + root->toJson().dump());
 	expandNode(root.get(), neuralNet);
-	//std::clog << "            [EXPAND ROOT] The root was expanded into the following.\n            " << root->toJson().dump() << std::endl;
+	//Logger::info("            [EXPAND ROOT] The root was expanded into the following.\n            " + root->toJson().dump());
 
 	injectDirichletNoise(root.get(), dirichletMixingWeight, dirichletShape);
 
 	for (int i = 0; i < numberOfSimulations; i++) {
-		//std::clog << "            [MCTS SIMULATION] MCTS simulation " << i + 1 << " of " << numberOfSimulations << " is running." << std::endl;
-		//std::clog << "                [MCTS SIMULATION] Node node is being set to root." << std::endl;
+		//Logger::info("            [MCTS SIMULATION] MCTS simulation " + std::to_string(i + 1) + " of " + std::to_string(numberOfSimulations) + " is running.");
+		//Logger::info("                [MCTS SIMULATION] Node node is being set to root.");
 		AI::MCTS::MCTSNode* node = root.get();
 		//if (node->isLeaf()) {
-		//	std::clog << "                [SELECT NO NODE] Node node is leaf and will not be reset to a child." << std::endl;
+		//    Logger::info("                [SELECT NO NODE] Node node is leaf and will not be reset to a child.");
 		//}
 		while (!node->isLeaf()) {
 			node = AI::MCTS::selectChild(node, cPuct, tolerance);
-			//std::clog << "                [SELECT NODE] Node node was not leaf and was reset to a child." << std::endl;
-			//std::clog << "                [SELECT NODE] Node node was not leaf and was reset to the following child.\n                " << node->toJson().dump() << std::endl;
+			//Logger::info("                [SELECT NODE] Node node was not leaf and was reset to a child.");
+			//Logger::info("                [SELECT NODE] Node node was not leaf and was reset to the following child.\n                " + node->toJson().dump());
 		}
 		//if (node->N > 0) {
-		//	std::clog << "                [EXPAND NO NODE] Node node was visited before and was not expanded." << std::endl;
+		//    Logger::info("                [EXPAND NO NODE] Node node was visited before and was not expanded.");
 		//}
 		//else {
 		if (node->visitCount == 0) {
 			expandNode(node, neuralNet);
-			//std::clog << "                [EXPAND NODE] Node node was not visited before and was expanded." << std::endl;
-			//std::clog << "                [EXPAND NODE] Node node was not visited before and was expanded into the following.\n                " << node->toJson().dump() << std::endl;
+			//Logger::info("                [EXPAND NODE] Node node was not visited before and was expanded.");
+			//Logger::info("                [EXPAND NODE] Node node was not visited before and was expanded into the following.\n                " + node->toJson().dump());
 		}
 		double value = rollout(node, neuralNet);
-		//std::clog << "                [ROLLOUT] The value of node node is " << value << "." << std::endl;
+		//Logger::info("                [ROLLOUT] The value of node node is " + std::to_string(value) + ".");
 		backpropagate(node, value);
-		//std::clog << "                [BACKPROPAGATION] Statistics of node node and all parents were updated." << std::endl;
+		//Logger::info("                [BACKPROPAGATION] Statistics of node node and all parents were updated.");
 	}
 
 
@@ -135,8 +135,8 @@ std::pair<std::string, int> runMcts(
 	AI::MCTS::MCTSNode* bestChild = iterator->second.get();
 
 
-	//std::clog << "            [SELECT BEST CHILD] The best child has move " << bestChild->move << "." << std::endl;
-	//std::clog << "            [SELECT BEST CHILD] The child of the root with the highest visit count is the following.\n" << bestChild->toJson().dump() << std::endl;
+	//Logger::info("            [SELECT BEST CHILD] The best child has move " + bestChild->move + ".");
+	//Logger::info("            [SELECT BEST CHILD] The child of the root with the highest visit count is the following.\n" + bestChild->toJson().dump());
 	std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = { bestChild->move, bestChild->visitCount };
 	return pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount;
 }

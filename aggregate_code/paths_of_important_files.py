@@ -1,6 +1,8 @@
 paths_of_back_end_files = [
     r'back_end\back_end.cpp',
     r'back_end\config.hpp',
+    r'back_end\logger.hpp',
+    r'back_end\server.hpp',
 
     r'back_end\back_end.sln',
     r'back_end\back_end.vcxproj',

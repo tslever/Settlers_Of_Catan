@@ -3,6 +3,7 @@
 // Change C++ Language Standard to ISO C++20 Standard (/std:c++20).
 
 #include "config.hpp"
+#include "logger.hpp"
 #include "server.hpp"
 #include "ai/trainer.hpp"
 
@@ -17,7 +18,7 @@ int main() {
 		config = config.load("config.json");
 	}
 	catch (const std::exception& e) {
-		std::cerr << "[ERROR] Loading configuration failed with the following error. " << e.what() << std::endl;
+		Logger::error("main during configuration", e);
 		return EXIT_FAILURE;
 	}
 
@@ -29,10 +30,10 @@ int main() {
     DB::Database liveDb(config.dbName, config.dbHost, config.dbPassword, config.dbPort, config.dbUsername, "live_");
 	try {
 		liveDb.initialize();
-		std::clog << "[INFO] Database was initialized.\n";
+		Logger::info("Database was initialized.\n");
 	}
 	catch (const std::exception& e) {
-		std::cerr << "[ERROR] Initializing database failed with the following error. " << e.what() << std::endl;
+		Logger::error("main during initializing database", e);
 		return EXIT_FAILURE;
 	}
 
@@ -56,7 +57,7 @@ int main() {
 
 	Server::setUpRoutes(app, liveDb, neuralNet, config);
 
-	std::clog << "[INFO] The back end will be started on port " << config.backEndPort << std::endl;
+	Logger::info("The back end will be started on port " + config.backEndPort);
 	app.port(config.backEndPort).multithreaded().run();
 
     return EXIT_SUCCESS;
