@@ -4,14 +4,8 @@ from typing import List
 from typing import Tuple
 import json
 import logging
+import math
 import sys
-
-from board import Board
-from board import WIDTH_OF_BOARD_IN_VMIN
-from board import WIDTH_OF_HEX
-from board import HEIGHT_OF_HEX
-from board import MARGIN_OF_ERROR
-from board import BOARD_GEOMETRY_PATH
 
 
 def set_up_logging(level = logging.INFO):
@@ -28,71 +22,16 @@ set_up_logging()
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_BOARD_LAYOUT: List[List[str]] = [
-    ["H01", "H02", "H03"],
-    ["H04", "H05", "H06", "H07"],
-    ["H08", "H09", "H10", "H11", "H12"],
-    ["H13", "H14", "H15", "H16"],
-    ["H17", "H18", "H19"]
-]
-
-
 class BoardGeometryGenerator:
 
-    def __init__(
-        self,
-        board_layout: List[List[str]],
-        board_width: float,
-        hex_width: float,
-        hex_height: float,
-        margin_of_error: float
-    ):
-        self.board_layout = board_layout
-        self.board_width = board_width
-        self.hex_width = hex_width
-        self.hex_height = hex_height
-        self.margin_of_error = margin_of_error
 
-        self.distance_between_bottom_of_hex_in_first_row_and_top_of_hex_in_second_row = self.hex_height / 4
-        self.distance_between_top_of_hex_in_one_row_and_top_of_hex_in_next_row = self.hex_height - self.distance_between_bottom_of_hex_in_first_row_and_top_of_hex_in_second_row
-        self.number_of_rows_of_hexes_after_first = len(self.board_layout) - 1
-        self.height_of_board = self.hex_height + self.distance_between_top_of_hex_in_one_row_and_top_of_hex_in_next_row * self.number_of_rows_of_hexes_after_first
-        self.vertical_position_of_first_row_of_hexes = (100 - self.height_of_board) / 2
-
-
-    def generate_hexes(self) -> List[Dict[str, str | float]]:
-        '''
-        Generate a list of dictionaries of hex information.
-        Each dictionary contains a hex's ID, horizontal position of left edge, and vertical position of top vertex.
-        '''
-        list_of_dictionaries_of_hex_information: List[Dict[str, str | float]] = []
-        for index_of_row, row in enumerate(self.board_layout):
-            vertical_position = self.vertical_position_of_first_row_of_hexes + index_of_row * self.distance_between_top_of_hex_in_one_row_and_top_of_hex_in_next_row
-            number_of_hexes = len(row)
-            horizontal_position = (self.board_width - number_of_hexes * self.hex_width) / 2
-            for index_of_hex, id_of_hex in enumerate(row):
-                x = horizontal_position + index_of_hex * self.hex_width
-                y = vertical_position
-                dictionary_of_hex_information = {"id": id_of_hex, "x": x, "y": y}
-                list_of_dictionaries_of_hex_information.append(dictionary_of_hex_information)
-        return list_of_dictionaries_of_hex_information
+    def __init__(self):
+        pass
 
 
     def _coordinates_are_close(self, a: float, b: float) -> bool:
-        return abs(a - b) < self.margin_of_error
-
-
-    def _tuples_of_coordinates_are_close(
-        self,
-        tuple_of_coordinates_1: Tuple[float, float],
-        tuple_of_coordinates_2: Tuple[float, float]
-    ) -> bool:
-        x1, y1 = tuple_of_coordinates_1
-        x2, y2 = tuple_of_coordinates_2
-        indicator_of_whether_tuples_of_coordinates_are_close = (
-            self._coordinates_are_close(x1, x2) and self._coordinates_are_close(y1, y2)
-        )
-        return indicator_of_whether_tuples_of_coordinates_are_close
+        margin_of_error = 0.01
+        return abs(a - b) < margin_of_error
 
 
     def _edge_already_exists(
@@ -125,10 +64,11 @@ class BoardGeometryGenerator:
         return False
 
 
-    def generate_edges(
+    def _generate_edges(
         self,
-        board: Board,
-        list_of_dictionaries_of_hex_information: List[Dict[str, str | float]]
+        height_of_hex: float,
+        list_of_dictionaries_of_hex_information: List[Dict[str, str | float]],
+        width_of_hex: float
     ) -> List[Dict[str, float]]:
         '''
         Provide a list of tuples of edge coordinates for all unique edges
@@ -144,7 +84,7 @@ class BoardGeometryGenerator:
         '''
         list_of_tuples_of_edge_coordinates: List[Tuple[float, float, float, float]] = []
         for dictionary_of_hex_information in list_of_dictionaries_of_hex_information:
-            list_of_pairs_of_coordinates_of_vertices_of_hex: List[Tuple[float, float]] = board.get_hex_vertices(dictionary_of_hex_information)
+            list_of_pairs_of_coordinates_of_vertices_of_hex: List[Tuple[float, float]] = self._get_hex_vertices(dictionary_of_hex_information, height_of_hex, width_of_hex)
             number_of_vertices_of_hex: int = len(list_of_pairs_of_coordinates_of_vertices_of_hex)
             for i in range(0, number_of_vertices_of_hex):
                 v1: Tuple[float, float] = list_of_pairs_of_coordinates_of_vertices_of_hex[i]
@@ -158,6 +98,97 @@ class BoardGeometryGenerator:
             {"x1": e[0], "y1": e[1], "x2": e[2], "y2": e[3]} for e in list_of_tuples_of_edge_coordinates
         ]
         return list_of_dictionaries_of_edge_coordinates
+
+
+    def _generate_hexes(self, height_of_hex: float, width_of_board_in_vmin: float, width_of_hex: float) -> List[Dict[str, str | float]]:
+        '''
+        Generate a list of dictionaries of hex information.
+        Each dictionary contains a hex's ID, horizontal position of left edge, and vertical position of top vertex.
+        '''
+        list_of_dictionaries_of_hex_information: List[Dict[str, str | float]] = []
+        board_layout = [
+            ["H01", "H02", "H03"],
+            ["H04", "H05", "H06", "H07"],
+            ["H08", "H09", "H10", "H11", "H12"],
+            ["H13", "H14", "H15", "H16"],
+            ["H17", "H18", "H19"]
+        ]
+        for index_of_row, row in enumerate(board_layout):
+            distance_between_bottom_of_hex_in_first_row_and_top_of_hex_in_second_row = height_of_hex / 4
+            distance_between_top_of_hex_in_one_row_and_top_of_hex_in_next_row = height_of_hex - distance_between_bottom_of_hex_in_first_row_and_top_of_hex_in_second_row
+            number_of_rows_of_hexes_after_first = len(board_layout) - 1
+            height_of_board = height_of_hex + distance_between_top_of_hex_in_one_row_and_top_of_hex_in_next_row * number_of_rows_of_hexes_after_first
+            vertical_position_of_first_row_of_hexes = (100 - height_of_board) / 2
+            vertical_position = vertical_position_of_first_row_of_hexes + index_of_row * distance_between_top_of_hex_in_one_row_and_top_of_hex_in_next_row
+            number_of_hexes = len(row)
+            horizontal_position = (width_of_board_in_vmin - number_of_hexes * width_of_hex) / 2
+            for index_of_hex, id_of_hex in enumerate(row):
+                x = horizontal_position + index_of_hex * width_of_hex
+                y = vertical_position
+                dictionary_of_hex_information = {"id": id_of_hex, "x": x, "y": y}
+                list_of_dictionaries_of_hex_information.append(dictionary_of_hex_information)
+        return list_of_dictionaries_of_hex_information
+
+
+    def _generate_vertices(
+        self,
+        height_of_hex: float,
+        list_of_dictionaries_of_hex_information: List[Dict[str, str | float]],
+        width_of_hex: float
+    ) -> List[Dict[str, float]]:
+        '''
+        Provide a list of tuples of coordinates of unique vertices
+        for the hexes represented by the given list of dictionaries of hex information.
+
+        Arguments:
+            list_of_dictionaries_of_hex_information: List[Dict[str, str | float]] -- list of dictionaries of hex information
+        
+        Returns:
+            list_of_tuples_of_coordinates_of_unique_vertices: List[Tuple[float, float]] --
+                list of tuples of coordinates of unique vertices. Each tuple is of the form (x, y).
+        '''
+        list_of_tuples_of_coordinates_of_unique_vertices: List[Tuple[float, float]] = []
+        for dictionary_of_hex_information in list_of_dictionaries_of_hex_information:
+            for tuple_of_coordinates_of_vertex in self._get_hex_vertices(dictionary_of_hex_information, height_of_hex, width_of_hex):
+                if not self._vertex_already_exists(tuple_of_coordinates_of_vertex, list_of_tuples_of_coordinates_of_unique_vertices):
+                    list_of_tuples_of_coordinates_of_unique_vertices.append(tuple_of_coordinates_of_vertex)
+        list_of_dictionaries_of_vertex_information = []
+        for index_of_tuple_of_coordinates_of_unique_vertices, (x, y) in enumerate(list_of_tuples_of_coordinates_of_unique_vertices):
+            label = f"V{index_of_tuple_of_coordinates_of_unique_vertices + 1:02d}"
+            dictionary_of_vertex_information = {"label": label, "x": x, "y": y}
+            list_of_dictionaries_of_vertex_information.append(dictionary_of_vertex_information)
+        return list_of_dictionaries_of_vertex_information
+
+
+    def _get_hex_vertices(self, hex_tile: Dict, height_of_hex: float, width_of_hex: float) -> List[Tuple[float, float]]:
+        '''
+        Given a dictionary of hex information, return a list of pairs of coordinates of the vertices of the hex.
+        '''
+        x = hex_tile["x"]
+        y = hex_tile["y"]
+
+        vertices = [
+            (x + 0.5 * width_of_hex, y),
+            (x + width_of_hex, y + 0.25 * height_of_hex),
+            (x + width_of_hex, y + 0.75 * height_of_hex),
+            (x + 0.5 * width_of_hex, y + height_of_hex),
+            (x, y + 0.75 * height_of_hex),
+            (x, y + 0.25 * height_of_hex)
+        ]
+        return vertices
+
+
+    def _tuples_of_coordinates_are_close(
+        self,
+        tuple_of_coordinates_1: Tuple[float, float],
+        tuple_of_coordinates_2: Tuple[float, float]
+    ) -> bool:
+        x1, y1 = tuple_of_coordinates_1
+        x2, y2 = tuple_of_coordinates_2
+        indicator_of_whether_tuples_of_coordinates_are_close = (
+            self._coordinates_are_close(x1, x2) and self._coordinates_are_close(y1, y2)
+        )
+        return indicator_of_whether_tuples_of_coordinates_are_close
 
 
     def _vertex_already_exists(
@@ -182,36 +213,7 @@ class BoardGeometryGenerator:
         return False
 
 
-    def generate_vertices(
-        self,
-        board: Board,
-        list_of_dictionaries_of_hex_information: List[Dict[str, str | float]]
-    ) -> List[Dict[str, float]]:
-        '''
-        Provide a list of tuples of coordinates of unique vertices
-        for the hexes represented by the given list of dictionaries of hex information.
-
-        Arguments:
-            list_of_dictionaries_of_hex_information: List[Dict[str, str | float]] -- list of dictionaries of hex information
-        
-        Returns:
-            list_of_tuples_of_coordinates_of_unique_vertices: List[Tuple[float, float]] --
-                list of tuples of coordinates of unique vertices. Each tuple is of the form (x, y).
-        '''
-        list_of_tuples_of_coordinates_of_unique_vertices: List[Tuple[float, float]] = []
-        for dictionary_of_hex_information in list_of_dictionaries_of_hex_information:
-            for tuple_of_coordinates_of_vertex in board.get_hex_vertices(dictionary_of_hex_information):
-                if not self._vertex_already_exists(tuple_of_coordinates_of_vertex, list_of_tuples_of_coordinates_of_unique_vertices):
-                    list_of_tuples_of_coordinates_of_unique_vertices.append(tuple_of_coordinates_of_vertex)
-        list_of_dictionaries_of_vertex_information = []
-        for index_of_tuple_of_coordinates_of_unique_vertices, (x, y) in enumerate(list_of_tuples_of_coordinates_of_unique_vertices):
-            label = f"V{index_of_tuple_of_coordinates_of_unique_vertices + 1:02d}"
-            dictionary_of_vertex_information = {"label": label, "x": x, "y": y}
-            list_of_dictionaries_of_vertex_information.append(dictionary_of_vertex_information)
-        return list_of_dictionaries_of_vertex_information
-
-
-    def generate_board_geometry(self, board: Board) -> Dict[str, List[Dict[str, str | float] | Dict[str, float]]]:
+    def generate_board_geometry(self) -> Dict[str, List[Dict[str, str | float] | Dict[str, float]]]:
         '''
         Generate the full board geometry, including hex information, vertex information, and edge coordinates.
 
@@ -219,9 +221,18 @@ class BoardGeometryGenerator:
             dictionary_of_board_geometry: Dict[str, List[Dict[str, str | float] | Dict[str, float]]] --
                 dictionary of board geometry with keys "hexes", "vertices", and "edges"
         '''
-        list_of_dictionaries_of_hex_information: List[Dict[str, str | float]] = self.generate_hexes()
-        list_of_dictionaries_of_information_re_unique_vertices: List[Dict[str, str | float]] = self.generate_vertices(board, list_of_dictionaries_of_hex_information)
-        list_of_dictionaries_of_edge_coordinates: List[Dict[str, float]] = self.generate_edges(board, list_of_dictionaries_of_hex_information)
+        width_of_board_in_vmin = 100.0
+        number_of_hexes_that_span_board = 6.0
+        width_of_hex = width_of_board_in_vmin / number_of_hexes_that_span_board
+
+        ratio_of_length_of_side_of_hex_and_width_of_hex = math.tan(math.pi / 6)
+        ratio_of_height_of_hex_and_width_of_hex = 2 * ratio_of_length_of_side_of_hex_and_width_of_hex
+        height_of_hex = width_of_hex * ratio_of_height_of_hex_and_width_of_hex
+
+
+        list_of_dictionaries_of_hex_information: List[Dict[str, str | float]] = self._generate_hexes(height_of_hex, width_of_board_in_vmin, width_of_hex)
+        list_of_dictionaries_of_information_re_unique_vertices: List[Dict[str, str | float]] = self._generate_vertices(height_of_hex, list_of_dictionaries_of_hex_information, width_of_hex)
+        list_of_dictionaries_of_edge_coordinates: List[Dict[str, float]] = self._generate_edges(height_of_hex, list_of_dictionaries_of_hex_information, width_of_hex)
         dictionary_of_board_geometry: Dict[str, List[Dict[str, str | float] | Dict[str, float]]] = {
             "hexes": list_of_dictionaries_of_hex_information,
             "vertices": list_of_dictionaries_of_information_re_unique_vertices,
@@ -234,23 +245,18 @@ def main():
     '''
     Generate a dictionary of board geometry and write the dictionary to a JSON file.
     '''
-    generator = BoardGeometryGenerator(
-        board_layout = DEFAULT_BOARD_LAYOUT,
-        board_width = WIDTH_OF_BOARD_IN_VMIN,
-        hex_width = WIDTH_OF_HEX,
-        hex_height = HEIGHT_OF_HEX,
-        margin_of_error = MARGIN_OF_ERROR
-    )
-    board = Board(indicator_of_whether_board_geometry_should_be_generated = True)
-    dictionary_of_board_geometry: Dict[str, List[Dict[str, str | float] | Dict[str, float]]] = generator.generate_board_geometry(board)
+    generator = BoardGeometryGenerator()
+    dictionary_of_board_geometry: Dict[str, List[Dict[str, str | float] | Dict[str, float]]] = generator.generate_board_geometry()
+    
     number_of_hexes: int = len(dictionary_of_board_geometry["hexes"])
     number_of_vertices: int = len(dictionary_of_board_geometry["vertices"])
     number_of_edges: int = len(dictionary_of_board_geometry["edges"])
     logger.info(f"Geometry generated with {number_of_hexes} hexes, {number_of_vertices} vertices, {number_of_edges} edges")
 
-    with open(BOARD_GEOMETRY_PATH, "w") as f:
+    board_geometry_path = "board_geometry.json"
+    with open(board_geometry_path, "w") as f:
         json.dump(dictionary_of_board_geometry, f, indent = 4)
-    logger.info(f"A dictionary of board geometry was written to {BOARD_GEOMETRY_PATH}.")
+    logger.info(f"A dictionary of board geometry was written to {board_geometry_path}.")
 
 
 if __name__ == "__main__":
