@@ -40,7 +40,6 @@ paths_of_files_to_alter_database = [
 ]
 
 paths_of_files_to_generate_board_geometry = [
-    r'generate_board_geometry/board.py',
     r'generate_board_geometry/board_geometry.json',
     r'generate_board_geometry/generate_board_geometry.py'
 ]
