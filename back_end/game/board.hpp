@@ -58,10 +58,10 @@ public:
 		constexpr int DIMENSION_OF_GRID = 21;
 		std::vector<std::vector<int>> grid(DIMENSION_OF_GRID, std::vector<int>(DIMENSION_OF_GRID, 0));
 
-		/* TODO: The following vectors represent coordinates pairs in the grid and
-		* isometric coordinates of the centers of the hexes in the board.
-		* Consider revising `generate_board_geometry.py`, `board.py`, `board_geometry.json`, back end code, and/or front end code
-		* to use isometric coordinates instead of Cartesian coordinates.
+		/* TODO: The following vectors represent pairs of coordinates in the grid and
+		* isometric coordinates of the centers of hexes, vertices, and centers of edges in the board.
+		* Consider revising `generate_board_geometry.py`, `board_geometry.json`, back end code, and/or front end code
+		* to replace all uses of Cartesian coordinates with isometric coordinates.
 		*/
 		std::vector<std::pair<int, int>> vectorOfPairsOfIndicesOfCentersOfTiles = {
 			{2, 6}, // H01
