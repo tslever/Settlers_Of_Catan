@@ -253,7 +253,7 @@ def main():
     number_of_edges: int = len(dictionary_of_board_geometry["edges"])
     logger.info(f"Geometry generated with {number_of_hexes} hexes, {number_of_vertices} vertices, {number_of_edges} edges")
 
-    board_geometry_path = "board_geometry.json"
+    board_geometry_path = "generate_board_geometry/board_geometry.json"
     with open(board_geometry_path, "w") as f:
         json.dump(dictionary_of_board_geometry, f, indent = 4)
     logger.info(f"A dictionary of board geometry was written to {board_geometry_path}.")

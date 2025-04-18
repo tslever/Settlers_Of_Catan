@@ -32,9 +32,11 @@ To start the back end,
 
 14. TODO: Create `requirements.txt`.
 
-15. Run `python -m set_up_or_tear_down_game_database --set_up`.
+15. Run `python cud_database/set_up_or_tear_down_game_database --set_up`.
 
-16. Install [asio 1.30.2](https://think-async.com/Asio/Download.html).
+16. Run `python generate_board_geometry/generate_board_geometry.py`.
+
+17. Install [asio 1.30.2](https://think-async.com/Asio/Download.html).
     
 18. Install [Crow 1.2.1.2](https://github.com/CrowCpp/Crow).
 
