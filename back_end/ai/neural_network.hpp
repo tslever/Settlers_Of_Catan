@@ -4,40 +4,40 @@
 #include "../game/board.hpp"
 
 #include <torch/script.h>
-/* Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include;`.
+/* Add to Additional Include Directories `$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\include;`.
 * 
-* Add to Additional Library Directories `$(SolutionDir)\dependencies\libtorch\lib;`.
+* Add to Additional Library Directories `$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib;`.
 * 
 * Add to Additional Dependencies `c10.lib;`
 * Add to Additional Dependencies `torch_cpu.lib;`.
 * Add to Additional Dependencies `torch_cuda.lib;`.
 * 
-* Add to command line `/INCLUDE:"?warp_size@cuda@at@@YAHXZ"`.
+* When debugging, add to command line `/INCLUDE:"?warp_size@cuda@at@@YAHXZ"`.
 * See https://github.com/pytorch/pytorch/issues/31611 .
 * 
 * For a PC with CUDA, add the following string of newline separated commands to Post - Build Event.
 * xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\c10.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\torch_cpu.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\fbgemm.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\libiomp5md.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\uv.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\asmjit.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\torch_cuda.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\c10_cuda.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cudnn64_9.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\torch_cpu.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\fbgemm.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\libiomp5md.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\uv.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\asmjit.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\torch_cuda.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\c10_cuda.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\cudnn64_9.dll" "$(OutDir)"
 *
 * For a PC without a GPU, add the additional string of newline separated commands to Post - Build Event.
-* xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cusparse64_12.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cufft64_11.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cusolver64_11.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cublas64_12.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cublasLt64_12.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\cudart64_12.dll" "$(OutDir)"
-xcopy /Y /I "$(SolutionDir)\dependencies\libtorch\lib\nvJitLink_120_0.dll" "$(OutDir)"
+* xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\cusparse64_12.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\cufft64_11.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\cusolver64_11.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\cublas64_12.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\cublasLt64_12.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\cudart64_12.dll" "$(OutDir)"
+xcopy /Y /I "$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\lib\nvJitLink_120_0.dll" "$(OutDir)"
 */
 
 #include <torch/torch.h>
-// Add to Additional Include Directories `$(SolutionDir)\dependencies\libtorch\include\torch\csrc\api\include;`.
+// Add to Additional Include Directories `$(SolutionDir)\dependencies\<debug or release>_version_of_libtorch\include\torch\csrc\api\include;`.
 
 
 namespace AI {

@@ -171,9 +171,8 @@ namespace AI {
             * Tensor `tensorOfTargetPolicies` has shape [N, 1].
             */
             torch::Tensor inputTensor = torch::stack(vectorOfInputTensors).to(device);
-            torch::IntArrayRef size = { -1, 1 };
-            torch::Tensor tensorOfTargetValues = torch::stack(vectorOfTensorsOfTargetValues).view(size).to(device);
-            torch::Tensor tensorOfTargetPolicies = torch::stack(vectorOfTensorsOfTargetPolicies).view(size).to(device);
+            torch::Tensor tensorOfTargetValues = torch::stack(vectorOfTensorsOfTargetValues).view({ -1, 1 }).to(device);
+            torch::Tensor tensorOfTargetPolicies = torch::stack(vectorOfTensorsOfTargetPolicies).view({ -1, 1 }).to(device);
 
             {
 				std::lock_guard<std::mutex> netLock(wrapperOfNeuralNetwork->mutex);
