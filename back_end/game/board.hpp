@@ -14,14 +14,20 @@
 
 
 class Board {
+
+
 public:
+	
+	
 	static crow::json::rvalue boardGeometryCache;
 	static crow::json::rvalue isometricCoordinatesCache;
+
 
 	Board() {
 		loadBoardGeometry();
 		loadIsometricCoordinates();
 	}
+
 
 	std::string getEdgeLabel(const std::string& providedEdgeKey) const {
 		if (!boardGeometryCache || boardGeometryCache["edges"].size() == 0) {
@@ -45,13 +51,6 @@ public:
 		throw std::runtime_error("An edge label was not returned.");
 	}
 
-	void setPixel(std::vector<unsigned char>& image, int widthOfImage, int x, int y, int r, int g, int b) const {
-		constexpr int NUMBER_OF_CHANNELS = 3;
-		int index = (y * widthOfImage + x) * NUMBER_OF_CHANNELS;
-		image[index + 0] = static_cast<unsigned char>(r);
-		image[index + 1] = static_cast<unsigned char>(g);
-		image[index + 2] = static_cast<unsigned char>(b);
-	};
 
 	std::vector<float> getGridRepresentationForMove(const std::string& representationOfMove, const std::string& typeOfMove) const {
 
@@ -193,6 +192,85 @@ public:
 		return vectorRepresentingGrid;
 	}
 
+
+	std::string getLabelOfVertexByCoordinates(double potentialXCoordinate, double potentialYCoordinate) const {
+		crow::json::rvalue jsonArrayOfVertexInformation = boardGeometryCache["vertices"];
+		if (!jsonArrayOfVertexInformation || jsonArrayOfVertexInformation.size() == 0) {
+			throw std::runtime_error("Board geometry file does not contain vertices.");
+		}
+		for (const crow::json::rvalue& jsonObjectOfVertexInformation : jsonArrayOfVertexInformation) {
+			double actualXCoordinate = jsonObjectOfVertexInformation["x"].d();
+			double actualYCoordinate = jsonObjectOfVertexInformation["y"].d();
+			if (
+				std::abs(actualXCoordinate - potentialXCoordinate) < GeometryHelper::MARGIN_OF_ERROR &&
+				std::abs(actualYCoordinate - potentialYCoordinate) < GeometryHelper::MARGIN_OF_ERROR
+				) {
+				return jsonObjectOfVertexInformation["label"].s();
+			}
+		}
+		throw std::runtime_error("No vertex corresponds to given coordinates.");
+	}
+
+
+	std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::vector<std::string> vectorOfKeysOfOccupiedEdges) const {
+		crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometryCache["edges"];
+		std::vector<std::string> vectorOfKeysOfAvailableEdges;
+		for (const crow::json::rvalue& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
+			double x1 = jsonObjectOfEdgeInformation["x1"].d();
+			double y1 = jsonObjectOfEdgeInformation["y1"].d();
+			double x2 = jsonObjectOfEdgeInformation["x2"].d();
+			double y2 = jsonObjectOfEdgeInformation["y2"].d();
+			std::string edgeKey = GeometryHelper::getEdgeKey(x1, y1, x2, y2);
+			if (
+				std::find(
+					vectorOfKeysOfOccupiedEdges.begin(),
+					vectorOfKeysOfOccupiedEdges.end(),
+					edgeKey
+				) == vectorOfKeysOfOccupiedEdges.end()
+				) {
+				vectorOfKeysOfAvailableEdges.push_back(edgeKey);
+			}
+		}
+		if (vectorOfKeysOfAvailableEdges.empty()) {
+			throw std::runtime_error("No adjacent edges were found for placing road.");
+		}
+		return vectorOfKeysOfAvailableEdges;
+	}
+
+
+	std::vector<std::string> getVectorOfKeysOfAvailableEdgesExtendingFromLastBuilding(
+		const std::string labelOfVertexOfLastBuilding,
+		const std::vector<std::string> vectorOfKeysOfOccupiedEdges
+	) const {
+		crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometryCache["edges"];
+		std::vector<std::string> vectorOfKeysOfAvailableEdges;
+		for (const crow::json::rvalue& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
+			double x1 = jsonObjectOfEdgeInformation["x1"].d();
+			double y1 = jsonObjectOfEdgeInformation["y1"].d();
+			double x2 = jsonObjectOfEdgeInformation["x2"].d();
+			double y2 = jsonObjectOfEdgeInformation["y2"].d();
+			std::string labelOfFirstVertex = getLabelOfVertexByCoordinates(x1, y1);
+			std::string labelOfSecondVertex = getLabelOfVertexByCoordinates(x2, y2);
+			if (labelOfFirstVertex == labelOfVertexOfLastBuilding || labelOfSecondVertex == labelOfVertexOfLastBuilding) {
+				std::string edgeKey = GeometryHelper::getEdgeKey(x1, y1, x2, y2);
+				if (
+					std::find(
+						vectorOfKeysOfOccupiedEdges.begin(),
+						vectorOfKeysOfOccupiedEdges.end(),
+						edgeKey
+					) == vectorOfKeysOfOccupiedEdges.end()
+					) {
+					vectorOfKeysOfAvailableEdges.push_back(edgeKey);
+				}
+			}
+		}
+		if (vectorOfKeysOfAvailableEdges.empty()) {
+			throw std::runtime_error("No adjacent edges were found for placing road.");
+		}
+		return vectorOfKeysOfAvailableEdges;
+	}
+
+
 	std::vector<std::string> getVectorOfLabelsOfAvailableVertices(const std::vector<std::string>& vectorOfLabelsOfOccupiedVertices) const {
 		crow::json::rvalue jsonArrayOfVertexInformation = boardGeometryCache["vertices"];
 		if (!jsonArrayOfVertexInformation || jsonArrayOfVertexInformation.size() == 0) {
@@ -250,80 +328,6 @@ public:
 		return vectorOfLabelsOfAvailableVertices;
 	}
 
-	std::vector<std::string> getVectorOfKeysOfAvailableEdges(std::vector<std::string> vectorOfKeysOfOccupiedEdges) const {
-		crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometryCache["edges"];
-		std::vector<std::string> vectorOfKeysOfAvailableEdges;
-		for (const crow::json::rvalue& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
-			double x1 = jsonObjectOfEdgeInformation["x1"].d();
-			double y1 = jsonObjectOfEdgeInformation["y1"].d();
-			double x2 = jsonObjectOfEdgeInformation["x2"].d();
-			double y2 = jsonObjectOfEdgeInformation["y2"].d();
-			std::string edgeKey = GeometryHelper::getEdgeKey(x1, y1, x2, y2);
-			if (
-				std::find(
-					vectorOfKeysOfOccupiedEdges.begin(),
-					vectorOfKeysOfOccupiedEdges.end(),
-					edgeKey
-				) == vectorOfKeysOfOccupiedEdges.end()
-				) {
-				vectorOfKeysOfAvailableEdges.push_back(edgeKey);
-			}
-		}
-		if (vectorOfKeysOfAvailableEdges.empty()) {
-			throw std::runtime_error("No adjacent edges were found for placing road.");
-		}
-		return vectorOfKeysOfAvailableEdges;
-	}
-
-	std::vector<std::string> getVectorOfKeysOfAvailableEdgesExtendingFromLastBuilding(
-		const std::string labelOfVertexOfLastBuilding,
-		const std::vector<std::string> vectorOfKeysOfOccupiedEdges
-	) const {
-		crow::json::rvalue jsonArrayOfEdgeInformation = boardGeometryCache["edges"];
-		std::vector<std::string> vectorOfKeysOfAvailableEdges;
-		for (const crow::json::rvalue& jsonObjectOfEdgeInformation : jsonArrayOfEdgeInformation) {
-			double x1 = jsonObjectOfEdgeInformation["x1"].d();
-			double y1 = jsonObjectOfEdgeInformation["y1"].d();
-			double x2 = jsonObjectOfEdgeInformation["x2"].d();
-			double y2 = jsonObjectOfEdgeInformation["y2"].d();
-			std::string labelOfFirstVertex = getLabelOfVertexByCoordinates(x1, y1);
-			std::string labelOfSecondVertex = getLabelOfVertexByCoordinates(x2, y2);
-			if (labelOfFirstVertex == labelOfVertexOfLastBuilding || labelOfSecondVertex == labelOfVertexOfLastBuilding) {
-				std::string edgeKey = GeometryHelper::getEdgeKey(x1, y1, x2, y2);
-				if (
-					std::find(
-						vectorOfKeysOfOccupiedEdges.begin(),
-						vectorOfKeysOfOccupiedEdges.end(),
-						edgeKey
-					) == vectorOfKeysOfOccupiedEdges.end()
-					) {
-					vectorOfKeysOfAvailableEdges.push_back(edgeKey);
-				}
-			}
-		}
-		if (vectorOfKeysOfAvailableEdges.empty()) {
-			throw std::runtime_error("No adjacent edges were found for placing road.");
-		}
-		return vectorOfKeysOfAvailableEdges;
-	}
-
-	std::string getLabelOfVertexByCoordinates(double potentialXCoordinate, double potentialYCoordinate) const {
-		crow::json::rvalue jsonArrayOfVertexInformation = boardGeometryCache["vertices"];
-		if (!jsonArrayOfVertexInformation || jsonArrayOfVertexInformation.size() == 0) {
-			throw std::runtime_error("Board geometry file does not contain vertices.");
-		}
-		for (const crow::json::rvalue& jsonObjectOfVertexInformation : jsonArrayOfVertexInformation) {
-			double actualXCoordinate = jsonObjectOfVertexInformation["x"].d();
-			double actualYCoordinate = jsonObjectOfVertexInformation["y"].d();
-			if (
-				std::abs(actualXCoordinate - potentialXCoordinate) < GeometryHelper::MARGIN_OF_ERROR &&
-				std::abs(actualYCoordinate - potentialYCoordinate) < GeometryHelper::MARGIN_OF_ERROR
-				) {
-				return jsonObjectOfVertexInformation["label"].s();
-			}
-		}
-		throw std::runtime_error("No vertex corresponds to given coordinates.");
-	}
 
 	std::vector<std::pair<double, double>> getVectorOfPairsOfCoordinatesOfVertices(crow::json::rvalue jsonObjectOfHexInformation) const {
 		double heightOfHex = GeometryHelper::WIDTH_OF_HEX * 2 * std::tan(M_PI / 6);
@@ -343,17 +347,30 @@ public:
 		return vectorOfPairsOfCoordinates;
 	}
 
+
 	bool isLabelOfVertex(const std::string& s) const {
 		const std::regex vertexPattern("^V\\d{2}$");
 		return std::regex_match(s, vertexPattern);
 	}
+
 
 	bool isEdgeKey(const std::string& s) const {
 		std::regex edgePattern("^(\\d+\\.\\d{2})-(\\d+\\.\\d{2})_(\\d+\\.\\d{2})-(\\d+\\.\\d{2})$");
 		return std::regex_match(s, edgePattern);
 	}
 
+
+	void setPixel(std::vector<unsigned char>& image, int widthOfImage, int x, int y, int r, int g, int b) const {
+		constexpr int NUMBER_OF_CHANNELS = 3;
+		int index = (y * widthOfImage + x) * NUMBER_OF_CHANNELS;
+		image[index + 0] = static_cast<unsigned char>(r);
+		image[index + 1] = static_cast<unsigned char>(g);
+		image[index + 2] = static_cast<unsigned char>(b);
+	};
+
+
 private:
+
 
 	void loadBoardGeometry() {
 		if (!boardGeometryCache) {
@@ -385,6 +402,7 @@ private:
 		}
 	}
 };
+
 
 crow::json::rvalue Board::boardGeometryCache;
 crow::json::rvalue Board::isometricCoordinatesCache;
