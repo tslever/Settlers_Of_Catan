@@ -4,6 +4,7 @@
 #include <corecrt_math_defines.h>
 #include "../db/database.hpp"
 #include <regex>
+#include <unordered_set>
 
 /*#define STB_IMAGE_WRITE_IMPLEMENTATION // This line is required to resolve linker error.
 #include "stb_image_write.h"*/
@@ -209,22 +210,27 @@ public:
 
 	std::vector<std::string> getVectorOfLabelsOfAvailableVertices(const std::vector<std::string>& vectorOfLabelsOfOccupiedVertices) const {
 		const crow::json::rvalue& jsonObjectOfLabelsOfVerticesAndPairsOfCoordinatesOfVertices = isometricCoordinatesCache["objectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices"];
-		if (!jsonObjectOfLabelsOfVerticesAndPairsOfCoordinatesOfVertices || jsonObjectOfLabelsOfVerticesAndPairsOfCoordinatesOfVertices.size() == 0) {
-			throw std::runtime_error("Isometric coordinates file does not contain vertex information.");
-		}
-		std::vector<std::string> vectorOfLabelsOfVertices;
-		vectorOfLabelsOfVertices.reserve(jsonObjectOfLabelsOfVerticesAndPairsOfCoordinatesOfVertices.size());
-		for (const crow::json::rvalue& keyValuePair : jsonObjectOfLabelsOfVerticesAndPairsOfCoordinatesOfVertices) {
-			vectorOfLabelsOfVertices.push_back(keyValuePair.key());
-		}
+		const crow::json::rvalue& jsonObjectOfLabelsOfVerticesAndListsOfLabelsOfAdjacentVertices = isometricCoordinatesCache["objectOfIdsOfVerticesAndListsOfIdsOfAdjacentVertices"];
+		
+		std::unordered_set<std::string> unorderedSetOfLabelsOfOccupiedVertices(vectorOfLabelsOfOccupiedVertices.begin(), vectorOfLabelsOfOccupiedVertices.end());
 		std::vector<std::string> vectorOfLabelsOfAvailableVertices;
-		for (const auto& labelOfVertex : vectorOfLabelsOfVertices) {
-			if (std::find(vectorOfLabelsOfOccupiedVertices.begin(), vectorOfLabelsOfOccupiedVertices.end(), labelOfVertex) == vectorOfLabelsOfOccupiedVertices.end()) {
+		
+		for (const crow::json::rvalue& keyValuePair : jsonObjectOfLabelsOfVerticesAndPairsOfCoordinatesOfVertices) {
+			const std::string labelOfVertex = keyValuePair.key();
+			if (unorderedSetOfLabelsOfOccupiedVertices.contains(labelOfVertex)) {
+				continue;
+			}
+			bool adjacentVertexIsOccupied = false;
+			for (const crow::json::rvalue& jsonObjectWithLabelOfAdjacentVertex : jsonObjectOfLabelsOfVerticesAndListsOfLabelsOfAdjacentVertices[labelOfVertex]) {
+				std::string labelOfAdjacentVertex = jsonObjectWithLabelOfAdjacentVertex.s();
+				if (unorderedSetOfLabelsOfOccupiedVertices.contains(labelOfAdjacentVertex)) {
+					adjacentVertexIsOccupied = true;
+					break;
+				}
+			}
+			if (!adjacentVertexIsOccupied) {
 				vectorOfLabelsOfAvailableVertices.push_back(labelOfVertex);
 			}
-		}
-		if (vectorOfLabelsOfAvailableVertices.empty()) {
-			throw std::runtime_error("No unoccupied edges were found.");
 		}
 		return vectorOfLabelsOfAvailableVertices;
 	}
