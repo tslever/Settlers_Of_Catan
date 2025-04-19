@@ -13,7 +13,7 @@
 * by changing the prior probabilities of the children of the root.
 */
 void injectDirichletNoise(AI::MCTS::MCTSNode* root, double mixingWeight, double shape) {
-	if (root->unorderedMapOfRepresentationsOfMovesToChildren.empty()) {
+	if (root->unorderedMapOfMovesToChildren.empty()) {
 		return;
 	}
 	std::vector<double> vectorOfNoise;
@@ -23,7 +23,7 @@ void injectDirichletNoise(AI::MCTS::MCTSNode* root, double mixingWeight, double 
 	std::gamma_distribution<double> gammaDistribution(shape, scale);
 
 	double sumOfNoise = 0.0;
-	for (const auto& pair : root->unorderedMapOfRepresentationsOfMovesToChildren) {
+	for (const auto& pair : root->unorderedMapOfMovesToChildren) {
 		double noise = gammaDistribution(defaultRandomEngine);
 		vectorOfNoise.push_back(noise);
 		sumOfNoise += noise;
@@ -35,19 +35,19 @@ void injectDirichletNoise(AI::MCTS::MCTSNode* root, double mixingWeight, double 
 	}
 
 	size_t index = 0;
-	for (auto& [move, child] : root->unorderedMapOfRepresentationsOfMovesToChildren) {
+	for (auto& [move, child] : root->unorderedMapOfMovesToChildren) {
 		// Adjust prior probability using weighted mix of original prior probability and injected noise.
 		child->priorProbability = (1 - mixingWeight) * child->priorProbability + mixingWeight * vectorOfNoise[index++];
 	}
 }
 
 
-bool comparePairsOfRepresentationsOfMovesAndChildren(
-	const std::pair<const std::string, std::unique_ptr<AI::MCTS::MCTSNode>>& firstPairOfRepresentationOfMoveAndChild,
-	const std::pair<const std::string, std::unique_ptr<AI::MCTS::MCTSNode>>& secondPairOfRepresentationOfMoveAndChild
+bool comparePairsOfMovesAndChildren(
+	const std::pair<const std::string, std::unique_ptr<AI::MCTS::MCTSNode>>& firstPairOfMoveAndChild,
+	const std::pair<const std::string, std::unique_ptr<AI::MCTS::MCTSNode>>& secondPairOfMoveAndChild
 ) {
-	const auto& [move1, child1] = firstPairOfRepresentationOfMoveAndChild;
-	const auto& [move2, child2] = secondPairOfRepresentationOfMoveAndChild;
+	const auto& [move1, child1] = firstPairOfMoveAndChild;
+	const auto& [move2, child2] = secondPairOfMoveAndChild;
 	if (child1->visitCount < child2->visitCount) {
 		return true;
 	}
@@ -125,11 +125,11 @@ std::pair<std::string, int> runMcts(
 
 
 	auto iterator = std::max_element(
-		root->unorderedMapOfRepresentationsOfMovesToChildren.begin(),
-		root->unorderedMapOfRepresentationsOfMovesToChildren.end(),
-		comparePairsOfRepresentationsOfMovesAndChildren
+		root->unorderedMapOfMovesToChildren.begin(),
+		root->unorderedMapOfMovesToChildren.end(),
+		comparePairsOfMovesAndChildren
 	);
-	if (iterator == root->unorderedMapOfRepresentationsOfMovesToChildren.end()) {
+	if (iterator == root->unorderedMapOfMovesToChildren.end()) {
 		throw std::runtime_error("Best child is not defined.");
 	}
 	AI::MCTS::MCTSNode* bestChild = iterator->second.get();
@@ -137,6 +137,6 @@ std::pair<std::string, int> runMcts(
 
 	//Logger::info("            [SELECT BEST CHILD] The best child has move " + bestChild->move + ".");
 	//Logger::info("            [SELECT BEST CHILD] The child of the root with the highest visit count is the following.\n" + bestChild->toJson().dump());
-	std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = { bestChild->move, bestChild->visitCount };
-	return pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount;
+	std::pair<std::string, int> pairOfLabelOfBestVertexOrEdgeAndVisitCount = { bestChild->move, bestChild->visitCount };
+	return pairOfLabelOfBestVertexOrEdgeAndVisitCount;
 }

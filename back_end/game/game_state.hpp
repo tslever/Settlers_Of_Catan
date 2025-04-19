@@ -69,33 +69,28 @@ public:
         }
     }
 
-    /* Add a settlement for the given player at the specified vertex.
-    * Transition this game state to the next phase.
-    */
+
 	void placeSettlement(int player, const std::string& vertex) {
 		settlements[player].push_back(vertex);
 		lastBuilding = vertex;
         updatePhase();
 	}
 
-    /* Add a city for the given player at the specified vertex.
-    * Transition this game state to the next phase.
-    */
+
     void placeCity(int player, const std::string& vertex) {
         cities[player].push_back(vertex);
         lastBuilding = vertex;
         updatePhase();
     }
 
-    /* Add a road for the given player at the specified edge.
-    * After placing a road, clear `lastBuilding` so that subsequent moves don't reuse it.
-    * Transition this game state to the next phase.
-    */
-    void placeRoad(int player, const std::string& edge) {
-        roads[player].push_back(edge);
-        lastBuilding = "";
-        updatePhase();
-    }
+
+    // TODO: Rename to placeRoad.
+	void placeRoad(int player, const std::string& labelOfEdge) {
+		roads[player].push_back(labelOfEdge);
+		lastBuilding = "";
+		updatePhase();
+	}
+
 
     crow::json::wvalue toJson() const {
         crow::json::wvalue json;

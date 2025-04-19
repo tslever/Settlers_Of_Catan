@@ -9,7 +9,7 @@ namespace AI {
 			double bestScore = -std::numeric_limits<double>::infinity();
 			std::vector<MCTSNode*> vectorOfBestCandidates;
 
-			for (const auto& [move, pointerToChild] : node->unorderedMapOfRepresentationsOfMovesToChildren) {
+			for (const auto& [move, pointerToChild] : node->unorderedMapOfMovesToChildren) {
 				MCTSNode* child = pointerToChild.get();
 				// Exploration bonus U as in AlphaGo Zero
 				double u = cPuct * child->priorProbability * std::sqrt(node->visitCount) / (1.0 + child->visitCount);

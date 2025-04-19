@@ -13,4 +13,4 @@ export interface BoardGeometry {
 export const geometry = boardGeometry as BoardGeometry;
 export const hexes: HexInformation[] = geometry.hexes;
 export const vertices: VertexInformation[] = geometry.vertices;
-export const edges: Edge[] = geometry.edges;
+export const jsonArrayOfEdgeInformation: Edge[] = geometry.edges;

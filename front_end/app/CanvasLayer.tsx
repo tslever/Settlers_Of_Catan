@@ -1,5 +1,5 @@
 import React from 'react';
-import { edges } from './board';
+import { jsonArrayOfEdgeInformation } from './board';
 import { vertices } from './board';
 import { useEffect } from 'react';
 import { useMemo } from 'react';
@@ -8,7 +8,7 @@ import { useRef } from 'react';
 
 const CanvasLayer: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const memoizedEdges = useMemo(() => edges, [edges]);
+    const memoizedEdges = useMemo(() => jsonArrayOfEdgeInformation, [jsonArrayOfEdgeInformation]);
     const memoizedVertices = useMemo(() => vertices, [vertices]);
     useEffect(() => {
         const canvas = canvasRef.current;

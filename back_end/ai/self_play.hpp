@@ -15,7 +15,7 @@ namespace AI {
     struct TrainingExample {
         int player; // player represents player who made move.
         GameState gameState; // `gameState` represents snapshot of game state after move.
-        std::string move; // move represents label of vertex at which settlement or city is placed or key of edge at which road is placed.
+        std::string move; // move represents label of vertex at which settlement or city is placed or edge at which road is placed.
 		std::string moveType; // moveType represents type of move (e.g., settlement, city, road).
         double value; // value represents target value (e.g., game outcome from perspective of current player).
         double policy; // policy represents target prior probability derived from numbers of visits to nodes that occur during Monte Carlo Tree Search.
@@ -85,7 +85,7 @@ namespace AI {
                 if (board.isLabelOfVertex(labelOfVertexOrEdgeKey)) {
                     gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
                 }
-                else if (board.isEdgeKey(labelOfVertexOrEdgeKey)) {
+                else if (board.isLabelOfEdge(labelOfVertexOrEdgeKey)) {
                     gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
                 }
             }
@@ -107,7 +107,7 @@ namespace AI {
 				if (board.isLabelOfVertex(labelOfVertexOrEdgeKey)) {
 					trainingExample.moveType = "settlement";
 				}
-				else if (board.isEdgeKey(labelOfVertexOrEdgeKey)) {
+				else if (board.isLabelOfEdge(labelOfVertexOrEdgeKey)) {
 					trainingExample.moveType = "road";
 				}
 			}

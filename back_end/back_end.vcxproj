@@ -207,7 +207,6 @@ xcopy /Y /I "$(SolutionDir)\dependencies\release_version_of_libtorch\lib\nvJitLi
     <ClInclude Include="game\board.hpp" />
     <ClInclude Include="game\game.hpp" />
     <ClInclude Include="game\game_state.hpp" />
-    <ClInclude Include="game\geometry_helper.hpp" />
     <ClInclude Include="game\phase.hpp" />
     <ClInclude Include="logger.hpp" />
     <ClInclude Include="server.hpp" />

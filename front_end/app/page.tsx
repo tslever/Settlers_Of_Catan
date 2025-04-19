@@ -16,6 +16,7 @@ import { Settlement } from './types';
 import { getPositionStyles } from './BoardLayout';
 import { hexes } from './board';
 import { idToColor } from './types';
+import { jsonArrayOfEdgeInformation } from './board';
 import { portMapping } from './types';
 import { tokenMapping } from './types';
 import { vertices } from './board';
@@ -184,15 +185,16 @@ export default function Home() {
                             })}
                             <RoadLayer viewBox = "0 0 100 100" preserveAspectRatio = "none">
                                 {roads.map((road, index) => {
-                                    const [firstPart, secondPart] = road.edge.split('_');
-                                    const [x1, y1] = firstPart.split('-').map(Number);
-                                    const [x2, y2] = secondPart.split('-').map(Number);
+                                    // road.edge is like "E01".
+                                    const indexOfEdge = parseInt(road.edge.slice(1), 10) - 1;
+                                    const jsonObjectOfEdgeInformation = jsonArrayOfEdgeInformation[indexOfEdge];
+                                    const { x1, y1, x2, y2 } = jsonObjectOfEdgeInformation;
                                     const colorMapping: Record<number, string> = {
                                         1: "red",
                                         2: "orange",
                                         3: "green"
                                     };
-                                    const strokeColor = colorMapping[road.player] || "gray";
+                                    const strokeColor = colorMapping[road.player] ?? "gray";
                                     return (
                                         <line
                                             key = {index}

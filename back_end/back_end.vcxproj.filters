@@ -86,9 +86,6 @@
     <ClInclude Include="db\query_builder.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="game\geometry_helper.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="logger.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -24,7 +24,7 @@ namespace AI {
             double totalValue;
             double averageValue;
             double priorProbability;
-            std::unordered_map<std::string, std::unique_ptr<MCTSNode>> unorderedMapOfRepresentationsOfMovesToChildren;
+            std::unordered_map<std::string, std::unique_ptr<MCTSNode>> unorderedMapOfMovesToChildren;
             MCTSNode* parent;
 
             MCTSNode(
@@ -47,7 +47,7 @@ namespace AI {
             }
 
             bool isLeaf() const {
-                return unorderedMapOfRepresentationsOfMovesToChildren.empty();
+                return unorderedMapOfMovesToChildren.empty();
             }
 
             crow::json::wvalue toJson() const {
@@ -63,7 +63,7 @@ namespace AI {
 
                 crow::json::wvalue jsonArrayOfChildren(crow::json::type::List);
                 int i = 0;
-				for (const auto& [representationOfMove, child] : unorderedMapOfRepresentationsOfMovesToChildren) {
+				for (const auto& [representationOfMove, child] : unorderedMapOfMovesToChildren) {
 					jsonArrayOfChildren[i++] = child->index;
 				}
                 json["children"] = std::move(jsonArrayOfChildren);
