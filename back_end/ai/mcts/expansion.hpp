@@ -10,29 +10,6 @@
 namespace AI {
 	namespace MCTS {
 
-		std::pair<double, double> parseCoordinates(const std::string& stringRepresentingEndpoint) {
-			size_t positionOfHyphen = stringRepresentingEndpoint.find('-');
-			double x = std::stod(stringRepresentingEndpoint.substr(0, positionOfHyphen));
-			double y = std::stod(stringRepresentingEndpoint.substr(positionOfHyphen + 1));
-			return { x, y };
-		}
-
-
-		std::pair<std::string, std::string> parseEdgeEndpoints(const Board& board, const std::string& edge) {
-			size_t positionOfUnderscore = edge.find('_');
-			if (positionOfUnderscore == std::string::npos) {
-				throw std::runtime_error("Edge key does not have an underscore.");
-			}
-			std::string stringRepresentingFirstEndpoint = edge.substr(0, positionOfUnderscore);
-			std::string stringRepresentingSecondEndpoint = edge.substr(positionOfUnderscore + 1);
-			std::pair<double, double> pairOfCoordinatesOfFirstEndpoint = parseCoordinates(stringRepresentingFirstEndpoint);
-			std::pair<double, double> pairOfCoordinatesOfSecondEndpoint = parseCoordinates(stringRepresentingSecondEndpoint);
-			std::string labelOfFirstEndpoint = board.getLabelOfVertexByCoordinates(pairOfCoordinatesOfFirstEndpoint.first, pairOfCoordinatesOfFirstEndpoint.second);
-			std::string labelOfSecondEndpoint = board.getLabelOfVertexByCoordinates(pairOfCoordinatesOfSecondEndpoint.first, pairOfCoordinatesOfSecondEndpoint.second);
-			return { labelOfFirstEndpoint, labelOfSecondEndpoint };
-		}
-
-
 		std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(const MCTSNode* node) {
 			std::vector<std::string> vectorOfLabelsOfOccupiedVertices;
 			for (const auto& [player, vectorOfLabelsOfVerticesWithSettlements] : node->gameState.settlements) {
@@ -54,7 +31,15 @@ namespace AI {
 
 
 		std::vector<std::string> getVectorOfKeysOfOccupiedEdges(const MCTSNode* node) {
-			return node->gameState.roads.at(node->gameState.currentPlayer);
+			std::vector<std::string> vectorOfKeysOfOccupiedEdges;
+			for (const auto& [player, vectorOfKeysOfEdgesWithRoads] : node->gameState.roads) {
+				vectorOfKeysOfOccupiedEdges.insert(
+					vectorOfKeysOfOccupiedEdges.end(),
+					vectorOfKeysOfEdgesWithRoads.begin(),
+					vectorOfKeysOfEdgesWithRoads.end()
+				);
+			}
+			return vectorOfKeysOfOccupiedEdges;
 		}
 
 
