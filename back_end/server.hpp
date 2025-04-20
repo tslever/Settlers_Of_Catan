@@ -45,6 +45,13 @@ namespace Server {
 			}
 		});
 
+		CROW_ROUTE(app, "/message").methods("GET"_method)
+			([&liveDb]() -> crow::json::wvalue {
+			crow::json::wvalue response;
+			response["message"] = liveDb.getSetting("lastMessage");
+			return response;
+		});
+
 		CROW_ROUTE(app, "/next").methods("POST"_method)
 			([&liveDb, &wrapperOfNeuralNetwork, &config]() -> crow::json::wvalue {
 			crow::json::wvalue response;
@@ -63,6 +70,15 @@ namespace Server {
 				);
 				response = game.handlePhase();
 				liveDb.updateGameState(game.getState());
+				std::string messageWithQuotes = response["message"].dump();
+				std::string message;
+				if (messageWithQuotes.size() >= 2 && messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') {
+					message = messageWithQuotes.substr(1, messageWithQuotes.size() - 2);
+				}
+				else {
+					message = messageWithQuotes;
+				}
+				liveDb.upsertSetting("lastMessage", message);
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
@@ -78,6 +94,15 @@ namespace Server {
 				Logger::info("A user posted to endpoint reset. Game state and database will be reset.");
 				bool success = liveDb.resetGame();
 				response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
+				std::string messageWithQuotes = response["message"].dump();
+				std::string message;
+				if (messageWithQuotes.size() >= 2 && messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') {
+					message = messageWithQuotes.substr(1, messageWithQuotes.size() - 2);
+				}
+				else {
+					message = messageWithQuotes;
+				}
+				liveDb.upsertSetting("lastMessage", message);
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("Resetting game failed with the following error. ") + e.what();
@@ -85,6 +110,11 @@ namespace Server {
 			}
 			return response;
 		});
+
+		CROW_ROUTE(app, "/resources").methods("GET"_method)
+			([&liveDb]() {
+				return liveDb.getResourcesJson();
+			});
 
 		CROW_ROUTE(app, "/roads").methods("GET"_method)
 			([&liveDb]() -> crow::json::wvalue {

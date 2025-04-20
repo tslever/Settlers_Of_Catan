@@ -102,7 +102,6 @@ namespace Game {
 			state.placeSettlement(currentPlayer, labelOfChosenVertex);
 			int settlementId = db.addStructure("settlements", currentPlayer, labelOfChosenVertex, "vertex");
 			jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + labelOfChosenVertex + ".";
-			jsonObjectOfMoveInformation["moveType"] = "settlement";
 			crow::json::wvalue jsonObjectOfSettlementInformation;
 			jsonObjectOfSettlementInformation["id"] = settlementId;
 			jsonObjectOfSettlementInformation["player"] = currentPlayer;
@@ -132,7 +131,6 @@ namespace Game {
 			int roadId = db.addStructure("roads", currentPlayer, labelOfChosenEdge, "edge");
 			Board board;
 			jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + labelOfChosenEdge + ".";
-			jsonObjectOfMoveInformation["moveType"] = "road";
 			crow::json::wvalue jsonObjectOfRoadInformation;
 			jsonObjectOfRoadInformation["id"] = roadId;
 			jsonObjectOfRoadInformation["player"] = currentPlayer;
@@ -162,7 +160,6 @@ namespace Game {
 			state.phase = Phase::TO_PLACE_SECOND_ROAD;
 			int cityId = db.addStructure("cities", currentPlayer, labelOfChosenVertex, "vertex");
 			jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a city at " + labelOfChosenVertex + ".";
-			jsonObjectOfMoveInformation["moveType"] = "city";
 			crow::json::wvalue jsonObjectOfCityInformation;
 			jsonObjectOfCityInformation["id"] = cityId;
 			jsonObjectOfCityInformation["player"] = currentPlayer;
@@ -192,7 +189,6 @@ namespace Game {
 			int roadId = db.addStructure("roads", currentPlayer, labelOfChosenEdge, "edge");
 			Board board;
 			jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + labelOfChosenEdge + ".";
-			jsonObjectOfMoveInformation["moveType"] = "road";
 			crow::json::wvalue jsonObjectOfRoadInformation;
 			jsonObjectOfRoadInformation["id"] = roadId;
 			jsonObjectOfRoadInformation["player"] = currentPlayer;
@@ -203,6 +199,8 @@ namespace Game {
 
 
 		crow::json::wvalue handleRollingDice() {
+			std::unordered_map<int, std::unordered_map<std::string, int>> resourcesBeforeRoll = state.resources;
+
 			state.rollDice();
 			crow::json::wvalue jsonObject;
 			jsonObject["message"] = "Player " + std::to_string(state.currentPlayer) + " rolled the dice.";
@@ -211,6 +209,22 @@ namespace Game {
 			jsonObjectOfDescriptionOfDiceAndRolls["redProductionDie"] = state.redProductionDie;
 			jsonObjectOfDescriptionOfDiceAndRolls["whiteEventDie"] = state.whiteEventDie;
 			jsonObject["dice"] = std::move(jsonObjectOfDescriptionOfDiceAndRolls);
+
+			crow::json::wvalue gainedAll(crow::json::type::Object);
+			for (const auto& [player, newBag] : state.resources) {
+				crow::json::wvalue bagJson(crow::json::type::Object);
+				const auto& oldBag = resourcesBeforeRoll.at(player);
+				for (const auto& [kind, newQuantity] : newBag) {
+					int oldQuantity = oldBag.at(kind);
+					int gainedQuantity = newQuantity - oldQuantity;
+					bagJson[kind] = gainedQuantity;
+				}
+				gainedAll["Player " + std::to_string(player)] = std::move(bagJson);
+			}
+			jsonObject["gainedResources"] = std::move(gainedAll);
+
+			jsonObject["totalResources"] = makeTotalsJson();
+
 			state.phase = Phase::TURN;
 			return jsonObject;
 		}
@@ -237,7 +251,6 @@ namespace Game {
 				state.placeSettlement(currentPlayer, labelOfChosenVertexOrEdge);
 				int settlementId = db.addStructure("settlements", currentPlayer, labelOfChosenVertexOrEdge, "vertex");
 				jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + labelOfChosenVertexOrEdge + ".";
-				jsonObjectOfMoveInformation["moveType"] = "turn";
 				crow::json::wvalue jsonObjectOfSettlementInformation;
 				jsonObjectOfSettlementInformation["id"] = settlementId;
 				jsonObjectOfSettlementInformation["player"] = currentPlayer;
@@ -248,13 +261,13 @@ namespace Game {
 				state.placeRoad(currentPlayer, labelOfChosenVertexOrEdge);
 				int roadId = db.addStructure("roads", currentPlayer, labelOfChosenVertexOrEdge, "edge");
 				jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + labelOfChosenVertexOrEdge + ".";
-				jsonObjectOfMoveInformation["moveType"] = "turn";
 				crow::json::wvalue jsonObjectOfRoadInformation;
 				jsonObjectOfRoadInformation["id"] = roadId;
 				jsonObjectOfRoadInformation["player"] = currentPlayer;
 				jsonObjectOfRoadInformation["edge"] = labelOfChosenVertexOrEdge;
 				jsonObjectOfMoveInformation["road"] = std::move(jsonObjectOfRoadInformation);
 			}
+			jsonObjectOfMoveInformation["totalResources"] = makeTotalsJson();
 			return jsonObjectOfMoveInformation;
 		}
 
@@ -263,6 +276,18 @@ namespace Game {
 			crow::json::wvalue jsonObjectOfEndInformation;
 			jsonObjectOfEndInformation["message"] = "Game is over. Thanks for playing!";
 			return jsonObjectOfEndInformation;
+		}
+
+		crow::json::wvalue makeTotalsJson() const {
+			crow::json::wvalue all(crow::json::type::Object);
+			for (const auto& [player, bag] : state.resources) {
+				crow::json::wvalue bagJson(crow::json::type::Object);
+				for (const auto& [kind, quantity] : bag) {
+					bagJson[kind] = quantity;
+				}
+				all["Player " + std::to_string(player)] = std::move(bagJson);
+			}
+			return all;
 		}
 	};
 

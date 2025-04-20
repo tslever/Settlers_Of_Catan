@@ -1,6 +1,7 @@
 paths_of_back_end_files = [
     r'back_end\back_end.cpp',
     r'back_end\config.hpp',
+    r'back_end\interface_design.csv',
     r'back_end\logger.hpp',
     r'back_end\server.hpp',
 
@@ -29,13 +30,10 @@ paths_of_back_end_files = [
     r'back_end\game\phase.hpp'
 ]
 
-paths_of_configuration_files = [
-    r'.gitignore'
-]
-
 paths_of_files_to_alter_database = [
     r'cud_database/change_password.py',
-    r'cud_database/set_up_or_tear_down_game_database.py'
+    r'cud_database/set_up_or_tear_down_game_database.py',
+    r'cud_database/settings_template.py'
 ]
 
 paths_of_files_to_generate_board_geometry = [
@@ -51,6 +49,7 @@ paths_of_front_end_files = [
     r'front_end\app\components\Ocean.tsx',
     r'front_end\app\components\Port.tsx',
     r'front_end\app\components\QueryBoundary.tsx',
+    r'front_end\app\components\ResourcesDisplay.tsx',
     r'front_end\app\components\Vertex.tsx',
 
     r'front_end\app\hooks\useCentralQuery.ts',

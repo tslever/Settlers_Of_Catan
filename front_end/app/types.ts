@@ -29,12 +29,22 @@ export interface HexInformation {
     y: number;
 }
 
+export interface ResourcesByKind {
+    brick: number;
+    grain: number;
+    lumber: number;
+    ore: number;
+    wool: number;
+}
+
 export type ID_Of_Hex = keyof typeof idToColor;
 
 export type NextResponse = {
     message: string;
     moveType: string;
     dice?: Dice;
+    totalResources: Totals;
+    gainedResources?: Totals;
 }
 
 export interface Road {
@@ -48,6 +58,8 @@ export interface Settlement {
     player: Player;
     vertex: VertexLabel;
 }
+
+export type Totals = Record<string, ResourcesByKind>;
 
 export interface VertexInformation {
     x: number;

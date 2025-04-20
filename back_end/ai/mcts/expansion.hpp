@@ -118,11 +118,11 @@ namespace AI {
 				else if (phase == Game::Phase::TURN) {
 					if (board.isLabelOfVertex(labelOfAvailableVertexOrEdge)) {
 						gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrEdge);
-						moveType = "turn";
+						moveType = "settlement";
 					}
 					else if (board.isLabelOfEdge(labelOfAvailableVertexOrEdge)) {
 						gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrEdge);
-						moveType = "turn";
+						moveType = "road";
 					}
 				}
 				std::unique_ptr<AI::MCTS::MCTSNode> child = std::make_unique<MCTSNode>(

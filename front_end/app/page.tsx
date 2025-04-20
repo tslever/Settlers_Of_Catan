@@ -2,7 +2,7 @@
 
 import { API, apiFetch } from './api';
 import { Board } from './BoardLayout';
-import { Dice } from './types';
+import { Dice, ResourcesByKind, Totals } from './types';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex, ResetResponse } from './types';
 import { NextResponse } from './types';
@@ -29,6 +29,7 @@ import CanvasLayer from './CanvasLayer';
 import Marker from './components/Marker';
 import { useCentralQuery } from './hooks/useCentralQuery';
 import QueryBoundary from './components/QueryBoundary';
+import ResourcesDisplay from './components/ResourcesDisplay';
 
 
 const vertexMapping: Record<string, { x: number, y: number }> =
@@ -42,18 +43,40 @@ const vertexMapping: Record<string, { x: number, y: number }> =
 export default function Home() {
 
     const [mounted, setMounted] = useState(false);
-
     const [message, setMessage] = useState("");
-
     const [dice, setDice] = useState<Dice | null>(null);
+    const [gained, setGained] = useState<Totals>({});
 
     const queryClient = useQueryClient();
 
-
     useEffect(() => {
         setMounted(true);
+        apiFetch<{message:string}>(API.endpoints.message).then(data => setMessage(data.message)).catch(() => {});
     }, []);
 
+    const {
+        data: resourcesData,
+        isLoading: resourcesLoading,
+        error: resourcesError
+    } = useCentralQuery<Record<string, ResourcesByKind>>(
+        ["resources"],
+        () => apiFetch<Record<string, ResourcesByKind>>(API.endpoints.resources),
+        {enabled: mounted}
+    );
+
+    const totals: Totals = React.useMemo(() => {
+        if (!resourcesData) {
+            return {};
+        }
+        const out: Totals = {};
+        Object.entries(resourcesData).forEach(([label, bag]) => {
+            const m = label.match(/^Player (\d+)$/);
+            if (m) {
+                out[+m[1]] = bag;
+            }
+        });
+        return out;
+    }, [resourcesData]);
 
     const {
         data: settlementsData,
@@ -98,9 +121,17 @@ export default function Home() {
         onSuccess: (data) => {
             setDice(data.dice ?? null);
             setMessage(data.message);
+
+            if (data.gainedResources) {
+                setGained(data.gainedResources);
+            } else {
+                setGained({});
+            }
+
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
+            queryClient.invalidateQueries({ queryKey: ["resources"] });
         },
         onError: (error: Error) => {
             setMessage(error.message);
@@ -110,7 +141,8 @@ export default function Home() {
 
     const {
         mutate: resetGame,
-        isPending: resetLoading
+        isPending: resetLoading,
+        data: resetData
     } = useMutation<ResetResponse, Error>({
         mutationFn: () =>
             apiFetch<ResetResponse>(API.endpoints.reset, {
@@ -120,15 +152,22 @@ export default function Home() {
             }),
         onSuccess: (data) => {
             setMessage(data.message);
+            setDice(null);
+            const zeroGains: Totals = {};
+            Object.keys(totals).forEach(playerLabel => {
+                zeroGains[playerLabel] = { brick: 0, grain: 0, lumber: 0, ore: 0, wool: 0 };
+            });
+            setGained(zeroGains);
+
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
+            queryClient.invalidateQueries({ queryKey: ["resources"] });
         },
         onError: (error: Error) => {
             setMessage(error.message);
         }
     });
-
 
     if (!mounted) {
         return null;
@@ -223,14 +262,29 @@ export default function Home() {
                 <button onClick = {handleReset} disabled = {resetLoading} style = {{ marginLeft: "1rem" }}>
                     { resetLoading ? "Resetting..." : "Reset Game" }
                 </button>
-                {dice && (
-                    <div className = "dice-display">
-                        <p>Yellow production die: {dice.yellowProductionDie}</p>
-                        <p>Red production die: {dice.redProductionDie}</p>
-                        <p>White event die: {dice.whiteEventDie}</p>
-                    </div>
-                )}
+                <div className = "dice-display">
+                    <p>
+                        Yellow production die:&nbsp;
+                        {dice?.yellowProductionDie ?? '?'}
+                    </p>
+                    <p>
+                        Red production die:&nbsp;
+                        {dice?.redProductionDie ?? '?'}
+                    </p>
+                    <p>
+                        White event die:&nbsp;
+                        {dice?.whiteEventDie ?? '?'}
+                    </p>
+                </div>
                 {message && <p>{message}</p>}
+                <QueryBoundary isLoading = {resourcesLoading} error = {resourcesError}>
+                    <div>
+                        <ResourcesDisplay
+                            totals = {resourcesData ?? {}}
+                            gained = {gained}
+                        />
+                    </div>
+                </QueryBoundary>
             </div>
         </div>
     );

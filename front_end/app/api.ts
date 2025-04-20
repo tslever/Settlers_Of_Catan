@@ -4,8 +4,10 @@ export const API = {
     baseUrl: URL_OF_BACK_END,
     endpoints: {
         cities: '/cities',
+        message: '/message',
         next: '/next',
         reset: '/reset',
+        resources: '/resources',
         roads: '/roads',
         settlements: '/settlements'
     }

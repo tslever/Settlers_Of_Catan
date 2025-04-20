@@ -35,43 +35,69 @@ public:
 		std::vector<std::vector<int>> grid(DIMENSION_OF_GRID, std::vector<int>(DIMENSION_OF_GRID, 0));
 
 		const crow::json::rvalue& jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfCentersOfHexes = isometricCoordinatesCache["objectOfIdsOfHexesAndPairsOfCoordinatesOfCentersOfHexes"];
-		const crow::json::rvalue& jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfVertices = isometricCoordinatesCache["objectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices"];
-		const crow::json::rvalue& jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfCentersOfEdges = isometricCoordinatesCache["objectOfIdsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges"];
+		const crow::json::rvalue& jsonObjectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices = isometricCoordinatesCache["objectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices"];
+		const crow::json::rvalue& jsonObjectOfIdsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges = isometricCoordinatesCache["objectOfIdsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges"];
+
+		const crow::json::rvalue& jsonObjectOfIdsOfHexesAndNamesOfResources = isometricCoordinatesCache["objectOfIdsOfHexesAndNamesOfResources"];
 
 		for (const crow::json::rvalue& pairOfCoordinates : jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfCentersOfHexes) {
 			double x = pairOfCoordinates[0].d();
 			double y = pairOfCoordinates[1].d();
-			grid[static_cast<int>(y)][static_cast<int>(x)] = 1;
+			std::string idOfHex = pairOfCoordinates.key();
+			std::string nameOfResource = jsonObjectOfIdsOfHexesAndNamesOfResources[idOfHex].s();
+			if (nameOfResource == "nothing") {
+				grid[static_cast<int>(y)][static_cast<int>(x)] = 1;
+			}
+			else if (nameOfResource == "brick") {
+				grid[static_cast<int>(y)][static_cast<int>(x)] = 2;
+			}
+			else if (nameOfResource == "grain") {
+				grid[static_cast<int>(y)][static_cast<int>(x)] = 3;
+			}
+			else if (nameOfResource == "lumber") {
+				grid[static_cast<int>(y)][static_cast<int>(x)] = 4;
+			}
+			else if (nameOfResource == "ore") {
+				grid[static_cast<int>(y)][static_cast<int>(x)] = 5;
+			}
+			else if (nameOfResource == "wool") {
+				grid[static_cast<int>(y)][static_cast<int>(x)] = 6;
+			}
+			else {
+				throw std::runtime_error(nameOfResource + " is an unknown resource type.");
+			}
 		}
 
-		for (const crow::json::rvalue& pairOfCoordinates : jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfVertices) {
+		for (const crow::json::rvalue& pairOfCoordinates : jsonObjectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices) {
 			double x = pairOfCoordinates[0].d();
 			double y = pairOfCoordinates[1].d();
-			grid[static_cast<int>(y)][static_cast<int>(x)] = 2;
+			grid[static_cast<int>(y)][static_cast<int>(x)] = 7;
+		}
+
+		for (const crow::json::rvalue& pairOfCoordinates : jsonObjectOfIdsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges) {
+			double x = pairOfCoordinates[0].d();
+			double y = pairOfCoordinates[1].d();
+			grid[static_cast<int>(y)][static_cast<int>(x)] = 8;
 		}
 
 		if (typeOfMove == "settlement" || typeOfMove == "city") {
-			if (jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfVertices.has(move)) {
-				const auto& pairOfCoordinatesOfVertex = jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfVertices[move];
+			if (jsonObjectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices.has(move)) {
+				const auto& pairOfCoordinatesOfVertex = jsonObjectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices[move];
 				int x = pairOfCoordinatesOfVertex[0].d();
 				int y = pairOfCoordinatesOfVertex[1].d();
-				grid[static_cast<int>(y)][static_cast<int>(x)] = (typeOfMove == "settlement") ? 4 : 5;
+				grid[static_cast<int>(y)][static_cast<int>(x)] = (typeOfMove == "settlement") ? 9 : 10;
 			}
 		}
-
-		for (const crow::json::rvalue& pairOfCoordinates : jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfCentersOfEdges) {
-			double x = pairOfCoordinates[0].d();
-			double y = pairOfCoordinates[1].d();
-			grid[static_cast<int>(y)][static_cast<int>(x)] = 3;
-		}
-
-		if (typeOfMove == "road") {
-			if (jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfCentersOfEdges.has(move)) {
-				const auto& pairOfCoordinates = jsonObjectOfIdsOfHexesAndPairsOfCoordinatesOfCentersOfEdges[move];
+		else if (typeOfMove == "road") {
+			if (jsonObjectOfIdsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges.has(move)) {
+				const auto& pairOfCoordinates = jsonObjectOfIdsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges[move];
 				int x = pairOfCoordinates[0].d();
 				int y = pairOfCoordinates[1].d();
-				grid[static_cast<int>(y)][static_cast<int>(x)] = 6;
+				grid[static_cast<int>(y)][static_cast<int>(x)] = 11;
 			}
+		}
+		else {
+			throw std::runtime_error(typeOfMove + " is an unknown type of move.");
 		}
 
 		std::vector<float> vectorRepresentingGrid;

@@ -1,9 +1,6 @@
 import os
 import re
 from paths_of_important_files import paths_of_back_end_files
-from paths_of_important_files import paths_of_configuration_files
-from paths_of_important_files import paths_of_files_to_alter_database
-from paths_of_important_files import paths_of_files_to_generate_board_geometry
 from paths_of_important_files import paths_of_front_end_files
 
 
@@ -16,9 +13,14 @@ def aggregate_files(base_path, relative_paths):
         full_path = os.path.join(base_path, relative_path)
         aggregated_content += f"=== {full_path} ===\n"
         try:
-            with open(full_path, 'r', encoding='utf-8') as file:
-                content = file.read()
-                aggregated_content += content + "\n\n"
+            if ("interface_design.csv" in full_path):
+                with open(full_path, 'r', encoding = 'cp1252') as file:
+                    content = file.read()
+                    aggregated_content += content + "\n\n"
+            else:
+                with open(full_path, 'r', encoding = 'utf-8') as file:
+                    content = file.read()
+                    aggregated_content += content + "\n\n"
         except FileNotFoundError:
             raise Exception(f"Error: File not found: {full_path}\n\n")
         except Exception as e:
@@ -37,9 +39,6 @@ def main():
         base_path,
         (
             paths_of_back_end_files +
-            paths_of_configuration_files +
-            paths_of_files_to_alter_database +
-            paths_of_files_to_generate_board_geometry +
             paths_of_front_end_files
         )
     )

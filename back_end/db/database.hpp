@@ -86,6 +86,16 @@ namespace DB {
             ).execute();
 
             session.sql(
+				"CREATE TABLE IF NOT EXISTS " + tablePrefix + "resources ("
+				"player INT PRIMARY KEY, "
+				"brick INT NOT NULL DEFAULT 0, "
+				"grain INT NOT NULL DEFAULT 0, "
+				"lumber INT NOT NULL DEFAULT 0, "
+				"ore INT NOT NULL DEFAULT 0, "
+				"wool INT NOT NULL DEFAULT 0)"
+            ).execute();
+
+            session.sql(
                 "CREATE TABLE IF NOT EXISTS " + tablePrefix + "roads ("
                 "id INT AUTO_INCREMENT PRIMARY KEY, "
                 "player INT NOT NULL, "
@@ -98,6 +108,13 @@ namespace DB {
                 "current_player INT NOT NULL, "
                 "phase VARCHAR(100) NOT NULL, "
                 "last_building VARCHAR(50))"
+            ).execute();
+
+
+            session.sql(
+                "CREATE TABLE IF NOT EXISTS " + tablePrefix + "settings ("
+				"`key` VARCHAR(50) PRIMARY KEY, "
+				"`value` TEXT NOT NULL)"
             ).execute();
         }
 
@@ -155,7 +172,7 @@ namespace DB {
         /* Method `getGameState` returns the current game state stored in the state table.
         * If no record exists, `getGameState` creates a new record with default values.
         */
-        GameState getGameState() {
+        GameState getGameState() const {
             GameState gameState;
             WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
             mysqlx::Session& session = wrapperOfSession.getSession();
@@ -197,6 +214,23 @@ namespace DB {
                 std::string edge = rRow[1].get<std::string>();
                 gameState.roads[player].push_back(edge);
             }
+			mysqlx::Table resourcesTable = schema.getTable(tablePrefix + "resources");
+			mysqlx::RowResult resourcesResult = resourcesTable.select("player", "brick", "grain", "lumber", "ore", "wool").execute();
+            if (resourcesResult.count() == 0) {
+                for (int player = 1; player <= 3; player++) {
+                    resourcesTable.insert("player").values(player).execute();
+                }
+            }
+            else {
+                for (mysqlx::Row row : resourcesResult) {
+                    int player = row[0];
+					gameState.resources[player]["brick"] = row[1];
+					gameState.resources[player]["grain"] = row[2];
+					gameState.resources[player]["lumber"] = row[3];
+					gameState.resources[player]["ore"] = row[4];
+					gameState.resources[player]["wool"] = row[5];
+                }
+            }
             return gameState;
         }
 
@@ -227,6 +261,70 @@ namespace DB {
                 jsonObject["error"] = std::string("The following error occurred while retrieving roads from the database. ") + e.what();
             }
             return jsonObject;
+        }
+
+        void upsertResources(const std::unordered_map<int, std::unordered_map<std::string, int>>& resources) {
+			WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+			mysqlx::Session& session = wrapperOfSession.getSession();
+            const std::string table = tablePrefix + "resources";
+            for (const auto& [player, bag] : resources) {
+                session.sql(
+                    "INSERT INTO " + table + " (player, brick, grain, lumber, ore, wool) "
+                    "VALUES(?, ?, ?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE "
+                    "brick = VALUES(brick), "
+                    "grain = VALUES(grain), "
+                    "lumber = VALUES(lumber), "
+                    "ore = VALUES(ore), "
+                    "wool = VALUES(wool)"
+                ).bind(
+                    player,
+					bag.at("brick"),
+					bag.at("grain"),
+					bag.at("lumber"),
+					bag.at("ore"),
+					bag.at("wool")
+				).execute();
+            }
+        }
+
+
+		void upsertSetting(const std::string& key, const std::string& value) {
+			WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+			mysqlx::Session& session = wrapperOfSession.getSession();
+			session.sql(
+				"INSERT INTO " + tablePrefix + "settings (`key`, `value`) "
+				"VALUES(?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)"
+			).bind(key, value).execute();
+		}
+
+
+        std::string getSetting(const std::string& key) const {
+			WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+			mysqlx::Session& session = wrapperOfSession.getSession();
+			mysqlx::RowResult rowResult = session.sql(
+				"SELECT `value` FROM " + tablePrefix + "settings WHERE `key` = ?"
+			).bind(key).execute();
+			mysqlx::Row row = rowResult.fetchOne();
+            return row ? row[0].get<std::string>() : "";
+        }
+
+
+        crow::json::wvalue getResourcesJson() const {
+            crow::json::wvalue out(crow::json::type::Object);
+            try {
+                GameState state = getGameState();
+                for (const auto& [player, bag] : state.resources) {
+                    crow::json::wvalue bagJson(crow::json::type::Object);
+                    for (const auto& [kind, quantity] : bag) {
+                        bagJson[kind] = quantity;
+                    }
+                    out["Player " + std::to_string(player)] = std::move(bagJson);
+                }
+            }
+            catch (const std::exception& e) {
+                out["error"] = std::string("The following error occurred while retrieving resources from the database. ") + e.what();
+            }
+            return out;
         }
 
         std::vector<Settlement> getSettlements() const {
@@ -273,6 +371,13 @@ namespace DB {
                 session.sql("ALTER TABLE " + tablePrefix + "cities AUTO_INCREMENT = 1").execute();
                 session.sql("ALTER TABLE " + tablePrefix + "roads AUTO_INCREMENT = 1").execute();
 
+                mysqlx::Table resourcesTable = schema.getTable(tablePrefix + "resources");
+                resourcesTable.remove().execute();
+                session.sql("ALTER TABLE " + tablePrefix + "resources AUTO_INCREMENT = 1").execute();
+                for (int player = 1; player <= 3; player++) {
+                    resourcesTable.insert("player").values(player).execute();
+                }
+
                 // Reset the game state to its initial values.
                 GameState initialState;
                 mysqlx::Table stateTable = schema.getTable(tablePrefix + "state");
@@ -312,6 +417,7 @@ namespace DB {
                 .set("last_building", gameState.lastBuilding)
                 .where("id = 1")
                 .execute();
+			upsertResources(gameState.resources);
         }
     };
 
