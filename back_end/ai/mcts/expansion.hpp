@@ -63,22 +63,34 @@ namespace AI {
 				vectorOfLabelsOfAvailableVerticesOrEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
 			else if (node->gameState.phase == Game::Phase::TURN) {
+				const int currentPlayer = node->gameState.currentPlayer;
+
+				std::unordered_set<std::string> unorderedSetOfLabelsOfVerticesOfRoads;
+				const auto& roadsOfPlayer = node->gameState.roads.at(currentPlayer);
+				for (const std::string& road : roadsOfPlayer) {
+					auto verticesOfEdge = board.getVerticesOfEdge(road);
+					unorderedSetOfLabelsOfVerticesOfRoads.insert(verticesOfEdge.first);
+					unorderedSetOfLabelsOfVerticesOfRoads.insert(verticesOfEdge.second);
+				}
+
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
 				std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
+
+				for (const std::string& labelOfVertex : vectorOfLabelsOfAvailableVertices) {
+					if (unorderedSetOfLabelsOfVerticesOfRoads.contains(labelOfVertex)) {
+						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfVertex);
+					}
+				}
 
 				std::vector<std::string> vectorOfLabelsOfOccupiedEdges = getVectorOfLabelsOfOccupiedEdges(node);
 				std::vector<std::string> vectorOfLabelsOfAvailableEdges = board.getVectorOfLabelsOfAvailableEdges(vectorOfLabelsOfOccupiedEdges);
 
-				vectorOfLabelsOfAvailableVerticesOrEdges.insert(
-					vectorOfLabelsOfAvailableVerticesOrEdges.end(),
-					vectorOfLabelsOfAvailableVertices.begin(),
-					vectorOfLabelsOfAvailableVertices.end()
-				);
-				vectorOfLabelsOfAvailableVerticesOrEdges.insert(
-					vectorOfLabelsOfAvailableVerticesOrEdges.end(),
-					vectorOfLabelsOfAvailableEdges.begin(),
-					vectorOfLabelsOfAvailableEdges.end()
-				);
+				for (const std::string& labelOfEdge : vectorOfLabelsOfAvailableEdges) {
+					auto verticesOfEdge = board.getVerticesOfEdge(labelOfEdge);
+					if (unorderedSetOfLabelsOfVerticesOfRoads.contains(verticesOfEdge.first) || unorderedSetOfLabelsOfVerticesOfRoads.contains(verticesOfEdge.second)) {
+						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfEdge);
+					}
+				}
 			}
 
 			// Create a child for each label of available vertex or edge.

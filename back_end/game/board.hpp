@@ -164,23 +164,20 @@ public:
 
 	std::vector<std::string> getVectorOfLabelsOfAvailableEdges(const std::vector<std::string>& vectorOfLabelsOfOccupiedEdges) const {
 		const crow::json::rvalue& jsonObjectOfLabelsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges = isometricCoordinatesCache["objectOfIdsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges"];
-		if (!jsonObjectOfLabelsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges || jsonObjectOfLabelsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges.size() == 0) {
-			throw std::runtime_error("Isometric coordinates file does not contain edge center information.");
-		}
+		
 		std::vector<std::string> vectorOfLabelsOfEdges;
 		vectorOfLabelsOfEdges.reserve(jsonObjectOfLabelsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges.size());
 		for (const crow::json::rvalue& keyValuePair : jsonObjectOfLabelsOfEdgesAndPairsOfCoordinatesOfCentersOfEdges) {
 			vectorOfLabelsOfEdges.push_back(keyValuePair.key());
 		}
+
 		std::vector<std::string> vectorOfLabelsOfAvailableEdges;
 		for (const auto& labelOfEdge : vectorOfLabelsOfEdges) {
 			if (std::find(vectorOfLabelsOfOccupiedEdges.begin(), vectorOfLabelsOfOccupiedEdges.end(), labelOfEdge) == vectorOfLabelsOfOccupiedEdges.end()) {
 				vectorOfLabelsOfAvailableEdges.push_back(labelOfEdge);
 			}
 		}
-		if (vectorOfLabelsOfAvailableEdges.empty()) {
-			throw std::runtime_error("No unoccupied edges were found.");
-		}
+
 		return vectorOfLabelsOfAvailableEdges;
 	};
 
@@ -190,20 +187,15 @@ public:
 		const std::vector<std::string>& vectorOfLabelsOfOccupiedEdges
 	) const {
 		const crow::json::rvalue& jsonObjectOfAdjacencyInformation = isometricCoordinatesCache["objectOfIdsOfVerticesAndListsOfEdgesExtendingFromThoseVertices"];
-		if (!jsonObjectOfAdjacencyInformation.has(labelOfVertexOfLastBuilding)) {
-			throw std::runtime_error("Edges adjacent to vertex " + labelOfVertexOfLastBuilding + " cannot be determined.");
-		}
-		std::vector<std::string> vectorOfLabelsOfAvailableEdges;
 
+		std::vector<std::string> vectorOfLabelsOfAvailableEdges;
 		for (const crow::json::rvalue& jsonObjectWithLabelOfEdge : jsonObjectOfAdjacencyInformation[labelOfVertexOfLastBuilding]) {
 			std::string labelOfEdge = jsonObjectWithLabelOfEdge.s();
 			if (std::find(vectorOfLabelsOfOccupiedEdges.begin(), vectorOfLabelsOfOccupiedEdges.end(), labelOfEdge) == vectorOfLabelsOfOccupiedEdges.end()) {
 				vectorOfLabelsOfAvailableEdges.push_back(labelOfEdge);
 			}
 		}
-		if (vectorOfLabelsOfAvailableEdges.empty()) {
-			throw std::runtime_error("No unoccupied edges extending from vertex " + labelOfVertexOfLastBuilding + " were found.");
-		}
+
 		return vectorOfLabelsOfAvailableEdges;
 	};
 
@@ -233,6 +225,13 @@ public:
 			}
 		}
 		return vectorOfLabelsOfAvailableVertices;
+	}
+
+
+	std::pair<std::string, std::string> getVerticesOfEdge(const std::string& labelOfEdge) const {
+		const crow::json::rvalue& jsonObjectOfLabelsOfEdgesAndPairsOfLabelsOfVertices = isometricCoordinatesCache["objectOfIdsOfEdgesAndPairsOfIdsOfVertices"];
+		const auto& pair = jsonObjectOfLabelsOfEdgesAndPairsOfLabelsOfVertices[labelOfEdge];
+		return { pair[0].s(), pair[1].s() };
 	}
 
 
