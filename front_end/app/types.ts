@@ -9,6 +9,13 @@ export type ResetResponse = { message: string };
 export type VertexLabel = string;
 
 
+export interface Dice {
+    yellowProductionDie: number;
+    redProductionDie: number;
+    whiteEventDie: 'yellow' | 'green' | 'blue' | 'black';
+}
+
+
 export interface Edge {
     x1: number;
     y1: number;
@@ -24,9 +31,11 @@ export interface HexInformation {
 
 export type ID_Of_Hex = keyof typeof idToColor;
 
-export type NextResponse =
-    | { moveType: "settlement"; message: string; settlement: Settlement }
-    | { moveType: "road"; message: string; road: Road };
+export type NextResponse = {
+    message: string;
+    moveType: string;
+    dice?: Dice;
+}
 
 export interface Road {
     id: number;

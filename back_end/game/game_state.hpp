@@ -7,17 +7,30 @@
 
 
 class GameState {
+
+
 public:
+
+
     int currentPlayer;
     std::string phase;
     std::unordered_map<int, std::vector<std::string>> settlements;
     std::unordered_map<int, std::vector<std::string>> cities;
     std::unordered_map<int, std::vector<std::string>> roads;
     std::string lastBuilding;
+    int redProductionDie;
+    std::string whiteEventDie;
     int winner;
+    int yellowProductionDie;
 
-    GameState()
-        : currentPlayer(1), phase(Game::Phase::TO_PLACE_FIRST_SETTLEMENT), lastBuilding(""), winner(0)
+    GameState() :
+        currentPlayer(1),
+        lastBuilding(""),
+        phase(Game::Phase::TO_PLACE_FIRST_SETTLEMENT),
+        redProductionDie(0),
+        whiteEventDie(""),
+        winner(0),
+        yellowProductionDie(0)
     {
         settlements[1] = {};
         settlements[2] = {};
@@ -29,6 +42,31 @@ public:
         roads[2] = {};
         roads[3] = {};
     }
+
+
+    void rollDice() {
+        std::random_device randomDevice;
+		std::mt19937 generator(randomDevice());
+		std::uniform_int_distribution<int> distribution(1, 6);
+		redProductionDie = distribution(generator);
+		yellowProductionDie = distribution(generator);
+        int valueOfRoll = distribution(generator);
+        switch (valueOfRoll) {
+		case 1:
+			whiteEventDie = "yellow";
+			break;
+        case 2:
+			whiteEventDie = "green";
+            break;
+        case 3:
+			whiteEventDie = "blue";
+			break;
+        default:
+			whiteEventDie = "black";
+            break;
+        }
+    }
+
 
     void updatePhase() {
         if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
@@ -56,6 +94,7 @@ public:
             }
         }
         else if (phase == Game::Phase::TURN) {
+            rollDice();
             for (int i = 1; i <= 3; i++) {
                 int numberOfVictoryPoints = settlements[i].size() + cities[i].size();
                 if (numberOfVictoryPoints >= 5) {
@@ -130,6 +169,12 @@ public:
             roadsJson["Player " + std::to_string(pair.first)] = std::move(arr);
         }
         json["roads"] = std::move(roadsJson);
+
+		crow::json::wvalue jsonObjectOfDescriptionOfDiceAndRolls(crow::json::type::Object);
+        jsonObjectOfDescriptionOfDiceAndRolls["yellowProductionDie"] = yellowProductionDie;
+        jsonObjectOfDescriptionOfDiceAndRolls["redProductionDie"] = redProductionDie;
+        jsonObjectOfDescriptionOfDiceAndRolls["whiteEventDie"] = whiteEventDie;
+		json["dice"] = std::move(jsonObjectOfDescriptionOfDiceAndRolls);
 
         return json;
     }

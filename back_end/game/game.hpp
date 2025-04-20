@@ -10,7 +10,11 @@
 namespace Game {
 
 	class Game {
+
+
 	public:
+
+
 		Game(
 			DB::Database& dbToUse,
 			AI::WrapperOfNeuralNetwork& wrapperOfNeuralNetworkToUse,
@@ -62,7 +66,10 @@ namespace Game {
 			return state;
 		}
 
+
 	private:
+
+
 		GameState state;
 		DB::Database& db;
 		AI::WrapperOfNeuralNetwork& wrapperOfNeuralNetwork;
@@ -189,6 +196,14 @@ namespace Game {
 
 		crow::json::wvalue handleTurn() {
 			crow::json::wvalue jsonObjectOfMoveInformation;
+
+			state.rollDice();
+			crow::json::wvalue jsonObjectOfDescriptionOfDiceAndRolls;
+			jsonObjectOfDescriptionOfDiceAndRolls["yellowProductionDie"] = state.yellowProductionDie;
+			jsonObjectOfDescriptionOfDiceAndRolls["redProductionDie"] = state.redProductionDie;
+			jsonObjectOfDescriptionOfDiceAndRolls["whiteEventDie"] = state.whiteEventDie;
+			jsonObjectOfMoveInformation["dice"] = std::move(jsonObjectOfDescriptionOfDiceAndRolls);
+
 			std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = runMcts(
 				state,
 				wrapperOfNeuralNetwork,

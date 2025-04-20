@@ -15,6 +15,12 @@ $RATIO-OF-HEIGHT-OF-HEX-AND-WIDTH-OF-HEX: 2 / math.sqrt(3);
   overflow: hidden;
 }
 
+.dice-display {
+  margin-top: .5rem;
+  font-size: 1.4vmin;
+  line-height: 1.2;
+}
+
 .dot {
   width: 0.3vmin;
   height: 0.3vmin;

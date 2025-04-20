@@ -2,6 +2,7 @@
 
 import { API, apiFetch } from './api';
 import { Board } from './BoardLayout';
+import { Dice } from './types';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex, ResetResponse } from './types';
 import { NextResponse } from './types';
@@ -43,6 +44,8 @@ export default function Home() {
     const [mounted, setMounted] = useState(false);
 
     const [message, setMessage] = useState("");
+
+    const [dice, setDice] = useState<Dice | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -93,6 +96,7 @@ export default function Home() {
             body: JSON.stringify({})
         }),
         onSuccess: (data) => {
+            setDice(data.dice ?? null);
             setMessage(data.message);
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
@@ -219,6 +223,13 @@ export default function Home() {
                 <button onClick = {handleReset} disabled = {resetLoading} style = {{ marginLeft: "1rem" }}>
                     { resetLoading ? "Resetting..." : "Reset Game" }
                 </button>
+                {dice && (
+                    <div className = "dice-display">
+                        <p>Yellow production die: {dice.yellowProductionDie}</p>
+                        <p>Red production die: {dice.redProductionDie}</p>
+                        <p>White event die: {dice.whiteEventDie}</p>
+                    </div>
+                )}
                 {message && <p>{message}</p>}
             </div>
         </div>
