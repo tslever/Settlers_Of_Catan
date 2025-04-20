@@ -40,7 +40,18 @@ namespace AI {
         // Simulate moves until phase becomes `Phase::DONE`, or up to a maximum number of moves to safeguard against infinite loops.
         int numberOfMovesSimulated = 0;
         while (gameState.phase != Game::Phase::DONE && numberOfMovesSimulated < MAXIMUM_NUMBER_OF_MOVES) {
+
+            if (gameState.phase == Game::Phase::TO_ROLL_DICE) {
+                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " rolling the dice is being simulated.");
+                gameState.rollDice();
+                gameState.updatePhase();
+                continue;
+            }
+
             if (gameState.phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
+                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their first settlement is being simulated.");
+            }
+            else if (gameState.phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
                 Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their first settlement is being simulated.");
             }
             else if (gameState.phase == Game::Phase::TO_PLACE_FIRST_ROAD) {

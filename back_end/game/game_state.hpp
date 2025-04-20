@@ -90,21 +90,15 @@ public:
                 phase = Game::Phase::TO_PLACE_FIRST_CITY;
             }
             else {
-                phase = Game::Phase::TURN;
+                phase = Game::Phase::TO_ROLL_DICE;
             }
-        }
+		}
+		else if (phase == Game::Phase::TO_ROLL_DICE) {
+			phase = Game::Phase::TURN;
+		}
         else if (phase == Game::Phase::TURN) {
-            rollDice();
-            for (int i = 1; i <= 3; i++) {
-                int numberOfVictoryPoints = settlements[i].size() + cities[i].size();
-                if (numberOfVictoryPoints >= 5) {
-                    currentPlayer = i;
-                    winner = i;
-                    phase = Game::Phase::DONE;
-                    return;
-                }
-            }
             currentPlayer = (currentPlayer % 3) + 1;
+			phase = Game::Phase::TO_ROLL_DICE;
         }
     }
 
@@ -112,6 +106,9 @@ public:
 	void placeSettlement(int player, const std::string& vertex) {
 		settlements[player].push_back(vertex);
 		lastBuilding = vertex;
+        if (checkForWinner()) {
+            return;
+        }
         updatePhase();
 	}
 
@@ -119,6 +116,9 @@ public:
     void placeCity(int player, const std::string& vertex) {
         cities[player].push_back(vertex);
         lastBuilding = vertex;
+        if (checkForWinner()) {
+            return;
+        }
         updatePhase();
     }
 
@@ -178,4 +178,22 @@ public:
 
         return json;
     }
+
+
+private:
+
+
+    bool checkForWinner() {
+        for (int player = 1; player <= 3; player++) {
+			int numberOfBuildings = static_cast<int>(settlements[player].size() + cities[player].size());
+            if (numberOfBuildings >= 5) {
+                winner = player;
+                phase = Game::Phase::DONE;
+                return true;
+            }
+        }
+        return false;
+    }
+
+
 };

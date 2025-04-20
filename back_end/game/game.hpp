@@ -49,6 +49,9 @@ namespace Game {
 			else if (state.phase == Phase::TO_PLACE_SECOND_ROAD) {
 				return handleSecondRoad();
 			}
+			else if (state.phase == Phase::TO_ROLL_DICE) {
+				return handleRollingDice();
+			}
 			else if (state.phase == Phase::TURN) {
 				return handleTurn();
 			}
@@ -79,6 +82,7 @@ namespace Game {
 		double dirichletMixingWeight;
 		double dirichletShape;
 
+
 		crow::json::wvalue handleFirstSettlement() {
 			crow::json::wvalue jsonObjectOfMoveInformation;
 			std::pair<std::string, int> pairOfLabelOfBestVertexAndVisitCount = runMcts(
@@ -106,6 +110,7 @@ namespace Game {
 			jsonObjectOfMoveInformation["settlement"] = std::move(jsonObjectOfSettlementInformation);
 			return jsonObjectOfMoveInformation;
 		}
+
 
 		crow::json::wvalue handleFirstRoad() {
 			crow::json::wvalue jsonObjectOfMoveInformation;
@@ -136,6 +141,7 @@ namespace Game {
 			return jsonObjectOfMoveInformation;
 		}
 
+
 		crow::json::wvalue handleFirstCity() {
 			crow::json::wvalue jsonObjectOfMoveInformation;
 			std::pair<std::string, int> pairOfLabelOfBestVertexAndVisitCount = runMcts(
@@ -164,6 +170,7 @@ namespace Game {
 			jsonObjectOfMoveInformation["city"] = std::move(jsonObjectOfCityInformation);
 			return jsonObjectOfMoveInformation;
 		}
+
 
 		crow::json::wvalue handleSecondRoad() {
 			crow::json::wvalue jsonObjectOfMoveInformation;
@@ -194,16 +201,23 @@ namespace Game {
 			return jsonObjectOfMoveInformation;
 		}
 
-		crow::json::wvalue handleTurn() {
-			crow::json::wvalue jsonObjectOfMoveInformation;
 
+		crow::json::wvalue handleRollingDice() {
 			state.rollDice();
+			crow::json::wvalue jsonObject;
+			jsonObject["message"] = "Player " + std::to_string(state.currentPlayer) + " rolled the dice.";
 			crow::json::wvalue jsonObjectOfDescriptionOfDiceAndRolls;
 			jsonObjectOfDescriptionOfDiceAndRolls["yellowProductionDie"] = state.yellowProductionDie;
 			jsonObjectOfDescriptionOfDiceAndRolls["redProductionDie"] = state.redProductionDie;
 			jsonObjectOfDescriptionOfDiceAndRolls["whiteEventDie"] = state.whiteEventDie;
-			jsonObjectOfMoveInformation["dice"] = std::move(jsonObjectOfDescriptionOfDiceAndRolls);
+			jsonObject["dice"] = std::move(jsonObjectOfDescriptionOfDiceAndRolls);
+			state.phase = Phase::TURN;
+			return jsonObject;
+		}
 
+
+		crow::json::wvalue handleTurn() {
+			crow::json::wvalue jsonObjectOfMoveInformation;
 			std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = runMcts(
 				state,
 				wrapperOfNeuralNetwork,
@@ -243,6 +257,7 @@ namespace Game {
 			}
 			return jsonObjectOfMoveInformation;
 		}
+
 
 		crow::json::wvalue handleEnd() {
 			crow::json::wvalue jsonObjectOfEndInformation;
