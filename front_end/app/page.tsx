@@ -42,10 +42,10 @@ const vertexMapping: Record<string, { x: number, y: number }> =
 
 export default function Home() {
 
-    const [mounted, setMounted] = useState(false);
-    const [message, setMessage] = useState("");
     const [dice, setDice] = useState<Dice | null>(null);
-    const [gained, setGained] = useState<Totals>({});
+    const [gainedResources, setGainedResources] = useState<Totals>({});
+    const [message, setMessage] = useState("");
+    const [mounted, setMounted] = useState(false);
 
     const queryClient = useQueryClient();
 
@@ -55,7 +55,7 @@ export default function Home() {
         .then(data => {
             setMessage(data.message)
             setDice(data.dice ?? null);
-            setGained(data.gainedResources ?? {});
+            setGainedResources(data.gainedResources ?? {});
         })
         .catch(() => {});
     }, []);
@@ -74,14 +74,7 @@ export default function Home() {
         if (!resourcesData) {
             return {};
         }
-        const out: Totals = {};
-        Object.entries(resourcesData).forEach(([label, bag]) => {
-            const m = label.match(/^Player (\d+)$/);
-            if (m) {
-                out[+m[1]] = bag;
-            }
-        });
-        return out;
+        return resourcesData;
     }, [resourcesData]);
 
     const {
@@ -127,21 +120,13 @@ export default function Home() {
         onSuccess: (data) => {
             setDice(data.dice ?? null);
             setMessage(data.message);
-
-            if (data.gainedResources) {
-                setGained(data.gainedResources);
-            } else {
-                setGained({});
-            }
-
+            setGainedResources(data.gainedResources ?? {});
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
             queryClient.invalidateQueries({ queryKey: ["resources"] });
         },
-        onError: (error: Error) => {
-            setMessage(error.message);
-        }
+        onError: (error: Error) => setMessage(error.message)
     });
 
 
@@ -150,100 +135,78 @@ export default function Home() {
         isPending: resetLoading,
         data: resetData
     } = useMutation<ResetResponse, Error>({
-        mutationFn: () =>
-            apiFetch<ResetResponse>(API.endpoints.reset, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            }),
+        mutationFn: () => apiFetch<ResetResponse>(API.endpoints.reset, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        }),
         onSuccess: (data) => {
             setMessage(data.message);
             setDice(null);
-            const zeroGains: Totals = {};
-            Object.keys(totals).forEach(playerLabel => {
-                zeroGains[playerLabel] = { brick: 0, grain: 0, lumber: 0, ore: 0, wool: 0 };
-            });
-            setGained(zeroGains);
-
+            setGainedResources(
+                Object.keys(totals).reduce((acc, key) => {
+                    acc[key] = { brick: 0, grain: 0, lumber: 0, ore: 0, wool: 0 };
+                    return acc;
+                }, {} as Totals)
+            );
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
             queryClient.invalidateQueries({ queryKey: ["resources"] });
         },
-        onError: (error: Error) => {
-            setMessage(error.message);
-        }
+        onError: error => setMessage(error.message)
     });
 
     if (!mounted) {
         return null;
     }
 
-    const handleNext = () => {
-        postNextMove();
-    }
-
-    const handleReset = () => {
-        resetGame();
-    }
-
-    const settlements = settlementsData?.settlements ?? [];
-    const roads = roadsData?.roads ?? [];
-    const cities = citiesData?.cities ?? [];
-
     const isBoardLoading = settlementsLoading || citiesLoading || roadsLoading;
     const boardError = settlementsError || citiesError || roadsError;
 
     return (
-        <div>
+        <div style = {{ display: 'grid', gridTemplateColumns: '100vmin auto', alignItems: 'start', columnGap: '1rem', padding: '1rem' }}>
             <QueryBoundary isLoading = {isBoardLoading} error = {boardError}>
                 <OuterContainer>
                     <Ocean />
                     <BoardContainer>
                         <Board>
                             {hexes.map(({ id, x, y }) => {
-                                const id_of_hex = id as ID_Of_Hex;
+                                const idOfHex = id as ID_Of_Hex;
                                 return (
                                     <HexTile
-                                        key = {id_of_hex}
-                                        id = {id_of_hex}
-                                        color = {idToColor[id_of_hex]}
-                                        token = {tokenMapping[id_of_hex]}
+                                        key = {idOfHex}
+                                        id = {idOfHex}
+                                        color = {idToColor[idOfHex]}
+                                        token = {tokenMapping[idOfHex]}
                                         style = {getPositionStyles(x, y)}
                                     />
                                 );
                             })}
                             <CanvasLayer />
                             {vertices.map((v, i) => {
-                                const vLabel = `V${(i + 1).toString().padStart(2, '0')}`;
-                                return (
-                                    <React.Fragment key = {i}>
-                                        {portMapping[vLabel] && <Port x = {v.x} y = {v.y} type = {portMapping[vLabel]} />}
-                                    </React.Fragment>
-                                );
+                                const labelOfVertex = `V${(i + 1).toString().padStart(2, '0')}`;
+                                return portMapping[labelOfVertex] ? <Port key = {labelOfVertex} x = {v.x} y = {v.y} type = {portMapping[labelOfVertex]} /> : null;
                             })}
-                            {settlements.map((s) => {
+                            {settlementsData?.settlements.map((s) => {
                                 const v = vertexMapping[s.vertex];
-                                if (!v) { return null; }
-                                return <Marker key = {s.id} x = {v.x} y = {v.y} player = {s.player} type = "settlement" />
+                                return v ? <Marker key = {s.id} x = {v.x} y = {v.y} player = {s.player} type = "settlement" /> : null;
                             })}
-                            {cities.map((c) => {
+                            {citiesData?.cities.map((c) => {
                                 const v = vertexMapping[c.vertex];
-                                if (!v) { return null; }
-                                return <Marker key = {c.id.toString()} x = {v.x} y = {v.y} player = {c.player as number} type = "city" />;
+                                return v ? <Marker key = {c.id.toString()} x = {v.x} y = {v.y} player = {c.player as number} type = "city" /> : null;
                             })}
                             <RoadLayer viewBox = "0 0 100 100" preserveAspectRatio = "none">
-                                {roads.map((road, index) => {
+                                {roadsData?.roads.map((road, index) => {
                                     // road.edge is like "E01".
                                     const indexOfEdge = parseInt(road.edge.slice(1), 10) - 1;
-                                    const jsonObjectOfEdgeInformation = jsonArrayOfEdgeInformation[indexOfEdge];
-                                    const { x1, y1, x2, y2 } = jsonObjectOfEdgeInformation;
+                                    const { x1, y1, x2, y2 } = jsonArrayOfEdgeInformation[indexOfEdge];
                                     const colorMapping: Record<number, string> = {
                                         1: "red",
                                         2: "orange",
                                         3: "green"
                                     };
-                                    const strokeColor = colorMapping[road.player] ?? "gray";
+                                    const strokeColor = colorMapping[road.player] || "gray";
                                     return (
                                         <line
                                             key = {index}
@@ -261,35 +224,21 @@ export default function Home() {
                     </BoardContainer>
                 </OuterContainer>
             </QueryBoundary>
-            <div style = {{ textAlign: "center", marginTop: "1rem" }}>
-                <button onClick = {handleNext} disabled = {nextLoading}>
+            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <button onClick = {() => postNextMove()} disabled = {nextLoading}>
                     {nextLoading ? "Loading..." : "Next"}
                 </button>
-                <button onClick = {handleReset} disabled = {resetLoading} style = {{ marginLeft: "1rem" }}>
+                <button onClick = {() => resetGame()} disabled = {resetLoading} style = {{ marginLeft: "0.5rem" }}>
                     { resetLoading ? "Resetting..." : "Reset Game" }
                 </button>
-                <div className = "dice-display">
-                    <p>
-                        Yellow production die:&nbsp;
-                        {dice?.yellowProductionDie ?? '?'}
-                    </p>
-                    <p>
-                        Red production die:&nbsp;
-                        {dice?.redProductionDie ?? '?'}
-                    </p>
-                    <p>
-                        White event die:&nbsp;
-                        {dice?.whiteEventDie ?? '?'}
-                    </p>
+                <div className = "dice-display" style = {{ marginTop: "1rem" }}>
+                    <p>Yellow production die: {dice?.yellowProductionDie ?? '?'}</p>
+                    <p>Red production die: {dice?.redProductionDie ?? '?'}</p>
+                    <p>White event die: {dice?.whiteEventDie ?? '?'}</p>
                 </div>
                 {message && <p>{message}</p>}
                 <QueryBoundary isLoading = {resourcesLoading} error = {resourcesError}>
-                    <div>
-                        <ResourcesDisplay
-                            totals = {resourcesData ?? {}}
-                            gained = {gained}
-                        />
-                    </div>
+                    <ResourcesDisplay totals = {resourcesData ?? {}} gained = {gainedResources} />
                 </QueryBoundary>
             </div>
         </div>
