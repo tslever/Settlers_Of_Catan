@@ -128,7 +128,8 @@ public:
 
 
     void placeSettlement(int player, const std::string& vertex) {
-        if (phase == Game::Phase::TURN) {
+		bool isMainTurn = (phase == Game::Phase::TURN);
+        if (isMainTurn) {
 			resources[player]["brick"]--;
 			resources[player]["grain"]--;
 			resources[player]["lumber"]--;
@@ -139,7 +140,9 @@ public:
         if (checkForWinner()) {
             return;
         }
-        updatePhase();
+        if (!isMainTurn) {
+            updatePhase();
+        }
     }
 
 
@@ -154,13 +157,16 @@ public:
 
 
     void placeRoad(int player, const std::string& labelOfEdge) {
-        if (phase == Game::Phase::TURN) {
+		bool isMainTurn = (phase == Game::Phase::TURN);
+        if (isMainTurn) {
 			resources[player]["brick"]--;
 			resources[player]["lumber"]--;
         }
         roads[player].push_back(labelOfEdge);
         lastBuilding = "";
-        updatePhase();
+        if (!isMainTurn) {
+            updatePhase();
+        }
     }
 
 
