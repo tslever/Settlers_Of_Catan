@@ -72,8 +72,8 @@ public:
         std::uniform_int_distribution<int> distribution(1, 6);
         redProductionDie = distribution(generator);
         yellowProductionDie = distribution(generator);
-        int valueOfRoll = distribution(generator);
-        switch (valueOfRoll) {
+        int indexOfFaceOfWhiteEventDie = distribution(generator);
+        switch (indexOfFaceOfWhiteEventDie) {
         case 1:
             whiteEventDie = "yellow";
             break;
