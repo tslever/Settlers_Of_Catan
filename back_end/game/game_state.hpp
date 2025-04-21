@@ -57,11 +57,14 @@ public:
                 {"grain", 0},
                 {"lumber", 0},
                 {"ore", 0},
-                {"wool", 0}
+                {"wool", 0},
+                {"cloth", 0},
+                {"coin", 0},
+                {"paper", 0}
             };
         }
     }
-
+    
 
     void rollDice() {
         std::random_device randomDevice;
@@ -278,6 +281,15 @@ private:
 					for (const crow::json::rvalue& keyValuePair : jsonArrayOfLabelsOfVertices) {
 						if (keyValuePair.s() == labelOfVertex) {
 							bag[resource] += 1;
+                            if (resource == "lumber") {
+                                bag["paper"]++;
+                            }
+                            else if (resource == "ore") {
+                                bag["coin"]++;
+                            }
+                            else if (resource == "wool") {
+								bag["cloth"]++;
+							}
 							break;
 						}
 					}

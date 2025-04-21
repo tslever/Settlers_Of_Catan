@@ -92,7 +92,10 @@ namespace DB {
 				"grain INT NOT NULL DEFAULT 0, "
 				"lumber INT NOT NULL DEFAULT 0, "
 				"ore INT NOT NULL DEFAULT 0, "
-				"wool INT NOT NULL DEFAULT 0)"
+				"wool INT NOT NULL DEFAULT 0, "
+				"cloth INT NOT NULL DEFAULT 0, "
+				"coin INT NOT NULL DEFAULT 0, "
+				"paper INT NOT NULL DEFAULT 0)"
             ).execute();
 
             session.sql(
@@ -215,7 +218,9 @@ namespace DB {
                 gameState.roads[player].push_back(edge);
             }
 			mysqlx::Table resourcesTable = schema.getTable(tablePrefix + "resources");
-			mysqlx::RowResult resourcesResult = resourcesTable.select("player", "brick", "grain", "lumber", "ore", "wool").execute();
+			mysqlx::RowResult resourcesResult = resourcesTable
+                .select("player", "brick", "grain", "lumber", "ore", "wool", "cloth", "coin", "paper")
+                .execute();
             if (resourcesResult.count() == 0) {
                 for (int player = 1; player <= 3; player++) {
                     resourcesTable.insert("player").values(player).execute();
@@ -229,6 +234,9 @@ namespace DB {
 					gameState.resources[player]["lumber"] = row[3];
 					gameState.resources[player]["ore"] = row[4];
 					gameState.resources[player]["wool"] = row[5];
+					gameState.resources[player]["cloth"] = row[6];
+					gameState.resources[player]["coin"] = row[7];
+					gameState.resources[player]["paper"] = row[8];
                 }
             }
             return gameState;
@@ -269,20 +277,26 @@ namespace DB {
             const std::string table = tablePrefix + "resources";
             for (const auto& [player, bag] : resources) {
                 session.sql(
-                    "INSERT INTO " + table + " (player, brick, grain, lumber, ore, wool) "
-                    "VALUES(?, ?, ?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE "
+                    "INSERT INTO " + table + " (player, brick, grain, lumber, ore, wool, cloth, coin, paper) "
+                    "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
                     "brick = VALUES(brick), "
                     "grain = VALUES(grain), "
                     "lumber = VALUES(lumber), "
                     "ore = VALUES(ore), "
-                    "wool = VALUES(wool)"
+                    "wool = VALUES(wool), "
+                    "cloth = VALUES(cloth), "
+					"coin = VALUES(coin), "
+					"paper = VALUES(paper)"
                 ).bind(
                     player,
 					bag.at("brick"),
 					bag.at("grain"),
 					bag.at("lumber"),
 					bag.at("ore"),
-					bag.at("wool")
+					bag.at("wool"),
+					bag.at("cloth"),
+                    bag.at("coin"),
+					bag.at("paper")
 				).execute();
             }
         }

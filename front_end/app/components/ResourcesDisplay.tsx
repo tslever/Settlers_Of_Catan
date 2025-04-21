@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ResourcesByKind = Record<'brick'|'grain'|'lumber'|'ore'|'wool', number>;
+type ResourcesByKind = Record<'brick' | 'grain' | 'lumber' | 'ore' | 'wool' | 'cloth' | 'coin' | 'paper', number>;
 type Totals  = Record<string, ResourcesByKind>;
 
 interface Props {
@@ -13,7 +13,10 @@ const ZERO_BAG: ResourcesByKind = {
   grain: 0,
   lumber: 0,
   ore: 0,
-  wool: 0
+  wool: 0,
+  cloth: 0,
+  coin: 0,
+  paper: 0
 };
 
 const ResourcesDisplay: React.FC<Props> = ({ totals, gained }) => (
@@ -28,6 +31,9 @@ const ResourcesDisplay: React.FC<Props> = ({ totals, gained }) => (
           <th>Lumber</th>
           <th>Ore</th>
           <th>Wool</th>
+          <th>Cloth</th>
+          <th>Coin</th>
+          <th>Paper</th>
         </tr>
       </thead>
       <tbody>
@@ -41,13 +47,16 @@ const ResourcesDisplay: React.FC<Props> = ({ totals, gained }) => (
               <td>{bag.lumber}</td>
               <td>{bag.ore}</td>
               <td>{bag.wool}</td>
+              <td>{bag.cloth}</td>
+              <td>{bag.coin}</td>
+              <td>{bag.paper}</td>
             </tr>
           );
         })}
       </tbody>
     </table>
 
-    <h3>Total resources so far</h3>
+    <h3>Total resources</h3>
     <table>
       <thead>
         <tr>
@@ -57,6 +66,9 @@ const ResourcesDisplay: React.FC<Props> = ({ totals, gained }) => (
           <th>Lumber</th>
           <th>Ore</th>
           <th>Wool</th>
+          <th>Cloth</th>
+          <th>Coin</th>
+          <th>Paper</th>
         </tr>
       </thead>
       <tbody>
@@ -68,6 +80,9 @@ const ResourcesDisplay: React.FC<Props> = ({ totals, gained }) => (
             <td>{bag.lumber}</td>
             <td>{bag.ore}</td>
             <td>{bag.wool}</td>
+            <td>{bag.cloth}</td>
+            <td>{bag.coin}</td>
+            <td>{bag.paper}</td>
           </tr>
         ))}
       </tbody>
