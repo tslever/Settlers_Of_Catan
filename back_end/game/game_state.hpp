@@ -128,6 +128,12 @@ public:
 
 
     void placeSettlement(int player, const std::string& vertex) {
+        if (phase == Game::Phase::TURN) {
+			resources[player]["brick"]--;
+			resources[player]["grain"]--;
+			resources[player]["lumber"]--;
+			resources[player]["wool"]--;
+        }
         settlements[player].push_back(vertex);
         lastBuilding = vertex;
         if (checkForWinner()) {
@@ -148,6 +154,10 @@ public:
 
 
     void placeRoad(int player, const std::string& labelOfEdge) {
+        if (phase == Game::Phase::TURN) {
+			resources[player]["brick"]--;
+			resources[player]["lumber"]--;
+        }
         roads[player].push_back(labelOfEdge);
         lastBuilding = "";
         updatePhase();

@@ -1,19 +1,26 @@
 Interface Design,,,
 ,,,
 Created on 2025-04-20 by Tom Lever,,,
-Updated on 2025-04-20 by Tom Lever,,,
+Updated on 2025-04-21 by Tom Lever,,,
 ,,,
 ,,,
-/cities,,,
-"""cities""",list of JSON objects with the following keys.,,
+/,"This endpoint is called when a client navigates to the application URL (e.g., `localhost:3000`).",,
+,The endpoint responds with a JSON object with the following key value pair.,,
+"""message""","""Welcome to the Settlers of Catan API!""",,
+,,,
+,,,
+/cities,This endpoint is called when the client loads or refreshes the board state on page load and after a move or reset.,,
+,This endpoint responds with a JSON object with the following key value pair.,,
+"""cities""",array of JSON objects with the following keys.,,
 ,"""id""",natural number identifying city,
 ,"""player""",natural number identifying player,
 ,"""vertex""","""V<'01', '02', ..., or '54'>""",
 ,,,
 ,,,
-/next,,,
+/next,This endpoint is called when a user presses the Next button to advance the game.,,
+,The endpoint responds with a JSON object with the following key value pairs.,,
 ,,,
-"1 of keys ""city"", ""road"", and ""settlement"" is included during setup and when a player is taking a turn.",,,
+"1 of keys ""city"", ""road"", and ""settlement"" is included when a structure is placed during setup and when a player is taking a turn.",,,
 """city"" or ""settlement""",,,
 ,"""vertex""","""V<'01', '02', …, or '54'>""",
 ,"""id""",natural number identifying city or settlement,
@@ -23,52 +30,76 @@ Updated on 2025-04-20 by Tom Lever,,,
 ,"""id""",natural number identifying road,
 ,"""player""",natural number identifying player,
 ,,,
-,,,
-"Key ""dice"" is included when a player is rolling dice.",,,
+"Key ""dice"" is included when a player rolls dice.",,,
 """dice""",,,
 ,"""yellowProductionDie""",natural number between 1 and 6,
 ,"""redProductionDie""",natural number between 1 and 6,
 ,"""whiteEventDie""","""yellow"", ""green"", ""blue"", or ""black""",
 ,,,
-,,,
-"Key ""gainedResources"" is included when a player is rolling dice.",,,
-"""gainedResources""",JSON object,,
+"Key ""gainedResources"" is included when a player rolls dice or takes a turn.",,,
+"When a player is takes a turn, gains are negative.",,,
+"""gainedResources""",JSON object mapping each player to resource changes,,
 ,"""Player <natural number identifying player>""",,
 ,,"""brick""",whole number
 ,,"""grain""",whole number
 ,,"""lumber""",whole number
 ,,"""ore""",whole number
 ,,"""wool""",whole number
+,,"""cloth""",whole number
+,,"""coin""",whole number
+,,"""paper""",whole number
 ,,,
-,,,
-"Key ""totalResources"" is included when a player is rolling dice or taking a turn.",,,
-"""totalResources""",,,
+"Key ""totalResources"" is included when a player is rolls dice or takes a turn.",,,
+"""totalResources""",JSON object mapping each player to total resource counts,,
 ,"""Player <natural number identifying player>""",,
 ,,"""brick""",whole number
 ,,"""grain""",whole number
 ,,"""lumber""",whole number
 ,,"""ore""",whole number
 ,,"""wool""",whole number
-,,,
+,,"""cloth""",whole number
+,,"""coin""",whole number
+,,"""paper""",whole number
 ,,,
 """message""","""Player <number of player> placed a <'city', 'road', or 'settlement'> at <'E' or 'V'><number of edge or vertex>.""",,
 ,"""Player <number of player> rolled the dice.""",,
 ,"""Game is over. Thanks for playing!""",,
+,"""Player <number of player> passed.""",,
 ,,,
 ,,,
-/reset,,,
+/reset,This endpoint is called when a user presses the Reset button to restart the game.,,
+,This endpoint responds with a JSON object with the following key value pair.,,
 """message""","""Game has been reset to initial state.""",,
 ,,,
 ,,,
-/roads,,,
+/resources,This endpoint is called when the client loads or refreshes resource totals on page load and after a move or reset.,,
+,Ths endpoint responds with a JSON object with each player's current total numbers of resources.,,
+,"""Player <natural number identifying player>""",,
+,,brick,whole number
+,,grain,whole number
+,,lumber,whole number
+,,ore,whole number
+,,wool,whole number
+,,cloth,whole number
+,,coin,whole number
+,,paper,whole number
+,,,
+/roads,This endpoint is called when the client loads or refreshes road placements on page load and after a move or reset.,,
+,This endpoint responds with a JSON object with the following key value pair.,,
 """roads""",array of JSON objects with the following keys.,,
 ,"""id""",natural number identifying road,
 ,"""player""",natural number identifying player,
 ,"""edge""","""E<'01', '02', ..., or '72'>""",
 ,,,
 ,,,
-/settlements,,,
-"""settlements""",list of JSON objects with the following keys.,,
+/settlements,This endpoint is called when the client loads or refreshes the settement placements on page load and after a move or reset.,,
+,This endpoint responds with a JSON object with the following key value pair.,,
+"""settlements""",array of JSON objects with the following keys.,,
 ,"""id""",natural number identifying settlement,
 ,"""player""",natural number identifying player,
 ,"""vertex""","""V<'01', '02', ..., or '54'>""",
+,,,
+,,,
+/state,This endpoint is called when the client initializes to retrieve the last saved game state on page load.,,
+,This endpoint responds with a JSON object with the structure of a /next response less structure placement keys.,,
+"Same structure as /next, without key ""city"", ""road"", or ""settlement""",,,

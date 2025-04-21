@@ -40,6 +40,14 @@ namespace Server {
 		AI::WrapperOfNeuralNetwork& wrapperOfNeuralNetwork,
 		const Config::Config& config
 	) {
+		CROW_ROUTE(app, "/")
+			([]() -> crow::json::wvalue {
+			crow::json::wvalue result;
+			result["message"] = "Welcome to the Settlers of Catan API!";
+			return result;
+				});
+
+
 		CROW_ROUTE(app, "/cities").methods("GET"_method)
 			([&liveDb]() -> crow::json::wvalue {
 			try {
@@ -51,6 +59,7 @@ namespace Server {
 				return error;
 			}
 		});
+
 
 		CROW_ROUTE(app, "/next").methods("POST"_method)
 			([&liveDb, &wrapperOfNeuralNetwork, &config]() -> crow::json::wvalue {
@@ -86,6 +95,7 @@ namespace Server {
 			return response;
 		});
 
+
 		CROW_ROUTE(app, "/reset").methods("POST"_method)
 			([&liveDb]() -> crow::json::wvalue {
 			crow::json::wvalue response;
@@ -109,10 +119,12 @@ namespace Server {
 			return response;
 		});
 
+
 		CROW_ROUTE(app, "/resources").methods("GET"_method)
 			([&liveDb]() {
 				return liveDb.getResourcesJson();
 			});
+
 
 		CROW_ROUTE(app, "/roads").methods("GET"_method)
 			([&liveDb]() -> crow::json::wvalue {
@@ -126,12 +138,6 @@ namespace Server {
 			}
 		});
 
-		CROW_ROUTE(app, "/")
-			([]() -> crow::json::wvalue {
-			crow::json::wvalue result;
-			result["message"] = "Welcome to the Settlers of Catan API!";
-			return result;
-		});
 
 		CROW_ROUTE(app, "/settlements").methods("GET"_method)
 			([&liveDb]() -> crow::json::wvalue {
@@ -144,6 +150,7 @@ namespace Server {
 				return error;
 			}
 		});
+
 
 		CROW_ROUTE(app, "/state").methods("GET"_method)
 			([&liveDb]() -> crow::json::wvalue {

@@ -232,6 +232,7 @@ namespace Game {
 
 		crow::json::wvalue handleTurn() {
 			crow::json::wvalue jsonObjectOfMoveInformation;
+			auto resourcesBeforeMove = state.resources;
 			auto [labelOfChosenVertexOrEdge, visitCount] = runMcts(
 				state,
 				wrapperOfNeuralNetwork,
@@ -272,6 +273,17 @@ namespace Game {
 					jsonObjectOfMoveInformation["road"] = std::move(jsonObjectOfRoadInformation);
 				}
 			}
+			crow::json::wvalue gainedAll(crow::json::type::Object);
+			for (const auto& [player, newBag] : state.resources) {
+				crow::json::wvalue bagJson(crow::json::type::Object);
+				const auto& oldBag = resourcesBeforeMove.at(player);
+				for (const auto& [kind, newQuantity] : newBag) {
+					int oldQuantity = oldBag.at(kind);
+					bagJson[kind] = newQuantity - oldQuantity;
+				}
+				gainedAll["Player " + std::to_string(player)] = std::move(bagJson);
+			}
+			jsonObjectOfMoveInformation["gainedResources"] = std::move(gainedAll);
 			jsonObjectOfMoveInformation["totalResources"] = makeTotalsJson();
 			return jsonObjectOfMoveInformation;
 		}
