@@ -50,6 +50,7 @@ namespace AI {
 			Board board;
 			std::vector<std::string> vectorOfLabelsOfAvailableVerticesOrEdges;
 			std::string phase = node->gameState.phase;
+
 			if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
 				vectorOfLabelsOfAvailableVerticesOrEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
@@ -62,23 +63,26 @@ namespace AI {
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
 				vectorOfLabelsOfAvailableVerticesOrEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
-			else if (node->gameState.phase == Game::Phase::TURN) {
+			else if (phase == Game::Phase::TURN) {
 				const int currentPlayer = node->gameState.currentPlayer;
+				auto& resources = node->gameState.resources.at(currentPlayer);
 
-				std::unordered_set<std::string> unorderedSetOfLabelsOfVerticesOfRoads;
-				const auto& roadsOfPlayer = node->gameState.roads.at(currentPlayer);
-				for (const std::string& road : roadsOfPlayer) {
-					auto verticesOfEdge = board.getVerticesOfEdge(road);
-					unorderedSetOfLabelsOfVerticesOfRoads.insert(verticesOfEdge.first);
-					unorderedSetOfLabelsOfVerticesOfRoads.insert(verticesOfEdge.second);
+				std::unordered_set<std::string> unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer;
+				const auto& labelsOfEdgesWithRoadsOfPlayer = node->gameState.roads.at(currentPlayer);
+				for (const std::string& labelOfEdgeWithRoadOfPlayer : labelsOfEdgesWithRoadsOfPlayer) {
+					auto verticesOfEdge = board.getVerticesOfEdge(labelOfEdgeWithRoadOfPlayer);
+					unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.insert(verticesOfEdge.first);
+					unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.insert(verticesOfEdge.second);
 				}
 
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
 				std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 
 				for (const std::string& labelOfVertex : vectorOfLabelsOfAvailableVertices) {
-					if (unorderedSetOfLabelsOfVerticesOfRoads.contains(labelOfVertex)) {
-						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfVertex);
+					if (unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(labelOfVertex)) {
+						if (resources["brick"] >= 1 && resources["grain"] >= 1 && resources["lumber"] >= 1 && resources["wool"] >= 1) {
+							vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfVertex);
+						}
 					}
 				}
 
@@ -87,8 +91,10 @@ namespace AI {
 
 				for (const std::string& labelOfEdge : vectorOfLabelsOfAvailableEdges) {
 					auto verticesOfEdge = board.getVerticesOfEdge(labelOfEdge);
-					if (unorderedSetOfLabelsOfVerticesOfRoads.contains(verticesOfEdge.first) || unorderedSetOfLabelsOfVerticesOfRoads.contains(verticesOfEdge.second)) {
-						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfEdge);
+					if (unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(verticesOfEdge.first) || unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(verticesOfEdge.second)) {
+						if (resources["brick"] >= 1 && resources["lumber"] >= 1) {
+							vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfEdge);
+						}
 					}
 				}
 
