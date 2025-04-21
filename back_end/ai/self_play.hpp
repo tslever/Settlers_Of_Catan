@@ -43,6 +43,13 @@ namespace AI {
 
             if (gameState.phase == Game::Phase::TO_ROLL_DICE) {
                 gameState.rollDice();
+                Logger::info(
+                    "    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " rolling the dice was simulated."
+                    /*"    Yellow and red production and white event dice had values " +
+					std::to_string(gameState.yellowProductionDie) + ", " +
+                    std::to_string(gameState.redProductionDie) + ", and " +
+                    gameState.whiteEventDie + "."*/
+                );
                 gameState.updatePhase();
                 continue;
             }

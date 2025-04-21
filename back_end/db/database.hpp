@@ -271,6 +271,16 @@ namespace DB {
             return jsonObject;
         }
 
+
+        void removeStructure(const std::string& structureSuffix, int player, const std::string& location, const std::string& locationField) {
+			WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+			mysqlx::Session& session = wrapperOfSession.getSession();
+            session.sql(
+				"DELETE FROM " + tablePrefix + structureSuffix + " WHERE player = ? AND " + locationField + " = ?"
+			).bind(player, location).execute();
+        }
+
+
         void upsertResources(const std::unordered_map<int, std::unordered_map<std::string, int>>& resources) {
 			WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
 			mysqlx::Session& session = wrapperOfSession.getSession();

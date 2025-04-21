@@ -98,6 +98,12 @@ namespace AI {
 					}
 				}
 
+				const std::vector<std::string>& vectorOfLabelsOfVerticesOfSettlementsOfPlayer = node->gameState.settlements.at(currentPlayer);
+				for (const std::string& labelOfVertex : vectorOfLabelsOfVerticesOfSettlementsOfPlayer) {
+					if (resources["grain"] >= 2 && resources["ore"] >= 3) {
+						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfVertex);
+					}
+				}
 				vectorOfLabelsOfAvailableVerticesOrEdges.push_back("pass");
 			}
 
@@ -131,8 +137,23 @@ namespace AI {
 					}
 					else if (phase == Game::Phase::TURN) {
 						if (board.isLabelOfVertex(labelOfAvailableVertexOrEdge)) {
-							gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrEdge);
-							moveType = "settlement";
+							const std::vector<std::string>& vectorOfLabelsOfVerticesOfSettlementsOfPlayer = gameStateOfChild.settlements.at(currentPlayer);
+							bool hadSettlement = std::find(
+								vectorOfLabelsOfVerticesOfSettlementsOfPlayer.begin(),
+								vectorOfLabelsOfVerticesOfSettlementsOfPlayer.end(),
+								labelOfAvailableVertexOrEdge
+							) != vectorOfLabelsOfVerticesOfSettlementsOfPlayer.end();
+							if (hadSettlement &&
+								gameStateOfChild.resources.at(currentPlayer).at("grain") >= 2 &&
+								gameStateOfChild.resources.at(currentPlayer).at("ore") >= 3
+							) {
+								gameStateOfChild.placeCity(currentPlayer, labelOfAvailableVertexOrEdge);
+								moveType = "city";
+							}
+							else {
+								gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrEdge);
+								moveType = "settlement";
+							}
 						}
 						else if (board.isLabelOfEdge(labelOfAvailableVertexOrEdge)) {
 							gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrEdge);

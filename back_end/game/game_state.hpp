@@ -147,7 +147,22 @@ public:
 
 
     void placeCity(int player, const std::string& vertex) {
-        cities[player].push_back(vertex);
+		bool isMainTurn = (phase == Game::Phase::TURN);
+        if (isMainTurn) {
+			resources[player]["grain"] -= 2;
+			resources[player]["ore"] -= 3;
+            std::vector<std::string>& vectorOfLabelsOfSettlementsOfPlayer = settlements[player];
+			vectorOfLabelsOfSettlementsOfPlayer.erase(
+                std::remove(
+                    vectorOfLabelsOfSettlementsOfPlayer.begin(),
+                    vectorOfLabelsOfSettlementsOfPlayer.end(),
+                    vertex
+                ),
+                vectorOfLabelsOfSettlementsOfPlayer.end()
+            );
+        }
+		cities[player].push_back(vertex);
+
         lastBuilding = vertex;
         if (checkForWinner()) {
             return;

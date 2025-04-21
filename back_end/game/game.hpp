@@ -253,14 +253,35 @@ namespace Game {
 			else {
 				Board board;
 				if (board.isLabelOfVertex(labelOfChosenVertexOrEdge)) {
-					state.placeSettlement(currentPlayer, labelOfChosenVertexOrEdge);
-					int settlementId = db.addStructure("settlements", currentPlayer, labelOfChosenVertexOrEdge, "vertex");
-					jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + labelOfChosenVertexOrEdge + ".";
-					crow::json::wvalue jsonObjectOfSettlementInformation;
-					jsonObjectOfSettlementInformation["id"] = settlementId;
-					jsonObjectOfSettlementInformation["player"] = currentPlayer;
-					jsonObjectOfSettlementInformation["vertex"] = labelOfChosenVertexOrEdge;
-					jsonObjectOfMoveInformation["settlement"] = std::move(jsonObjectOfSettlementInformation);
+					std::vector<std::string>& vectorOfLabelsOfSettlementsOfPlayer = state.settlements[currentPlayer];
+					bool hasSettlement = std::find(
+						vectorOfLabelsOfSettlementsOfPlayer.begin(),
+						vectorOfLabelsOfSettlementsOfPlayer.end(),
+						labelOfChosenVertexOrEdge
+					) != vectorOfLabelsOfSettlementsOfPlayer.end();
+					bool canUpgrade = state.resources[currentPlayer]["grain"] >= 2 && state.resources[currentPlayer]["ore"] >= 3;
+
+					if (hasSettlement && canUpgrade) {
+						state.placeCity(currentPlayer, labelOfChosenVertexOrEdge);
+						db.removeStructure("settlements", currentPlayer, labelOfChosenVertexOrEdge, "vertex");
+						int cityId = db.addStructure("cities", currentPlayer, labelOfChosenVertexOrEdge, "vertex");
+						jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " upgraded a settlement to a city at " + labelOfChosenVertexOrEdge + ".";
+						crow::json::wvalue jsonObjectOfCityInformation;
+						jsonObjectOfCityInformation["id"] = cityId;
+						jsonObjectOfCityInformation["player"] = currentPlayer;
+						jsonObjectOfCityInformation["vertex"] = labelOfChosenVertexOrEdge;
+						jsonObjectOfMoveInformation["city"] = std::move(jsonObjectOfCityInformation);
+					}
+					else {
+						state.placeSettlement(currentPlayer, labelOfChosenVertexOrEdge);
+						int settlementId = db.addStructure("settlements", currentPlayer, labelOfChosenVertexOrEdge, "vertex");
+						jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + labelOfChosenVertexOrEdge + ".";
+						crow::json::wvalue jsonObjectOfSettlementInformation;
+						jsonObjectOfSettlementInformation["id"] = settlementId;
+						jsonObjectOfSettlementInformation["player"] = currentPlayer;
+						jsonObjectOfSettlementInformation["vertex"] = labelOfChosenVertexOrEdge;
+						jsonObjectOfMoveInformation["settlement"] = std::move(jsonObjectOfSettlementInformation);
+					}
 				}
 				else if (board.isLabelOfEdge(labelOfChosenVertexOrEdge)) {
 					state.placeRoad(currentPlayer, labelOfChosenVertexOrEdge);
