@@ -8,7 +8,7 @@ interface Props {
   gained: Totals;
 }
 
-const ZERO_BAG: ResourcesByKind = {
+export const ZERO_BAG: ResourcesByKind = {
   brick: 0,
   grain: 0,
   lumber: 0,

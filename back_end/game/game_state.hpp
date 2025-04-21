@@ -290,8 +290,14 @@ private:
 				for (const std::string& labelOfVertex : cities[player]) {
 					for (const crow::json::rvalue& keyValuePair : jsonArrayOfLabelsOfVertices) {
 						if (keyValuePair.s() == labelOfVertex) {
-							bag[resource] += 1;
-                            if (resource == "lumber") {
+							bag[resource]++;
+                            if (resource == "brick") {
+                                bag["brick"]++;
+                            }
+							else if (resource == "grain") {
+								bag["grain"]++;
+							}
+                            else if (resource == "lumber") {
                                 bag["paper"]++;
                             }
                             else if (resource == "ore") {

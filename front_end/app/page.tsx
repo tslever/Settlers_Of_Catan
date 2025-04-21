@@ -29,7 +29,7 @@ import CanvasLayer from './CanvasLayer';
 import Marker from './components/Marker';
 import { useCentralQuery } from './hooks/useCentralQuery';
 import QueryBoundary from './components/QueryBoundary';
-import ResourcesDisplay from './components/ResourcesDisplay';
+import ResourcesDisplay, { ZERO_BAG } from './components/ResourcesDisplay';
 
 
 const vertexMapping: Record<string, { x: number, y: number }> =
@@ -40,13 +40,24 @@ const vertexMapping: Record<string, { x: number, y: number }> =
     }, {} as Record<string, { x: number; y: number }>);
 
 
+function isEmpty(obj: object) {
+    return Object.keys(obj).length == 0;
+}
+
+
 export default function Home() {
 
+    const INITIAL_TOTALS: Totals = {
+        "Player 1": ZERO_BAG,
+        "Player 2": ZERO_BAG,
+        "Player 3": ZERO_BAG
+    }
+
     const [dice, setDice] = useState<Dice | null>(null);
-    const [gainedResources, setGainedResources] = useState<Totals>({});
+    const [gainedResources, setGainedResources] = useState<Totals>(INITIAL_TOTALS);
     const [message, setMessage] = useState("");
     const [mounted, setMounted] = useState(false);
-    const [totals, setTotals] = useState<Totals>({});
+    const [totals, setTotals] = useState<Totals>(INITIAL_TOTALS);
 
     const queryClient = useQueryClient();
 
@@ -56,8 +67,10 @@ export default function Home() {
         .then(data => {
             setMessage(data.message)
             setDice(data.dice ?? null);
-            setGainedResources(data.gainedResources ?? {});
-            setTotals(data.totalResources ?? {});
+            const gains = data.gainedResources;
+            setGainedResources(gains && !isEmpty(gains) ? gains : INITIAL_TOTALS);
+            const totals = data.totalResources;
+            setTotals(totals && !isEmpty(totals) ? totals : INITIAL_TOTALS);
         })
         .catch(() => {});
     }, []);
@@ -105,8 +118,10 @@ export default function Home() {
         onSuccess: (data) => {
             setDice(data.dice ?? null);
             setMessage(data.message);
-            setGainedResources(data.gainedResources ?? {});
-            setTotals(data.totalResources ?? {});
+            const gains = data.gainedResources;
+            setGainedResources(gains && !isEmpty(gains) ? gains : INITIAL_TOTALS);
+            const totals = data.totalResources;
+            setTotals(totals && !isEmpty(totals) ? totals : INITIAL_TOTALS);
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
@@ -132,9 +147,9 @@ export default function Home() {
                 Object.keys(totals).reduce((acc, key) => {
                     acc[key] = { brick: 0, grain: 0, lumber: 0, ore: 0, wool: 0, cloth: 0, coin: 0, paper: 0 };
                     return acc;
-                }, {} as Totals)
+                }, INITIAL_TOTALS as Totals)
             );
-            setTotals({});
+            setTotals(INITIAL_TOTALS);
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
