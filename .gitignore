@@ -8,6 +8,7 @@ back_end/dependencies
 back_end/intermediate
 back_end/x64
 
+cud_database/__pycache__
 cud_database/settings.py
 
 env

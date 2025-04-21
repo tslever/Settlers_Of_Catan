@@ -51,7 +51,13 @@ export default function Home() {
 
     useEffect(() => {
         setMounted(true);
-        apiFetch<{message:string}>(API.endpoints.message).then(data => setMessage(data.message)).catch(() => {});
+        apiFetch<NextResponse>(API.endpoints.state)
+        .then(data => {
+            setMessage(data.message)
+            setDice(data.dice ?? null);
+            setGained(data.gainedResources ?? {});
+        })
+        .catch(() => {});
     }, []);
 
     const {

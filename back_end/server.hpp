@@ -27,6 +27,13 @@ namespace Server {
 		}
 	};
 
+
+	crow::json::wvalue loadBlob(const DB::Database& db, const std::string& key) {
+		std::string setting = db.getSetting(key);
+		return setting.empty() ? crow::json::wvalue(crow::json::type::Object) : crow::json::load(setting);
+	};
+
+
 	void setUpRoutes(
 		crow::App<CorsMiddleware>& app,
 		DB::Database& liveDb,
@@ -43,13 +50,6 @@ namespace Server {
 				error["error"] = std::string("Getting cities failed with the following error. ") + e.what();
 				return error;
 			}
-		});
-
-		CROW_ROUTE(app, "/message").methods("GET"_method)
-			([&liveDb]() -> crow::json::wvalue {
-			crow::json::wvalue response;
-			response["message"] = liveDb.getSetting("lastMessage");
-			return response;
 		});
 
 		CROW_ROUTE(app, "/next").methods("POST"_method)
@@ -71,14 +71,13 @@ namespace Server {
 				response = game.handlePhase();
 				liveDb.updateGameState(game.getState());
 				std::string messageWithQuotes = response["message"].dump();
-				std::string message;
-				if (messageWithQuotes.size() >= 2 && messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') {
-					message = messageWithQuotes.substr(1, messageWithQuotes.size() - 2);
-				}
-				else {
-					message = messageWithQuotes;
-				}
+				std::string message = (messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"')
+					? messageWithQuotes.substr(1, messageWithQuotes.size() - 2)
+					: messageWithQuotes;
 				liveDb.upsertSetting("lastMessage", message);
+				liveDb.upsertSetting("lastDice", response["dice"].dump());
+				liveDb.upsertSetting("lastGainedResources", response["gainedResources"].dump());
+				liveDb.upsertSetting("lastTotalResources", response["totalResources"].dump());
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
@@ -95,14 +94,13 @@ namespace Server {
 				bool success = liveDb.resetGame();
 				response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
 				std::string messageWithQuotes = response["message"].dump();
-				std::string message;
-				if (messageWithQuotes.size() >= 2 && messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') {
-					message = messageWithQuotes.substr(1, messageWithQuotes.size() - 2);
-				}
-				else {
-					message = messageWithQuotes;
-				}
+				std::string message = (messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"')
+					? messageWithQuotes.substr(1, messageWithQuotes.size() - 2)
+					: messageWithQuotes;
 				liveDb.upsertSetting("lastMessage", message);
+				liveDb.upsertSetting("lastDice", {});
+				liveDb.upsertSetting("lastGainedResources", {});
+				liveDb.upsertSetting("lastTotalResources", {});
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("Resetting game failed with the following error. ") + e.what();
@@ -145,6 +143,23 @@ namespace Server {
 				error["error"] = std::string("Getting settlements failed with the following error. ") + e.what();
 				return error;
 			}
+		});
+
+		CROW_ROUTE(app, "/state").methods("GET"_method)
+			([&liveDb]() -> crow::json::wvalue {
+			crow::json::wvalue result;
+			try {
+
+				result["message"] = liveDb.getSetting("lastMessage");
+				result["dice"] = loadBlob(liveDb, "lastDice");
+				result["gainedResources"] = loadBlob(liveDb, "lastGainedResources");
+				result["totalResources"] = loadBlob(liveDb, "lastTotalResources");
+			}
+			catch (const std::exception& e) {
+				result["error"] = std::string("Getting game state failed with the following error. ") + e.what();
+				Logger::error("state", e);
+			}
+			return result;
 		});
 	}
 
