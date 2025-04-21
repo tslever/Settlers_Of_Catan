@@ -72,18 +72,6 @@ Updated on 2025-04-21 by Tom Lever,,,
 """message""","""Game has been reset to initial state.""",,
 ,,,
 ,,,
-/resources,This endpoint is called when the client loads or refreshes resource totals on page load and after a move or reset.,,
-,Ths endpoint responds with a JSON object with each player's current total numbers of resources.,,
-,"""Player <natural number identifying player>""",,
-,,brick,whole number
-,,grain,whole number
-,,lumber,whole number
-,,ore,whole number
-,,wool,whole number
-,,cloth,whole number
-,,coin,whole number
-,,paper,whole number
-,,,
 /roads,This endpoint is called when the client loads or refreshes road placements on page load and after a move or reset.,,
 ,This endpoint responds with a JSON object with the following key value pair.,,
 """roads""",array of JSON objects with the following keys.,,

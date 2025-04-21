@@ -6,7 +6,6 @@ export const API = {
         cities: '/cities',
         next: '/next',
         reset: '/reset',
-        resources: '/resources',
         roads: '/roads',
         settlements: '/settlements',
         state: '/state'

@@ -35,6 +35,9 @@ export interface ResourcesByKind {
     lumber: number;
     ore: number;
     wool: number;
+    cloth: number;
+    coin: number;
+    paper: number;
 }
 
 export type ID_Of_Hex = keyof typeof idToColor;

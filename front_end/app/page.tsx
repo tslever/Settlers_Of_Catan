@@ -46,6 +46,7 @@ export default function Home() {
     const [gainedResources, setGainedResources] = useState<Totals>({});
     const [message, setMessage] = useState("");
     const [mounted, setMounted] = useState(false);
+    const [totals, setTotals] = useState<Totals>({});
 
     const queryClient = useQueryClient();
 
@@ -56,26 +57,10 @@ export default function Home() {
             setMessage(data.message)
             setDice(data.dice ?? null);
             setGainedResources(data.gainedResources ?? {});
+            setTotals(data.totalResources ?? {});
         })
         .catch(() => {});
     }, []);
-
-    const {
-        data: resourcesData,
-        isLoading: resourcesLoading,
-        error: resourcesError
-    } = useCentralQuery<Record<string, ResourcesByKind>>(
-        ["resources"],
-        () => apiFetch<Record<string, ResourcesByKind>>(API.endpoints.resources),
-        {enabled: mounted}
-    );
-
-    const totals: Totals = React.useMemo(() => {
-        if (!resourcesData) {
-            return {};
-        }
-        return resourcesData;
-    }, [resourcesData]);
 
     const {
         data: settlementsData,
@@ -121,10 +106,10 @@ export default function Home() {
             setDice(data.dice ?? null);
             setMessage(data.message);
             setGainedResources(data.gainedResources ?? {});
+            setTotals(data.totalResources ?? {});
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
-            queryClient.invalidateQueries({ queryKey: ["resources"] });
         },
         onError: (error: Error) => setMessage(error.message)
     });
@@ -145,14 +130,14 @@ export default function Home() {
             setDice(null);
             setGainedResources(
                 Object.keys(totals).reduce((acc, key) => {
-                    acc[key] = { brick: 0, grain: 0, lumber: 0, ore: 0, wool: 0 };
+                    acc[key] = { brick: 0, grain: 0, lumber: 0, ore: 0, wool: 0, cloth: 0, coin: 0, paper: 0 };
                     return acc;
                 }, {} as Totals)
             );
+            setTotals({});
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
-            queryClient.invalidateQueries({ queryKey: ["resources"] });
         },
         onError: error => setMessage(error.message)
     });
@@ -237,8 +222,8 @@ export default function Home() {
                     <p>White event die: {dice?.whiteEventDie ?? '?'}</p>
                 </div>
                 {message && <p>{message}</p>}
-                <QueryBoundary isLoading = {resourcesLoading} error = {resourcesError}>
-                    <ResourcesDisplay totals = {resourcesData ?? {}} gained = {gainedResources} />
+                <QueryBoundary isLoading = {false} error = {null}>
+                    <ResourcesDisplay totals = {totals} gained = {gainedResources} />
                 </QueryBoundary>
             </div>
         </div>

@@ -323,24 +323,6 @@ namespace DB {
         }
 
 
-        crow::json::wvalue getResourcesJson() const {
-            crow::json::wvalue out(crow::json::type::Object);
-            try {
-                GameState state = getGameState();
-                for (const auto& [player, bag] : state.resources) {
-                    crow::json::wvalue bagJson(crow::json::type::Object);
-                    for (const auto& [kind, quantity] : bag) {
-                        bagJson[kind] = quantity;
-                    }
-                    out["Player " + std::to_string(player)] = std::move(bagJson);
-                }
-            }
-            catch (const std::exception& e) {
-                out["error"] = std::string("The following error occurred while retrieving resources from the database. ") + e.what();
-            }
-            return out;
-        }
-
         std::vector<Settlement> getSettlements() const {
             std::vector<Settlement> settlements;
             WrapperOfSession wrapperOfSession(dbName, host, password, port, username);

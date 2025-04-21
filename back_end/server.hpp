@@ -120,12 +120,6 @@ namespace Server {
 		});
 
 
-		CROW_ROUTE(app, "/resources").methods("GET"_method)
-			([&liveDb]() {
-				return liveDb.getResourcesJson();
-			});
-
-
 		CROW_ROUTE(app, "/roads").methods("GET"_method)
 			([&liveDb]() -> crow::json::wvalue {
 			try {
