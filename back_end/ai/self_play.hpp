@@ -67,7 +67,7 @@ namespace AI {
                 Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " playing their turn is being simulated.");
             }
             int currentPlayer = gameState.currentPlayer;
-            std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = runMcts(
+            auto [labelOfVertexOrEdgeKey, visitCount] = runMcts(
                 gameState,
                 neuralNet,
                 numberOfSimulations,
@@ -76,56 +76,60 @@ namespace AI {
                 dirichletMixingWeight,
                 dirichletShape
             );
-            std::string labelOfVertexOrEdgeKey = pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount.first;
             if (labelOfVertexOrEdgeKey.empty()) {
                 throw std::runtime_error("[SELF PLAY] MCTS did not return a valid move.");
             }
-
-            std::string phase = gameState.phase;
-            if (phase.find("settlement") != std::string::npos) {
-                gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
+            std::string originalPhase = gameState.phase;
+            std::string moveType;
+			if (labelOfVertexOrEdgeKey == "pass") {
+                moveType = "pass";
+			}
+            else if (originalPhase.find("settlement") != std::string::npos) {
+				moveType = "settlement";
             }
-            else if (phase.find("city") != std::string::npos) {
-                gameState.placeCity(currentPlayer, labelOfVertexOrEdgeKey);
+            else if (originalPhase.find("city") != std::string::npos) {
+                moveType = "city";
             }
-            else if (phase.find("road") != std::string::npos) {
-                gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
+            else if (originalPhase.find("road") != std::string::npos) {
+                moveType = "road";
             }
-            else if (phase == "turn") {
+            else if (originalPhase == Game::Phase::TURN) {
                 Board board;
                 if (board.isLabelOfVertex(labelOfVertexOrEdgeKey)) {
-                    gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
+                    moveType = "settlement";
                 }
                 else if (board.isLabelOfEdge(labelOfVertexOrEdgeKey)) {
-                    gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
+                    moveType = "road";
                 }
+                else {
+					throw std::runtime_error("[SELF PLAY] " + labelOfVertexOrEdgeKey + " is not a label of a vertex or edge.");
+                }
+            }
+            else {
+				throw std::runtime_error("[SELF PLAY] " + originalPhase + " is not a valid phase.");
+            }
+            if (moveType == "pass") {
+                gameState.updatePhase();
+            }
+            else if (moveType == "settlement") {
+                gameState.placeSettlement(currentPlayer, labelOfVertexOrEdgeKey);
+            }
+			else if (moveType == "city") {
+				gameState.placeCity(currentPlayer, labelOfVertexOrEdgeKey);
+			}
+			else if (moveType == "road") {
+				gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
+			}
+			else {
+				throw std::runtime_error("[SELF PLAY] " + moveType + " is not a valid move type.");
             }
             TrainingExample trainingExample;
             trainingExample.player = currentPlayer;
             trainingExample.gameState = gameState;
             trainingExample.move = labelOfVertexOrEdgeKey;
-			if (phase.find("settlement") != std::string::npos) {
-				trainingExample.moveType = "settlement";
-			}
-			else if (phase.find("city") != std::string::npos) {
-				trainingExample.moveType = "city";
-			}
-			else if (phase.find("road") != std::string::npos) {
-				trainingExample.moveType = "road";
-			}
-			else if (phase == "turn") {
-				Board board;
-				if (board.isLabelOfVertex(labelOfVertexOrEdgeKey)) {
-					trainingExample.moveType = "settlement";
-				}
-				else if (board.isLabelOfEdge(labelOfVertexOrEdgeKey)) {
-					trainingExample.moveType = "road";
-				}
-			}
+            trainingExample.moveType = moveType;
             trainingExample.value = 0.0; // temporary dummy value that will be updated once game outcome is known
-            int visitCount = pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount.second;
-            double priorProbabilityOfVisit = static_cast<double>(visitCount) / static_cast<double>(numberOfSimulations);
-            trainingExample.policy = priorProbabilityOfVisit;
+            trainingExample.policy = static_cast<double>(visitCount) / static_cast<double>(numberOfSimulations); // prior probability of visit
             vectorOfTrainingExamples.push_back(trainingExample);
             numberOfMovesSimulated++;
         }

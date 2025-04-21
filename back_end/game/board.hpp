@@ -96,6 +96,9 @@ public:
 				grid[static_cast<int>(y)][static_cast<int>(x)] = 11;
 			}
 		}
+		else if (typeOfMove == "pass") {
+			// Do nothing.
+		}
 		else {
 			throw std::runtime_error(typeOfMove + " is an unknown type of move.");
 		}

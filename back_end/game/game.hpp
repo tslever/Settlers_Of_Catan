@@ -232,7 +232,7 @@ namespace Game {
 
 		crow::json::wvalue handleTurn() {
 			crow::json::wvalue jsonObjectOfMoveInformation;
-			std::pair<std::string, int> pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount = runMcts(
+			auto [labelOfChosenVertexOrEdge, visitCount] = runMcts(
 				state,
 				wrapperOfNeuralNetwork,
 				numberOfSimulations,
@@ -241,31 +241,36 @@ namespace Game {
 				dirichletMixingWeight,
 				dirichletShape
 			);
-			std::string labelOfChosenVertexOrEdge = pairOfLabelOfBestVertexOrKeyOfBestEdgeAndVisitCount.first;
 			if (labelOfChosenVertexOrEdge.empty()) {
 				throw std::runtime_error("MCTS failed to determine a move.");
 			}
 			int currentPlayer = state.currentPlayer;
-			Board board;
-			if (board.isLabelOfVertex(labelOfChosenVertexOrEdge)) {
-				state.placeSettlement(currentPlayer, labelOfChosenVertexOrEdge);
-				int settlementId = db.addStructure("settlements", currentPlayer, labelOfChosenVertexOrEdge, "vertex");
-				jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + labelOfChosenVertexOrEdge + ".";
-				crow::json::wvalue jsonObjectOfSettlementInformation;
-				jsonObjectOfSettlementInformation["id"] = settlementId;
-				jsonObjectOfSettlementInformation["player"] = currentPlayer;
-				jsonObjectOfSettlementInformation["vertex"] = labelOfChosenVertexOrEdge;
-				jsonObjectOfMoveInformation["settlement"] = std::move(jsonObjectOfSettlementInformation);
+			if (labelOfChosenVertexOrEdge == "pass") {
+				state.updatePhase();
+				jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " passed.";
 			}
-			else if (board.isLabelOfEdge(labelOfChosenVertexOrEdge)) {
-				state.placeRoad(currentPlayer, labelOfChosenVertexOrEdge);
-				int roadId = db.addStructure("roads", currentPlayer, labelOfChosenVertexOrEdge, "edge");
-				jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + labelOfChosenVertexOrEdge + ".";
-				crow::json::wvalue jsonObjectOfRoadInformation;
-				jsonObjectOfRoadInformation["id"] = roadId;
-				jsonObjectOfRoadInformation["player"] = currentPlayer;
-				jsonObjectOfRoadInformation["edge"] = labelOfChosenVertexOrEdge;
-				jsonObjectOfMoveInformation["road"] = std::move(jsonObjectOfRoadInformation);
+			else {
+				Board board;
+				if (board.isLabelOfVertex(labelOfChosenVertexOrEdge)) {
+					state.placeSettlement(currentPlayer, labelOfChosenVertexOrEdge);
+					int settlementId = db.addStructure("settlements", currentPlayer, labelOfChosenVertexOrEdge, "vertex");
+					jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a settlement at " + labelOfChosenVertexOrEdge + ".";
+					crow::json::wvalue jsonObjectOfSettlementInformation;
+					jsonObjectOfSettlementInformation["id"] = settlementId;
+					jsonObjectOfSettlementInformation["player"] = currentPlayer;
+					jsonObjectOfSettlementInformation["vertex"] = labelOfChosenVertexOrEdge;
+					jsonObjectOfMoveInformation["settlement"] = std::move(jsonObjectOfSettlementInformation);
+				}
+				else if (board.isLabelOfEdge(labelOfChosenVertexOrEdge)) {
+					state.placeRoad(currentPlayer, labelOfChosenVertexOrEdge);
+					int roadId = db.addStructure("roads", currentPlayer, labelOfChosenVertexOrEdge, "edge");
+					jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a road at " + labelOfChosenVertexOrEdge + ".";
+					crow::json::wvalue jsonObjectOfRoadInformation;
+					jsonObjectOfRoadInformation["id"] = roadId;
+					jsonObjectOfRoadInformation["player"] = currentPlayer;
+					jsonObjectOfRoadInformation["edge"] = labelOfChosenVertexOrEdge;
+					jsonObjectOfMoveInformation["road"] = std::move(jsonObjectOfRoadInformation);
+				}
 			}
 			jsonObjectOfMoveInformation["totalResources"] = makeTotalsJson();
 			return jsonObjectOfMoveInformation;

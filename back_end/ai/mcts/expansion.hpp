@@ -91,6 +91,8 @@ namespace AI {
 						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfEdge);
 					}
 				}
+
+				vectorOfLabelsOfAvailableVerticesOrEdges.push_back("pass");
 			}
 
 			// Create a child for each label of available vertex or edge.
@@ -101,28 +103,35 @@ namespace AI {
 					continue;
 				}
 				GameState gameStateOfChild = node->gameState;
-				int currentPlayer = gameStateOfChild.currentPlayer;
 				std::string moveType;
-				if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
-					gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrEdge);
-					moveType = "settlement";
+
+				if (labelOfAvailableVertexOrEdge == "pass") {
+					gameStateOfChild.updatePhase();
+					moveType = "pass";
 				}
-				else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD || phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
-					gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrEdge);
-					moveType = "road";
-				}
-				else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
-					gameStateOfChild.placeCity(currentPlayer, labelOfAvailableVertexOrEdge);
-					moveType = "city";
-				}
-				else if (phase == Game::Phase::TURN) {
-					if (board.isLabelOfVertex(labelOfAvailableVertexOrEdge)) {
+				else {
+					int currentPlayer = gameStateOfChild.currentPlayer;
+					if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
 						gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrEdge);
 						moveType = "settlement";
 					}
-					else if (board.isLabelOfEdge(labelOfAvailableVertexOrEdge)) {
+					else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD || phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
 						gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrEdge);
 						moveType = "road";
+					}
+					else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
+						gameStateOfChild.placeCity(currentPlayer, labelOfAvailableVertexOrEdge);
+						moveType = "city";
+					}
+					else if (phase == Game::Phase::TURN) {
+						if (board.isLabelOfVertex(labelOfAvailableVertexOrEdge)) {
+							gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrEdge);
+							moveType = "settlement";
+						}
+						else if (board.isLabelOfEdge(labelOfAvailableVertexOrEdge)) {
+							gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrEdge);
+							moveType = "road";
+						}
 					}
 				}
 				std::unique_ptr<AI::MCTS::MCTSNode> child = std::make_unique<MCTSNode>(
