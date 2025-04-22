@@ -48,6 +48,11 @@ export type NextResponse = {
     dice?: Dice;
     totalResources: Totals;
     gainedResources?: Totals;
+    movesToHighlight: {
+        player: number;
+        verticesToHighlight: string[];
+        edgesToHighlight: string[];
+    }
 }
 
 export interface Road {

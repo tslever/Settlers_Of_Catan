@@ -264,6 +264,39 @@ public:
 	}
 
 
+	std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(GameState gameState) {
+		std::vector<std::string> vectorOfLabelsOfOccupiedVertices;
+		for (const auto& [player, vectorOfLabelsOfVerticesWithSettlements] : gameState.settlements) {
+			vectorOfLabelsOfOccupiedVertices.insert(
+				vectorOfLabelsOfOccupiedVertices.end(),
+				vectorOfLabelsOfVerticesWithSettlements.begin(),
+				vectorOfLabelsOfVerticesWithSettlements.end()
+			);
+		}
+		for (const auto& [player, vectorOfLabelsOfVerticesWithCities] : gameState.cities) {
+			vectorOfLabelsOfOccupiedVertices.insert(
+				vectorOfLabelsOfOccupiedVertices.end(),
+				vectorOfLabelsOfVerticesWithCities.begin(),
+				vectorOfLabelsOfVerticesWithCities.end()
+			);
+		}
+		return vectorOfLabelsOfOccupiedVertices;
+	}
+
+
+	std::vector<std::string> getVectorOfLabelsOfOccupiedEdges(GameState gameState) {
+		std::vector<std::string> vectorOfLabelsOfOccupiedEdges;
+		for (const auto& [player, vectorOfLabelsOfEdgesWithRoads] : gameState.roads) {
+			vectorOfLabelsOfOccupiedEdges.insert(
+				vectorOfLabelsOfOccupiedEdges.end(),
+				vectorOfLabelsOfEdgesWithRoads.begin(),
+				vectorOfLabelsOfEdgesWithRoads.end()
+			);
+		}
+		return vectorOfLabelsOfOccupiedEdges;
+	}
+
+
 	std::pair<std::string, std::string> getVerticesOfEdge(const std::string& labelOfEdge) const {
 		const crow::json::rvalue& jsonObjectOfLabelsOfEdgesAndPairsOfLabelsOfVertices = isometricCoordinatesCache["objectOfIdsOfEdgesAndPairsOfIdsOfVertices"];
 		const auto& pair = jsonObjectOfLabelsOfEdgesAndPairsOfLabelsOfVertices[labelOfEdge];

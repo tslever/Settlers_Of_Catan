@@ -10,57 +10,25 @@
 namespace AI {
 	namespace MCTS {
 
-		std::vector<std::string> getVectorOfLabelsOfOccupiedVertices(const MCTSNode* node) {
-			std::vector<std::string> vectorOfLabelsOfOccupiedVertices;
-			for (const auto& [player, vectorOfLabelsOfVerticesWithSettlements] : node->gameState.settlements) {
-				vectorOfLabelsOfOccupiedVertices.insert(
-					vectorOfLabelsOfOccupiedVertices.end(),
-					vectorOfLabelsOfVerticesWithSettlements.begin(),
-					vectorOfLabelsOfVerticesWithSettlements.end()
-				);
-			}
-			for (const auto& [player, vectorOfLabelsOfVerticesWithCities] : node->gameState.cities) {
-				vectorOfLabelsOfOccupiedVertices.insert(
-					vectorOfLabelsOfOccupiedVertices.end(),
-					vectorOfLabelsOfVerticesWithCities.begin(),
-					vectorOfLabelsOfVerticesWithCities.end()
-				);
-			}
-			return vectorOfLabelsOfOccupiedVertices;
-		}
-
-
-		std::vector<std::string> getVectorOfLabelsOfOccupiedEdges(const MCTSNode* node) {
-			std::vector<std::string> vectorOfLabelsOfOccupiedEdges;
-			for (const auto& [player, vectorOfLabelsOfEdgesWithRoads] : node->gameState.roads) {
-				vectorOfLabelsOfOccupiedEdges.insert(
-					vectorOfLabelsOfOccupiedEdges.end(),
-					vectorOfLabelsOfEdgesWithRoads.begin(),
-					vectorOfLabelsOfEdgesWithRoads.end()
-				);
-			}
-			return vectorOfLabelsOfOccupiedEdges;
-		}
-
-
 		/* Function `expandNode`, for each move determined to be available by board geometry and current state,
 		* creates a child node and sets its prior probability based on the move type.
 		*/
 		void expandNode(MCTSNode* node, WrapperOfNeuralNetwork& neuralNet) {
 			Board board;
 			std::vector<std::string> vectorOfLabelsOfAvailableVerticesOrEdges;
-			std::string phase = node->gameState.phase;
+			GameState gameState = node->gameState;
+			std::string phase = gameState.phase;
 
 			if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
+				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(gameState);
 				vectorOfLabelsOfAvailableVerticesOrEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
 			else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD || phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
-				std::vector<std::string> vectorOfLabelsOfOccupiedEdges = getVectorOfLabelsOfOccupiedEdges(node);
+				std::vector<std::string> vectorOfLabelsOfOccupiedEdges = board.getVectorOfLabelsOfOccupiedEdges(gameState);
 				vectorOfLabelsOfAvailableVerticesOrEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(node->gameState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
 			}
 			else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
+				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(gameState);
 				vectorOfLabelsOfAvailableVerticesOrEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
 			else if (phase == Game::Phase::TURN) {
@@ -75,7 +43,7 @@ namespace AI {
 					unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.insert(verticesOfEdge.second);
 				}
 
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = getVectorOfLabelsOfOccupiedVertices(node);
+				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(gameState);
 				std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 
 				for (const std::string& labelOfVertex : vectorOfLabelsOfAvailableVertices) {
@@ -86,7 +54,7 @@ namespace AI {
 					}
 				}
 
-				std::vector<std::string> vectorOfLabelsOfOccupiedEdges = getVectorOfLabelsOfOccupiedEdges(node);
+				std::vector<std::string> vectorOfLabelsOfOccupiedEdges = board.getVectorOfLabelsOfOccupiedEdges(gameState);
 				std::vector<std::string> vectorOfLabelsOfAvailableEdges = board.getVectorOfLabelsOfAvailableEdges(vectorOfLabelsOfOccupiedEdges);
 
 				for (const std::string& labelOfEdge : vectorOfLabelsOfAvailableEdges) {

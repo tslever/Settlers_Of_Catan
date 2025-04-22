@@ -59,6 +59,11 @@ export default function Home() {
     const [message, setMessage] = useState("");
     const [mounted, setMounted] = useState(false);
     const [totals, setTotals] = useState<Totals>(INITIAL_TOTALS);
+    const [movesToHighlight, setMovesToHighlight] = useState<{
+        player: number;
+        verticesToHighlight: string[];
+        edgesToHighlight: string[];
+    } | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -127,6 +132,7 @@ export default function Home() {
             body: JSON.stringify({})
         }),
         onSuccess: (data) => {
+            setMovesToHighlight(data.movesToHighlight);
             setDice(data.dice ?? null);
             setMessage(data.message);
             const gains = data.gainedResources;
@@ -174,6 +180,11 @@ export default function Home() {
 
     const isBoardLoading = settlementsLoading || citiesLoading || roadsLoading || wallsLoading;
     const boardError = settlementsError || citiesError || roadsError;
+    const colorMapping: Record<number, string> = {
+        1: "red",
+        2: "orange",
+        3: "green"
+    };
 
     return (
         <div style = {{ display: 'grid', gridTemplateColumns: '100vmin auto', alignItems: 'start', columnGap: '1rem', padding: '1rem' }}>
@@ -195,6 +206,25 @@ export default function Home() {
                                 );
                             })}
                             <CanvasLayer />
+                            {movesToHighlight?.verticesToHighlight.map((labelOfVertex, i) => {
+                                const {x, y} = vertexMapping[labelOfVertex];
+                                return (
+                                    <div
+                                        key = {i}
+                                        style = {{
+                                            position: 'absolute',
+                                            left: `${x}vmin`,
+                                            top: `${y}vmin`,
+                                            width: '2vmin',
+                                            height: '2vmin',
+                                            borderRadius: '50%',
+                                            backgroundColor: colorMapping[movesToHighlight.player],
+                                            opacity: 0.5,
+                                            transform: 'translate(-50%, -50%)'
+                                        }}
+                                    />
+                                );
+                            })}
                             {vertices.map((v, i) => {
                                 const labelOfVertex = `V${(i + 1).toString().padStart(2, '0')}`;
                                 return portMapping[labelOfVertex] ? <Port key = {labelOfVertex} x = {v.x} y = {v.y} type = {portMapping[labelOfVertex]} /> : null;
@@ -216,11 +246,6 @@ export default function Home() {
                                     // road.edge is like "E01".
                                     const indexOfEdge = parseInt(road.edge.slice(1), 10) - 1;
                                     const { x1, y1, x2, y2 } = jsonArrayOfEdgeInformation[indexOfEdge];
-                                    const colorMapping: Record<number, string> = {
-                                        1: "red",
-                                        2: "orange",
-                                        3: "green"
-                                    };
                                     const strokeColor = colorMapping[road.player] || "gray";
                                     return (
                                         <line
@@ -231,6 +256,22 @@ export default function Home() {
                                             y2 = {y2}
                                             stroke = {strokeColor}
                                             strokeWidth = "1"
+                                        />
+                                    );
+                                })}
+                                {movesToHighlight?.edgesToHighlight.map((labelOfEdge, i) => {
+                                    const indexOfEdge = parseInt(labelOfEdge.slice(1), 10) - 1;
+                                    const { x1, y1, x2, y2 } = jsonArrayOfEdgeInformation[indexOfEdge];
+                                    return (
+                                        <line
+                                            key = {i}
+                                            x1 = {x1}
+                                            y1 = {y1}
+                                            x2 = {x2}
+                                            y2 = {y2}
+                                            stroke = {colorMapping[movesToHighlight.player]}
+                                            strokeWidth = {3}
+                                            opacity = {0.2}
                                         />
                                     );
                                 })}

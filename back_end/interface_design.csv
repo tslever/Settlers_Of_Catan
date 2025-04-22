@@ -61,6 +61,12 @@ Updated on 2025-04-21 by Tom Lever,,,
 ,,"""coin""",whole number
 ,,"""paper""",whole number
 ,,,
+"Key ""movesToHighlight"" is included to show all moves the next player can make.",,,
+"""movesToHighlight""",JSON object with the following keys,,
+,"""player""",natural number identifying the next player,
+,"""verticesToHighlight""",array of labels of vertices available to the next player,
+,"""edgesToHighlight""",array of labels of edges available to the next player,
+,,,
 """message""","""Player <number of player> placed a <'city', 'road', or 'settlement'> at <'E' or 'V'><number of edge or vertex>.""",,
 ,"""Player <number of player> rolled the dice.""",,
 ,"""Game is over. Thanks for playing!""",,
