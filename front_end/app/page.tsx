@@ -47,39 +47,28 @@ function isEmpty(obj: object) {
 
 
 export default function Home() {
+    const queryClient = useQueryClient();
 
-    const INITIAL_TOTALS: Totals = {
-        "Player 1": ZERO_BAG,
-        "Player 2": ZERO_BAG,
-        "Player 3": ZERO_BAG
-    }
+    const { data: stateData, isLoading: stateLoading, error: stateError } = useCentralQuery<NextResponse>(
+        ["state"],
+        () => apiFetch<NextResponse>(API.endpoints.state)
+    );
 
-    const [dice, setDice] = useState<Dice | null>(null);
-    const [gainedResources, setGainedResources] = useState<Totals>(INITIAL_TOTALS);
-    const [message, setMessage] = useState("");
-    const [mounted, setMounted] = useState(false);
-    const [totals, setTotals] = useState<Totals>(INITIAL_TOTALS);
+
     const [movesToHighlight, setMovesToHighlight] = useState<{
         player: number;
         verticesToHighlight: string[];
         edgesToHighlight: string[];
     } | null>(null);
 
-    const queryClient = useQueryClient();
 
     useEffect(() => {
-        setMounted(true);
-        apiFetch<NextResponse>(API.endpoints.state)
-        .then(data => {
-            setMessage(data.message)
-            setDice(data.dice ?? null);
-            const gains = data.gainedResources;
-            setGainedResources(gains && !isEmpty(gains) ? gains : INITIAL_TOTALS);
-            const totals = data.totalResources;
-            setTotals(totals && !isEmpty(totals) ? totals : INITIAL_TOTALS);
-        })
-        .catch(() => {});
-    }, []);
+        const movesToHighlight = stateData?.movesToHighlight;
+        if (movesToHighlight && Array.isArray(movesToHighlight.verticesToHighlight) && Array.isArray(movesToHighlight.edgesToHighlight)) {
+            setMovesToHighlight(movesToHighlight);
+        }
+    }, [stateData]);
+
 
     const {
         data: settlementsData,
@@ -87,9 +76,9 @@ export default function Home() {
         error: settlementsError
     } = useCentralQuery<{ settlements: Settlement[] }>(
         ["settlements"],
-        () => apiFetch<{ settlements: Settlement[] }>(API.endpoints.settlements),
-        { enabled: mounted }
+        () => apiFetch<{ settlements: Settlement[] }>(API.endpoints.settlements)
     );
+
 
     const {
         data: citiesData,
@@ -97,19 +86,15 @@ export default function Home() {
         error: citiesError
     } = useCentralQuery<{ cities: { id: Number; player: Number; vertex: string }[] }>(
         ["cities"],
-        () => apiFetch<{ cities: { id: Number; player: Number; vertex: string }[] }>(API.endpoints.cities),
-        { enabled: mounted }
+        () => apiFetch<{ cities: { id: Number; player: Number; vertex: string }[] }>(API.endpoints.cities)
     );
 
-    const {
-        data: wallsData,
-        isLoading: wallsLoading,
-        error: wallsError
-    } = useCentralQuery<{ walls: WallInformation[] }>(
+
+    const { data: wallsData, isLoading: wallsLoading } = useCentralQuery<{ walls: WallInformation[] }>(
         ['walls'],
-        () => apiFetch<{ walls: WallInformation[] }>(API.endpoints.walls),
-        { enabled: mounted }
+        () => apiFetch<{ walls: WallInformation[] }>(API.endpoints.walls)
     );
+
 
     const {
         data: roadsData,
@@ -117,70 +102,69 @@ export default function Home() {
         error: roadsError
     } = useCentralQuery<{ roads: Road[] }>(
         ["roads"],
-        () => apiFetch<{ roads: Road[] }>(API.endpoints.roads),
-        { enabled: mounted }
+        () => apiFetch<{ roads: Road[] }>(API.endpoints.roads)
     );
 
 
-    const {
-        mutate: postNextMove,
-        isPending: nextLoading
-    } = useMutation<NextResponse, Error>({
-        mutationFn: () => apiFetch<NextResponse>(API.endpoints.next, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-        }),
-        onSuccess: (data) => {
-            setMovesToHighlight(data.movesToHighlight);
-            setDice(data.dice ?? null);
-            setMessage(data.message);
-            const gains = data.gainedResources;
-            setGainedResources(gains && !isEmpty(gains) ? gains : INITIAL_TOTALS);
-            const totals = data.totalResources;
-            setTotals(totals && !isEmpty(totals) ? totals : INITIAL_TOTALS);
-            queryClient.invalidateQueries({ queryKey: ["cities"] });
-            queryClient.invalidateQueries({ queryKey: ["settlements"] });
-            queryClient.invalidateQueries({ queryKey: ["roads"] });
-        },
-        onError: (error: Error) => setMessage(error.message)
-    });
-
-
-    const {
-        mutate: resetGame,
-        isPending: resetLoading,
-        data: resetData
-    } = useMutation<ResetResponse, Error>({
-        mutationFn: () => apiFetch<ResetResponse>(API.endpoints.reset, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-        }),
-        onSuccess: (data) => {
-            setMessage(data.message);
-            setDice(null);
-            setGainedResources(
-                Object.keys(totals).reduce((acc, key) => {
-                    acc[key] = { brick: 0, grain: 0, lumber: 0, ore: 0, wool: 0, cloth: 0, coin: 0, paper: 0 };
-                    return acc;
-                }, INITIAL_TOTALS as Totals)
-            );
-            setTotals(INITIAL_TOTALS);
-            setMovesToHighlight(null);
-            queryClient.invalidateQueries({ queryKey: ["cities"] });
-            queryClient.invalidateQueries({ queryKey: ["settlements"] });
-            queryClient.invalidateQueries({ queryKey: ["roads"] });
-        },
-        onError: error => setMessage(error.message)
-    });
-
-    if (!mounted) {
-        return null;
+    const INITIAL_TOTALS: Totals = {
+        "Player 1": ZERO_BAG,
+        "Player 2": ZERO_BAG,
+        "Player 3": ZERO_BAG
     }
 
-    const isBoardLoading = settlementsLoading || citiesLoading || roadsLoading || wallsLoading;
-    const boardError = settlementsError || citiesError || roadsError;
+
+    const dice = stateData?.dice ?? null;
+    const message = stateData?.message ?? "";
+    const gainedResources = stateData?.gainedResources && !isEmpty(stateData.gainedResources) ? stateData.gainedResources : INITIAL_TOTALS;
+    const totals = stateData?.totalResources && !isEmpty(stateData?.totalResources) ? stateData?.totalResources : INITIAL_TOTALS;
+
+
+    const { mutate: postNextMove, isPending: nextLoading } = useMutation<NextResponse, Error>(
+        {
+            mutationFn: () => apiFetch<NextResponse>(
+                API.endpoints.next,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                }
+            ),
+            onSuccess: (data) => {
+                setMovesToHighlight(data.movesToHighlight);
+                queryClient.invalidateQueries({ queryKey: ["state"] });
+                queryClient.invalidateQueries({ queryKey: ["cities"] });
+                queryClient.invalidateQueries({ queryKey: ["settlements"] });
+                queryClient.invalidateQueries({ queryKey: ["roads"] });
+                queryClient.invalidateQueries({ queryKey: ["walls"] });
+            }
+        }
+    );
+
+
+    const { mutate: resetGame, isPending: resetLoading } = useMutation<ResetResponse, Error>(
+        {
+            mutationFn: () => apiFetch<ResetResponse>(
+                API.endpoints.reset,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                }
+            ),
+            onSuccess: () => {
+                setMovesToHighlight(null);
+                queryClient.invalidateQueries({ queryKey: ["state"] });
+                queryClient.invalidateQueries({ queryKey: ["cities"] });
+                queryClient.invalidateQueries({ queryKey: ["settlements"] });
+                queryClient.invalidateQueries({ queryKey: ["roads"] });
+                queryClient.invalidateQueries({ queryKey: ["walls"] });
+            }
+        }
+    );
+
+    const isBoardLoading = stateLoading || settlementsLoading || citiesLoading || roadsLoading || wallsLoading;
+    const boardError = stateError || settlementsError || citiesError || roadsError;
+    
     const colorMapping: Record<number, string> = {
         1: "red",
         2: "orange",
@@ -207,33 +191,6 @@ export default function Home() {
                                 );
                             })}
                             <CanvasLayer />
-                            {movesToHighlight?.verticesToHighlight.map((labelOfVertex, i) => {
-                                const {x, y} = vertexMapping[labelOfVertex];
-                                return (
-                                    <div
-                                        key = {i}
-                                        style = {{
-                                            position: 'absolute',
-                                            left: `${x}vmin`,
-                                            top: `${y}vmin`,
-                                            width: '2vmin',
-                                            height: '2vmin',
-                                            borderRadius: '50%',
-                                            backgroundColor: colorMapping[movesToHighlight.player],
-                                            opacity: 0.5,
-                                            transform: 'translate(-50%, -50%)'
-                                        }}
-                                    />
-                                );
-                            })}
-                            {vertices.map((v, i) => {
-                                const labelOfVertex = `V${(i + 1).toString().padStart(2, '0')}`;
-                                return portMapping[labelOfVertex] ? <Port key = {labelOfVertex} x = {v.x} y = {v.y} type = {portMapping[labelOfVertex]} /> : null;
-                            })}
-                            {wallsData?.walls.map(w => {
-                                const v = vertexMapping[w.vertex];
-                                return v ? <Wall key = {w.id} x = {v.x} y = {v.y} player = {w.player} /> : null;
-                            })}
                             {settlementsData?.settlements.map((s) => {
                                 const v = vertexMapping[s.vertex];
                                 return v ? <Marker key = {s.id} x = {v.x} y = {v.y} player = {s.player} type = "settlement" /> : null;
@@ -241,6 +198,14 @@ export default function Home() {
                             {citiesData?.cities.map((c) => {
                                 const v = vertexMapping[c.vertex];
                                 return v ? <Marker key = {c.id.toString()} x = {v.x} y = {v.y} player = {c.player as number} type = "city" /> : null;
+                            })}
+                            {wallsData?.walls.map(w => {
+                                const v = vertexMapping[w.vertex];
+                                return v ? <Wall key = {w.id} x = {v.x} y = {v.y} player = {w.player} /> : null;
+                            })}
+                            {vertices.map((v, i) => {
+                                const labelOfVertex = `V${(i + 1).toString().padStart(2, '0')}`;
+                                return portMapping[labelOfVertex] ? <Port key = {labelOfVertex} x = {v.x} y = {v.y} type = {portMapping[labelOfVertex]} /> : null;
                             })}
                             <RoadLayer viewBox = "0 0 100 100" preserveAspectRatio = "none">
                                 {roadsData?.roads.map((road, index) => {
@@ -272,11 +237,31 @@ export default function Home() {
                                             y2 = {y2}
                                             stroke = {colorMapping[movesToHighlight.player]}
                                             strokeWidth = {3}
-                                            opacity = {0.2}
+                                            opacity = {0.4}
                                         />
                                     );
                                 })}
                             </RoadLayer>
+                            {movesToHighlight?.verticesToHighlight.map((labelOfVertex, i) => {
+                                const {x, y} = vertexMapping[labelOfVertex];
+                                return (
+                                    <div
+                                        key = {i}
+                                        style = {{
+                                            position: 'absolute',
+                                            left: `${x}vmin`,
+                                            top: `${y}vmin`,
+                                            width: '2vmin',
+                                            height: '2vmin',
+                                            borderRadius: '50%',
+                                            backgroundColor: colorMapping[movesToHighlight.player],
+                                            opacity: 0.8,
+                                            transform: 'translate(-50%, -50%)',
+                                            border: '0.2vmin solid black'
+                                        }}
+                                    />
+                                );
+                            })}
                         </Board>
                     </BoardContainer>
                 </OuterContainer>
@@ -293,10 +278,8 @@ export default function Home() {
                     <p>Red production die: {dice?.redProductionDie ?? '?'}</p>
                     <p>White event die: {dice?.whiteEventDie ?? '?'}</p>
                 </div>
-                {message && <p>{message}</p>}
-                <QueryBoundary isLoading = {false} error = {null}>
-                    <ResourcesDisplay totals = {totals} gained = {gainedResources} />
-                </QueryBoundary>
+                <p>{message}</p>
+                <ResourcesDisplay totals = {totals} gained = {gainedResources} />
             </div>
         </div>
     );

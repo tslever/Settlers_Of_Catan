@@ -181,6 +181,7 @@ namespace Server {
 				}
 				jsonObjectOfMovesToHighlight["nextPlayerWillRollDice"] = nextPlayerWillRollDice;
 				response["movesToHighlight"] = std::move(jsonObjectOfMovesToHighlight);
+				liveDb.upsertSetting("lastMovesToHighlight", response["movesToHighlight"].dump());
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
@@ -198,13 +199,12 @@ namespace Server {
 				bool success = liveDb.resetGame();
 				response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
 				std::string messageWithQuotes = response["message"].dump();
-				std::string message = (messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"')
-					? messageWithQuotes.substr(1, messageWithQuotes.size() - 2)
-					: messageWithQuotes;
+				std::string message = (messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') ? messageWithQuotes.substr(1, messageWithQuotes.size() - 2) : messageWithQuotes;
 				liveDb.upsertSetting("lastMessage", message);
 				liveDb.upsertSetting("lastDice", {});
 				liveDb.upsertSetting("lastGainedResources", {});
 				liveDb.upsertSetting("lastTotalResources", {});
+				liveDb.upsertSetting("lastMovesToHighlight", {});
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("Resetting game failed with the following error. ") + e.what();
@@ -257,11 +257,11 @@ namespace Server {
 			([&liveDb]() -> crow::json::wvalue {
 			crow::json::wvalue result;
 			try {
-
 				result["message"] = liveDb.getSetting("lastMessage");
 				result["dice"] = loadBlob(liveDb, "lastDice");
 				result["gainedResources"] = loadBlob(liveDb, "lastGainedResources");
 				result["totalResources"] = loadBlob(liveDb, "lastTotalResources");
+				result["movesToHighlight"] = loadBlob(liveDb, "lastMovesToHighlight");
 			}
 			catch (const std::exception& e) {
 				result["error"] = std::string("Getting game state failed with the following error. ") + e.what();
