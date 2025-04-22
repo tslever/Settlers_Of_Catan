@@ -167,6 +167,7 @@ export default function Home() {
                 }, INITIAL_TOTALS as Totals)
             );
             setTotals(INITIAL_TOTALS);
+            setMovesToHighlight(null);
             queryClient.invalidateQueries({ queryKey: ["cities"] });
             queryClient.invalidateQueries({ queryKey: ["settlements"] });
             queryClient.invalidateQueries({ queryKey: ["roads"] });
