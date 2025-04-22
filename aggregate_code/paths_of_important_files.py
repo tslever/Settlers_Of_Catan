@@ -51,6 +51,7 @@ paths_of_front_end_files = [
     r'front_end\app\components\QueryBoundary.tsx',
     r'front_end\app\components\ResourcesDisplay.tsx',
     r'front_end\app\components\Vertex.tsx',
+    r'front_end\app\components\Wall.tsx',
 
     r'front_end\app\hooks\useCentralQuery.ts',
 

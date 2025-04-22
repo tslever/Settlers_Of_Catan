@@ -113,12 +113,19 @@ namespace DB {
                 "last_building VARCHAR(50))"
             ).execute();
 
-
             session.sql(
                 "CREATE TABLE IF NOT EXISTS " + tablePrefix + "settings ("
 				"`key` VARCHAR(50) PRIMARY KEY, "
 				"`value` TEXT NOT NULL)"
             ).execute();
+
+            session.sql(
+				"CREATE TABLE IF NOT EXISTS " + tablePrefix + "walls ("
+				"id INT AUTO_INCREMENT PRIMARY KEY, "
+				"player INT NOT NULL, "
+				"vertex VARCHAR(50) NOT NULL, "
+				"UNIQUE KEY unique_wall (player, vertex))"
+			).execute();
         }
 
         int addStructure(
@@ -172,6 +179,32 @@ namespace DB {
             return jsonObject;
         }
 
+        std::vector<Wall> getWalls() const {
+            std::vector<Wall> walls;
+			WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
+			mysqlx::Session& session = wrapperOfSession.getSession();
+			mysqlx::Schema schema = session.getSchema(dbName);
+			mysqlx::Table table = schema.getTable(tablePrefix + "walls");
+			mysqlx::RowResult rowResult = table.select("id", "player", "vertex").execute();
+			for (mysqlx::Row row : rowResult) {
+                Wall wall{ row[0], row[1], row[2].get<std::string>() };
+				walls.push_back(wall);
+			}
+			return walls;
+        }
+
+		crow::json::wvalue getWallsJson() const {
+			crow::json::wvalue jsonObject;
+			try {
+				std::vector<Wall> walls = getWalls();
+				jsonObject["walls"] = QueryJsonBuilder::convertVectorOfWallsToJsonObject(walls);
+			}
+			catch (const std::exception& e) {
+				jsonObject["error"] = std::string("The following error occurred while retrieving walls from the database. ") + e.what();
+			}
+			return jsonObject;
+		}
+
         /* Method `getGameState` returns the current game state stored in the state table.
         * If no record exists, `getGameState` creates a new record with default values.
         */
@@ -217,6 +250,13 @@ namespace DB {
                 std::string edge = rRow[1].get<std::string>();
                 gameState.roads[player].push_back(edge);
             }
+			mysqlx::Table wallsTable = schema.getTable(tablePrefix + "walls");
+			mysqlx::RowResult wallsResult = wallsTable.select("player", "vertex").execute();
+			for (mysqlx::Row wRow : wallsResult) {
+				int player = wRow[0];
+				std::string vertex = wRow[1].get<std::string>();
+				gameState.walls[player].push_back(vertex);
+			}
 			mysqlx::Table resourcesTable = schema.getTable(tablePrefix + "resources");
 			mysqlx::RowResult resourcesResult = resourcesTable
                 .select("player", "brick", "grain", "lumber", "ore", "wool", "cloth", "coin", "paper")
@@ -373,9 +413,11 @@ namespace DB {
                 schema.getTable(tablePrefix + "settlements").remove().execute();
                 schema.getTable(tablePrefix + "cities").remove().execute();
                 schema.getTable(tablePrefix + "roads").remove().execute();
+				schema.getTable(tablePrefix + "walls").remove().execute();
                 session.sql("ALTER TABLE " + tablePrefix + "settlements AUTO_INCREMENT = 1").execute();
                 session.sql("ALTER TABLE " + tablePrefix + "cities AUTO_INCREMENT = 1").execute();
                 session.sql("ALTER TABLE " + tablePrefix + "roads AUTO_INCREMENT = 1").execute();
+				session.sql("ALTER TABLE " + tablePrefix + "walls AUTO_INCREMENT = 1").execute();
 
                 mysqlx::Table resourcesTable = schema.getTable(tablePrefix + "resources");
                 resourcesTable.remove().execute();

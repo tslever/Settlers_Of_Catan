@@ -31,6 +31,16 @@ public:
 		});
 	}
 
+	static crow::json::wvalue convertVectorOfWallsToJsonObject(const std::vector<Wall>& walls) {
+		return buildJsonArray<Wall>(walls, [](const Wall& wall) -> crow::json::wvalue {
+			crow::json::wvalue jsonObject;
+			jsonObject["id"] = wall.id;
+			jsonObject["player"] = wall.player;
+			jsonObject["vertex"] = wall.vertex;
+			return jsonObject;
+		});
+	}
+
 	static crow::json::wvalue convertVectorOfSettlementsToJsonObject(const std::vector<Settlement>& settlements) {
 		return buildJsonArray<Settlement>(settlements, [](const Settlement& settlement) -> crow::json::wvalue {
 			crow::json::wvalue jsonObject;

@@ -104,6 +104,16 @@ namespace AI {
 						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfVertex);
 					}
 				}
+
+				const auto& cities = node->gameState.cities.at(currentPlayer);
+				const auto& walls = node->gameState.walls.at(currentPlayer);
+				for (const std::string& labelOfVertex : cities) {
+					bool alreadyHasWall = std::find(walls.begin(), walls.end(), labelOfVertex) != walls.end();
+					if (!alreadyHasWall && node->gameState.resources.at(currentPlayer).at("brick") >= 2) {
+						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfVertex);
+					}
+				}
+
 				vectorOfLabelsOfAvailableVerticesOrEdges.push_back("pass");
 			}
 
@@ -137,22 +147,30 @@ namespace AI {
 					}
 					else if (phase == Game::Phase::TURN) {
 						if (board.isLabelOfVertex(labelOfAvailableVertexOrEdge)) {
-							const std::vector<std::string>& vectorOfLabelsOfVerticesOfSettlementsOfPlayer = gameStateOfChild.settlements.at(currentPlayer);
-							bool hadSettlement = std::find(
-								vectorOfLabelsOfVerticesOfSettlementsOfPlayer.begin(),
-								vectorOfLabelsOfVerticesOfSettlementsOfPlayer.end(),
-								labelOfAvailableVertexOrEdge
-							) != vectorOfLabelsOfVerticesOfSettlementsOfPlayer.end();
-							if (hadSettlement &&
-								gameStateOfChild.resources.at(currentPlayer).at("grain") >= 2 &&
-								gameStateOfChild.resources.at(currentPlayer).at("ore") >= 3
-							) {
-								gameStateOfChild.placeCity(currentPlayer, labelOfAvailableVertexOrEdge);
-								moveType = "city";
+							const auto& cities = gameStateOfChild.cities.at(currentPlayer);
+							bool hasCity = std::find(cities.begin(), cities.end(), labelOfAvailableVertexOrEdge) != cities.end();
+							if (hasCity && gameStateOfChild.resources.at(currentPlayer).at("brick") >= 2) {
+								gameStateOfChild.placeCityWall(currentPlayer, labelOfAvailableVertexOrEdge);
+								moveType = "wall";
 							}
 							else {
-								gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrEdge);
-								moveType = "settlement";
+								const std::vector<std::string>& vectorOfLabelsOfVerticesOfSettlementsOfPlayer = gameStateOfChild.settlements.at(currentPlayer);
+								bool hadSettlement = std::find(
+									vectorOfLabelsOfVerticesOfSettlementsOfPlayer.begin(),
+									vectorOfLabelsOfVerticesOfSettlementsOfPlayer.end(),
+									labelOfAvailableVertexOrEdge
+								) != vectorOfLabelsOfVerticesOfSettlementsOfPlayer.end();
+								if (hadSettlement &&
+									gameStateOfChild.resources.at(currentPlayer).at("grain") >= 2 &&
+									gameStateOfChild.resources.at(currentPlayer).at("ore") >= 3
+									) {
+									gameStateOfChild.placeCity(currentPlayer, labelOfAvailableVertexOrEdge);
+									moveType = "city";
+								}
+								else {
+									gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrEdge);
+									moveType = "settlement";
+								}
 							}
 						}
 						else if (board.isLabelOfEdge(labelOfAvailableVertexOrEdge)) {

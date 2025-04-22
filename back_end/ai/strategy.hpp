@@ -61,7 +61,7 @@ bool comparePairsOfMovesAndChildren(
 /* Function `runMcts` runs MCTS by creating a root node from the current game state,
 * running a number of simulations, and returning the best move.
 */
-std::pair<std::string, int> runMcts(
+std::tuple<std::string, std::string, int> runMcts(
 	const GameState& currentState,
 	AI::WrapperOfNeuralNetwork& neuralNet,
 	int numberOfSimulations,
@@ -136,7 +136,7 @@ std::pair<std::string, int> runMcts(
 
 
 	//Logger::info("            [SELECT BEST CHILD] The best child has move " + bestChild->move + ".");
+	//Logger::info("            [SELECT BEST CHILD] The best child has move type " + bestChild->moveType + ".");
 	//Logger::info("            [SELECT BEST CHILD] The child of the root with the highest visit count is the following.\n" + bestChild->toJson().dump());
-	std::pair<std::string, int> pairOfLabelOfBestVertexOrEdgeAndVisitCount = { bestChild->move, bestChild->visitCount };
-	return pairOfLabelOfBestVertexOrEdgeAndVisitCount;
+	return std::make_tuple(bestChild->move, bestChild->moveType, bestChild->visitCount);
 }

@@ -22,3 +22,10 @@ struct Road {
     int player;
     std::string edge;
 };
+
+
+struct Wall {
+	int id;
+	int player;
+	std::string vertex;
+};

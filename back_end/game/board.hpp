@@ -96,6 +96,13 @@ public:
 				grid[static_cast<int>(y)][static_cast<int>(x)] = 11;
 			}
 		}
+		else if (typeOfMove == "wall") {
+			if (jsonObjectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices.has(move)) {
+				int x = jsonObjectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices[move][0].d();
+				int y = jsonObjectOfIdsOfVerticesAndPairsOfCoordinatesOfVertices[move][1].d();
+				grid[static_cast<int>(y)][static_cast<int>(x)] = 12;
+			}
+		}
 		else if (typeOfMove == "pass") {
 			// Do nothing.
 		}

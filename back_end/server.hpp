@@ -146,6 +146,19 @@ namespace Server {
 		});
 
 
+		CROW_ROUTE(app, "/walls").methods("GET"_method)
+			([&liveDb]() -> crow::json::wvalue {
+			try {
+				return liveDb.getWallsJson();
+			}
+			catch (const std::exception& e) {
+				crow::json::wvalue error;
+				error["error"] = std::string("Getting walls failed with the following error. ") + e.what();
+				return error;
+			}
+		});
+
+
 		CROW_ROUTE(app, "/state").methods("GET"_method)
 			([&liveDb]() -> crow::json::wvalue {
 			crow::json::wvalue result;

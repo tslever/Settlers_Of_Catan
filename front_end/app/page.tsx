@@ -2,7 +2,7 @@
 
 import { API, apiFetch } from './api';
 import { Board } from './BoardLayout';
-import { Dice, ResourcesByKind, Totals } from './types';
+import { Dice, ResourcesByKind, Totals, WallInformation } from './types';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex, ResetResponse } from './types';
 import { NextResponse } from './types';
@@ -30,6 +30,7 @@ import Marker from './components/Marker';
 import { useCentralQuery } from './hooks/useCentralQuery';
 import QueryBoundary from './components/QueryBoundary';
 import ResourcesDisplay, { ZERO_BAG } from './components/ResourcesDisplay';
+import Wall from './components/Wall';
 
 
 const vertexMapping: Record<string, { x: number, y: number }> =
@@ -92,6 +93,16 @@ export default function Home() {
     } = useCentralQuery<{ cities: { id: Number; player: Number; vertex: string }[] }>(
         ["cities"],
         () => apiFetch<{ cities: { id: Number; player: Number; vertex: string }[] }>(API.endpoints.cities),
+        { enabled: mounted }
+    );
+
+    const {
+        data: wallsData,
+        isLoading: wallsLoading,
+        error: wallsError
+    } = useCentralQuery<{ walls: WallInformation[] }>(
+        ['walls'],
+        () => apiFetch<{ walls: WallInformation[] }>(API.endpoints.walls),
         { enabled: mounted }
     );
 
@@ -161,7 +172,7 @@ export default function Home() {
         return null;
     }
 
-    const isBoardLoading = settlementsLoading || citiesLoading || roadsLoading;
+    const isBoardLoading = settlementsLoading || citiesLoading || roadsLoading || wallsLoading;
     const boardError = settlementsError || citiesError || roadsError;
 
     return (
@@ -187,6 +198,10 @@ export default function Home() {
                             {vertices.map((v, i) => {
                                 const labelOfVertex = `V${(i + 1).toString().padStart(2, '0')}`;
                                 return portMapping[labelOfVertex] ? <Port key = {labelOfVertex} x = {v.x} y = {v.y} type = {portMapping[labelOfVertex]} /> : null;
+                            })}
+                            {wallsData?.walls.map(w => {
+                                const v = vertexMapping[w.vertex];
+                                return v ? <Wall key = {w.id} x = {v.x} y = {v.y} player = {w.player} /> : null;
                             })}
                             {settlementsData?.settlements.map((s) => {
                                 const v = vertexMapping[s.vertex];

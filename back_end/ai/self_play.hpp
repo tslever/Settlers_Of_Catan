@@ -55,7 +55,7 @@ namespace AI {
             }
 
             int currentPlayer = gameState.currentPlayer;
-            auto [labelOfVertexOrEdgeKey, visitCount] = runMcts(
+            auto [labelOfVertexOrEdgeKey, moveType, visitCount] = runMcts(
                 gameState,
                 neuralNet,
                 numberOfSimulations,
@@ -67,50 +67,7 @@ namespace AI {
             if (labelOfVertexOrEdgeKey.empty()) {
                 throw std::runtime_error("[SELF PLAY] MCTS did not return a valid move.");
             }
-            else if (gameState.phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
-                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their first settlement at " + labelOfVertexOrEdgeKey + " was simulated.");
-            }
-            else if (gameState.phase == Game::Phase::TO_PLACE_FIRST_ROAD) {
-                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their first road at " + labelOfVertexOrEdgeKey + " was simulated.");
-            }
-            else if (gameState.phase == Game::Phase::TO_PLACE_FIRST_CITY) {
-                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their first city at " + labelOfVertexOrEdgeKey + " was simulated.");
-            }
-            else if (gameState.phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
-                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " placing their second road at " + labelOfVertexOrEdgeKey + " was simulated.");
-            }
-            std::string originalPhase = gameState.phase;
-            std::string moveType;
-			if (labelOfVertexOrEdgeKey == "pass") {
-                moveType = "pass";
-                Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " passing is being simulated.");
-			}
-            else if (originalPhase.find("settlement") != std::string::npos) {
-				moveType = "settlement";
-            }
-            else if (originalPhase.find("city") != std::string::npos) {
-                moveType = "city";
-            }
-            else if (originalPhase.find("road") != std::string::npos) {
-                moveType = "road";
-            }
-            else if (originalPhase == Game::Phase::TURN) {
-                Board board;
-                if (board.isLabelOfVertex(labelOfVertexOrEdgeKey)) {
-                    moveType = "settlement";
-                    Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " playing a settlement at " + labelOfVertexOrEdgeKey + " was simulated.");
-                }
-                else if (board.isLabelOfEdge(labelOfVertexOrEdgeKey)) {
-                    moveType = "road";
-                    Logger::info("    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " playing a road at " + labelOfVertexOrEdgeKey + " was simulated.");
-                }
-                else {
-					throw std::runtime_error("[SELF PLAY] " + labelOfVertexOrEdgeKey + " is not a label of a vertex or edge.");
-                }
-            }
-            else {
-				throw std::runtime_error("[SELF PLAY] " + originalPhase + " is not a valid phase.");
-            }
+
             if (moveType == "pass") {
                 gameState.updatePhase();
             }
@@ -123,6 +80,9 @@ namespace AI {
 			else if (moveType == "road") {
 				gameState.placeRoad(currentPlayer, labelOfVertexOrEdgeKey);
 			}
+            else if (moveType == "wall") {
+				gameState.placeCityWall(currentPlayer, labelOfVertexOrEdgeKey);
+            }
 			else {
 				throw std::runtime_error("[SELF PLAY] " + moveType + " is not a valid move type.");
             }

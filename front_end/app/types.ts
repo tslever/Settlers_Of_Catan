@@ -56,6 +56,12 @@ export interface Road {
     edge: EdgeKey;
 }
 
+export interface WallInformation {
+    id: number;
+    player: Player;
+    vertex: VertexLabel;
+}
+
 export interface Settlement {
     id: number;
     player: Player;

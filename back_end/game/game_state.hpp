@@ -18,6 +18,7 @@ public:
     std::unordered_map<int, std::vector<std::string>> settlements;
     std::unordered_map<int, std::vector<std::string>> cities;
     std::unordered_map<int, std::vector<std::string>> roads;
+    std::unordered_map<int, std::vector<std::string>> walls;
     std::string lastBuilding;
     int redProductionDie;
     int yellowProductionDie;
@@ -46,6 +47,11 @@ public:
             {3, {}}
         };
         roads = {
+            {1, {}},
+            {2, {}},
+            {3, {}}
+        };
+        walls = {
             {1, {}},
             {2, {}},
             {3, {}}
@@ -171,6 +177,21 @@ public:
     }
 
 
+    bool placeCityWall(int player, const std::string& vertex) {
+        bool isMainTurn = (phase == Game::Phase::TURN);
+        if (isMainTurn) {
+            resources[player]["brick"] -= 2;
+        }
+        auto& playerWalls = walls[player];
+		if (std::find(playerWalls.begin(), playerWalls.end(), vertex) == playerWalls.end()) {
+            playerWalls.push_back(vertex);
+            lastBuilding = vertex;
+            return true;
+		}
+        return false;
+    }
+
+
     void placeRoad(int player, const std::string& labelOfEdge) {
 		bool isMainTurn = (phase == Game::Phase::TURN);
         if (isMainTurn) {
@@ -233,6 +254,19 @@ public:
             roadsJson["Player " + std::to_string(pair.first)] = std::move(arr);
         }
         json["roads"] = std::move(roadsJson);
+
+        crow::json::wvalue wallsJson(crow::json::type::Object);
+        for (const auto& pairOfNumberOfPlayerAndArrayOfLabelsOfVerticesWithWalls : walls) {
+            int numberOfPlayer = pairOfNumberOfPlayerAndArrayOfLabelsOfVerticesWithWalls.first;
+            std::vector<std::string> vectorOfLabelsOfVerticesWithWalls = pairOfNumberOfPlayerAndArrayOfLabelsOfVerticesWithWalls.second;
+            crow::json::wvalue arr(crow::json::type::List);
+            int i = 0;
+            for (auto& labelOfVertexWithWall : vectorOfLabelsOfVerticesWithWalls) {
+                arr[i++] = labelOfVertexWithWall;
+            }
+            wallsJson["Player " + std::to_string(numberOfPlayer)] = std::move(arr);
+        }
+        json["walls"] = std::move(wallsJson);
 
 		crow::json::wvalue jsonObjectOfDescriptionOfDiceAndRolls(crow::json::type::Object);
         jsonObjectOfDescriptionOfDiceAndRolls["yellowProductionDie"] = yellowProductionDie;

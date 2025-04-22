@@ -8,7 +8,8 @@ export const API = {
         reset: '/reset',
         roads: '/roads',
         settlements: '/settlements',
-        state: '/state'
+        state: '/state',
+        walls: '/walls'
     }
 };
 
