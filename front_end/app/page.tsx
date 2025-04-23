@@ -90,9 +90,8 @@ export default function Home() {
 
 
     useEffect(() => {
-        const PNM = stateData?.possibleNextMoves;
-        if (PNM && Array.isArray(PNM.vertices) && Array.isArray(PNM.edges)) {
-            setPossibleNextMoves(possibleNextMoves);
+        if (stateData?.possibleNextMoves) {
+            setPossibleNextMoves(stateData.possibleNextMoves);
         }
     }, [stateData]);
 
@@ -252,7 +251,7 @@ export default function Home() {
                                         />
                                     );
                                 })}
-                                {possibleNextMoves?.edges.map(labelOfEdge => {
+                                {possibleNextMoves?.edges?.map(labelOfEdge => {
                                     const indexOfEdge = parseInt(labelOfEdge.slice(1), 10) - 1;
                                     const { x1, y1, x2, y2 } = jsonArrayOfEdgeInformation[indexOfEdge];
                                     return (
@@ -272,7 +271,7 @@ export default function Home() {
                                     );
                                 })}
                             </RoadLayer>
-                            {possibleNextMoves && Object.keys(possibleNextMoves.vertices).map(labelOfVertex => {
+                            {possibleNextMoves?.vertices && Object.keys(possibleNextMoves.vertices).map(labelOfVertex => {
                                 const { x, y } = vertexMapping[labelOfVertex];
                                 return (
                                     <div
@@ -334,7 +333,7 @@ export default function Home() {
                         menuAnchor.isEdge
                             ? (<li key = "road">road</li>)
                             : (
-                                possibleNextMoves?.vertices[menuAnchor.label].map(moveType => (
+                                (possibleNextMoves?.vertices[menuAnchor.label] ?? []).map(moveType => (
                                     <li key = {moveType}>
                                         {moveType}
                                     </li>
