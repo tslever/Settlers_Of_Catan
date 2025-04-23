@@ -219,44 +219,45 @@ namespace Server {
 					Logger::info("User requested move " + move + " of type " + moveType);
 
 					GameState currentGameState = liveDb.getGameState();
+					int player = currentGameState.currentPlayer;
+
 					if (moveType == "road") {
-						currentGameState.placeRoad(currentGameState.currentPlayer, move);
-						int id = liveDb.addStructure("roads", currentGameState.currentPlayer, move, "edge");
+						currentGameState.placeRoad(player, move);
+						int id = liveDb.addStructure("roads", player, move, "edge");
 						response["road"]["id"] = id;
-						response["road"]["player"] = currentGameState.currentPlayer;
+						response["road"]["player"] = player;
 						response["road"]["edge"] = move;
-						response["message"] = "Player " + std::to_string(currentGameState.currentPlayer) + " placed a road at " + move + ".";
+						response["message"] = "Player " + std::to_string(player) + " placed a road at " + move + ".";
 					}
 					else if (moveType == "settlement") {
-						currentGameState.placeSettlement(currentGameState.currentPlayer, move);
-						int id = liveDb.addStructure("settlements", currentGameState.currentPlayer, move, "vertex");
+						currentGameState.placeSettlement(player, move);
+						int id = liveDb.addStructure("settlements", player, move, "vertex");
 						response["settlement"]["id"] = id;
-						response["settlement"]["player"] = currentGameState.currentPlayer;
+						response["settlement"]["player"] = player;
 						response["settlement"]["vertex"] = move;
-						response["message"] = "Player " + std::to_string(currentGameState.currentPlayer) + " placed a settlement at " + move + ".";
+						response["message"] = "Player " + std::to_string(player) + " placed a settlement at " + move + ".";
 					}
 					else if (moveType == "city") {
-						currentGameState.placeCity(currentGameState.currentPlayer, move);
-						liveDb.removeStructure("settlements", currentGameState.currentPlayer, move, "vertex");
-						int id = liveDb.addStructure("cities", currentGameState.currentPlayer, move, "vertex");
+						currentGameState.placeCity(player, move);
+						liveDb.removeStructure("settlements", player, move, "vertex");
+						int id = liveDb.addStructure("cities", player, move, "vertex");
 						response["city"]["id"] = id;
-						response["city"]["player"] = currentGameState.currentPlayer;
+						response["city"]["player"] = player;
 						response["city"]["vertex"] = move;
-						response["message"] = "Player " + std::to_string(currentGameState.currentPlayer) + " upgraded to a city at " + move + ".";
+						response["message"] = "Player " + std::to_string(player) + " upgraded to a city at " + move + ".";
 					}
 					else if (moveType == "wall") {
-						bool ok = currentGameState.placeCityWall(currentGameState.currentPlayer, move);
+						bool ok = currentGameState.placeCityWall(player, move);
 						if (!ok) {
 							throw std::runtime_error("A wall cannot be placed at " + move);
 						}
-						int id = liveDb.addStructure("walls", currentGameState.currentPlayer, move, "vertex");
+						int id = liveDb.addStructure("walls", player, move, "vertex");
 						response["wall"]["id"] = id;
-						response["wall"]["player"] = currentGameState.currentPlayer;
+						response["wall"]["player"] = player;
 						response["wall"]["vertex"] = move;
-						response["message"] = "Player " + std::to_string(currentGameState.currentPlayer) + " placed a wall at " + move + ".";
+						response["message"] = "Player " + std::to_string(player) + " placed a wall at " + move + ".";
 					}
 					else if (moveType == "pass") {
-						int player = currentGameState.currentPlayer;
 						currentGameState.updatePhase();
 						response["message"] = "Player " + std::to_string(player) + " passed.";
 					}
@@ -267,6 +268,8 @@ namespace Server {
 					liveDb.updateGameState(currentGameState);
 					buildNextMoves(liveDb, response);
 					liveDb.upsertSetting("lastPossibleNextMoves", response["possibleNextMoves"].dump());
+					std::string lastMessage = crow::json::load(response["message"].dump()).s();
+					liveDb.upsertSetting("lastMessage", lastMessage);
 				}
 				catch (const std::exception& e) {
 					response["error"] = std::string("Making move failed with error ") + e.what();
