@@ -259,8 +259,13 @@ namespace Server {
 						response["message"] = "Player " + std::to_string(player) + " placed a wall at " + move + ".";
 					}
 					else if (moveType == "pass") {
-						currentGameState.updatePhase();
-						response["message"] = "Player " + std::to_string(player) + " passed.";
+						if (currentGameState.phase == Game::Phase::TURN) {
+							currentGameState.updatePhase();
+							response["message"] = "Player " + std::to_string(player) + " passed.";
+						}
+						else {
+							response["message"] = "Phase is not turn.";
+						}
 					}
 					else {
 						throw std::runtime_error("Unknown move type: " + moveType);
