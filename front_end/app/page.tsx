@@ -49,6 +49,29 @@ function isEmpty(obj: object) {
 export default function Home() {
 
 
+    const [menuAnchor, setMenuAnchor] = useState<{
+        label: string;
+        x: number;
+        y: number;
+        isEdge?: boolean;
+    } | null>(null);
+
+
+    const handleVertexClick = (label: string) => {
+        const { x, y } = vertexMapping[label];
+        setMenuAnchor({ label, x, y });
+    };
+
+
+    const handleEdgeClick = (label: string) => {
+        const index = parseInt(label.slice(1), 10) - 1;
+        const { x1, y1, x2, y2 } = jsonArrayOfEdgeInformation[index];
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        setMenuAnchor({ label, x: midX, y: midY, isEdge: true });
+    };
+
+
     const queryClient = useQueryClient();
 
 
@@ -229,12 +252,12 @@ export default function Home() {
                                         />
                                     );
                                 })}
-                                {possibleNextMoves?.edges.map((labelOfEdge, i) => {
+                                {possibleNextMoves?.edges.map(labelOfEdge => {
                                     const indexOfEdge = parseInt(labelOfEdge.slice(1), 10) - 1;
                                     const { x1, y1, x2, y2 } = jsonArrayOfEdgeInformation[indexOfEdge];
                                     return (
                                         <line
-                                            key = {i}
+                                            key = {labelOfEdge}
                                             x1 = {x1}
                                             y1 = {y1}
                                             x2 = {x2}
@@ -242,15 +265,19 @@ export default function Home() {
                                             stroke = {colorMapping[possibleNextMoves.player]}
                                             strokeWidth = {3}
                                             opacity = {0.4}
+                                            style = {{ cursor: 'pointer' }}
+                                            pointerEvents = "stroke"
+                                            onClick = {() => handleEdgeClick(labelOfEdge)}
                                         />
                                     );
                                 })}
                             </RoadLayer>
-                            {possibleNextMoves && Object.keys(possibleNextMoves.vertices).map((labelOfVertex, i) => {
+                            {possibleNextMoves && Object.keys(possibleNextMoves.vertices).map(labelOfVertex => {
                                 const { x, y } = vertexMapping[labelOfVertex];
                                 return (
                                     <div
-                                        key = {i}
+                                        key = {labelOfVertex}
+                                        onClick = { () => handleVertexClick(labelOfVertex) }
                                         style = {{
                                             position: 'absolute',
                                             left: `${x}vmin`,
@@ -261,7 +288,8 @@ export default function Home() {
                                             backgroundColor: colorMapping[possibleNextMoves.player],
                                             opacity: 0.8,
                                             transform: 'translate(-50%, -50%)',
-                                            border: '0.2vmin solid black'
+                                            border: '0.2vmin solid black',
+                                            cursor: 'pointer'
                                         }}
                                     />
                                 );
@@ -270,6 +298,7 @@ export default function Home() {
                     </BoardContainer>
                 </OuterContainer>
             </QueryBoundary>
+
             <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
                 <button onClick = {() => postNextMove()} disabled = {nextLoading}>
                     {nextLoading ? "Loading..." : "Next"}
@@ -285,6 +314,35 @@ export default function Home() {
                 <p>{message}</p>
                 <ResourcesDisplay totals = {totals} gained = {gainedResources} />
             </div>
+
+            {menuAnchor && (
+                <ul
+                    style = {{
+                        position: 'absolute',
+                        left: `${menuAnchor.x}vmin`,
+                        top: `${menuAnchor.y}vmin`,
+                        background: 'white',
+                        border: '1px solid #333',
+                        borderRadius: '0.25rem',
+                        padding: '0.5rem',
+                        listStyle: 'none',
+                        zIndex: 10,
+                        transform: 'translate(-50%, -100%)'
+                    }}
+                >
+                    {
+                        menuAnchor.isEdge
+                            ? (<li key = "road">road</li>)
+                            : (
+                                possibleNextMoves?.vertices[menuAnchor.label].map(moveType => (
+                                    <li key = {moveType}>
+                                        {moveType}
+                                    </li>
+                                ))
+                            )
+                    }
+                </ul>
+            )}
         </div>
     );
 }
