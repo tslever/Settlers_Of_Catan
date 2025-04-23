@@ -42,7 +42,7 @@ export interface ResourcesByKind {
 
 export type ID_Of_Hex = keyof typeof idToColor;
 
-export type NextResponse = {
+export type AutomateMoveResponse = {
     message: string;
     moveType: string;
     dice?: Dice;

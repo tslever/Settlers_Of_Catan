@@ -61,12 +61,12 @@ namespace Server {
 		});
 
 
-		CROW_ROUTE(app, "/next").methods("POST"_method)
+		CROW_ROUTE(app, "/automateMove").methods("POST"_method)
 		([&liveDb, &wrapperOfNeuralNetwork, &config]() -> crow::json::wvalue {
 			crow::json::wvalue response;
 
 			try {
-				Logger::info("A user posted to endpoint next. The game state will be transitioned.");
+				Logger::info("A user posted to endpoint automateMove. The game state will be transitioned.");
 				GameState currentGameState = liveDb.getGameState();
 				Game::Game game(
 					liveDb,

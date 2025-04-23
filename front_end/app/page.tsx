@@ -5,7 +5,7 @@ import { Board } from './BoardLayout';
 import { Player, StructureType, Totals, WallInformation } from './types';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex, ResetResponse } from './types';
-import { NextResponse } from './types';
+import { AutomateMoveResponse } from './types';
 import Ocean from './components/Ocean';
 import { OuterContainer } from './BoardLayout';
 import { BoardContainer } from './BoardLayout';
@@ -75,9 +75,9 @@ export default function Home() {
     const queryClient = useQueryClient();
 
 
-    const { data: stateData, isLoading: stateLoading, error: stateError } = useCentralQuery<NextResponse>(
+    const { data: stateData, isLoading: stateLoading, error: stateError } = useCentralQuery<AutomateMoveResponse>(
         ["state"],
-        () => apiFetch<NextResponse>(API.endpoints.state)
+        () => apiFetch<AutomateMoveResponse>(API.endpoints.state)
     );
 
 
@@ -145,10 +145,10 @@ export default function Home() {
     const totals = stateData?.totalResources && !isEmpty(stateData?.totalResources) ? stateData?.totalResources : INITIAL_TOTALS;
 
 
-    const { mutate: postNextMove, isPending: nextLoading } = useMutation<NextResponse, Error>(
+    const { mutate: postAutomateMove, isPending: automateMoveLoading } = useMutation<AutomateMoveResponse, Error>(
         {
-            mutationFn: () => apiFetch<NextResponse>(
-                API.endpoints.next,
+            mutationFn: () => apiFetch<AutomateMoveResponse>(
+                API.endpoints.automateMove,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -299,8 +299,8 @@ export default function Home() {
             </QueryBoundary>
 
             <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                <button onClick = {() => postNextMove()} disabled = {nextLoading}>
-                    {nextLoading ? "Loading..." : "Next"}
+                <button onClick = {() => postAutomateMove()} disabled = {automateMoveLoading}>
+                    {automateMoveLoading ? "Loading..." : "Automate Move"}
                 </button>
                 <button onClick = {() => resetGame()} disabled = {resetLoading} style = {{ marginLeft: "0.5rem" }}>
                     { resetLoading ? "Resetting..." : "Reset Game" }

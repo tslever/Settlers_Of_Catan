@@ -4,7 +4,7 @@ export const API = {
     baseUrl: URL_OF_BACK_END,
     endpoints: {
         cities: '/cities',
-        next: '/next',
+        automateMove: '/automateMove',
         reset: '/reset',
         roads: '/roads',
         settlements: '/settlements',
