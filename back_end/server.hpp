@@ -219,6 +219,7 @@ namespace Server {
 					Logger::info("User requested move " + move + " of type " + moveType);
 
 					GameState currentGameState = liveDb.getGameState();
+					auto resourcesBeforeMove = currentGameState.resources;
 					int player = currentGameState.currentPlayer;
 
 					if (moveType == "road") {
@@ -266,6 +267,31 @@ namespace Server {
 						
 					}
 					liveDb.updateGameState(currentGameState);
+					
+					crow::json::wvalue gainedAll(crow::json::type::Object);
+					for (const auto& [p, newBag] : currentGameState.resources) {
+						crow::json::wvalue bagJson(crow::json::type::Object);
+						const auto& oldBag = resourcesBeforeMove.at(p);
+						for (const auto& [kind, newQuantity] : newBag) {
+							int diff = newQuantity - oldBag.at(kind);
+							bagJson[kind] = diff;
+						}
+						gainedAll["Player " + std::to_string(p)] = std::move(bagJson);
+					}
+					response["gainedResources"] = std::move(gainedAll);
+					liveDb.upsertSetting("lastGainedResources", response["gainedResources"].dump());
+
+					crow::json::wvalue totalAll(crow::json::type::Object);
+					for (const auto& [p, bag] : currentGameState.resources) {
+						crow::json::wvalue bagJson(crow::json::type::Object);
+						for (const auto& [kind, quantity] : bag) {
+							bagJson[kind] = quantity;
+						}
+						totalAll["Player " + std::to_string(p)] = std::move(bagJson);
+					}
+					response["totalResources"] = std::move(totalAll);
+					liveDb.upsertSetting("lastTotalResources", response["totalResources"].dump());
+
 					buildNextMoves(liveDb, response);
 					liveDb.upsertSetting("lastPossibleNextMoves", response["possibleNextMoves"].dump());
 					std::string lastMessage = crow::json::load(response["message"].dump()).s();
