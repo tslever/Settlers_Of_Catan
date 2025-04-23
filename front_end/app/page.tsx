@@ -98,7 +98,8 @@ export default function Home() {
 
     const { data: recommendation, isLoading: recommendationLoading, error: recommendationError, refetch: refetchRecommendation } = useCentralQuery<RecommendMoveResponse>(
         ['recommendMove'],
-        () => apiFetch<RecommendMoveResponse>(API.endpoints.recommendMove)
+        () => apiFetch<RecommendMoveResponse>(API.endpoints.recommendMove),
+        { enabled: false }
     );
 
 
@@ -168,6 +169,7 @@ export default function Home() {
                 queryClient.invalidateQueries({ queryKey: ["settlements"] });
                 queryClient.invalidateQueries({ queryKey: ["roads"] });
                 queryClient.invalidateQueries({ queryKey: ["walls"] });
+                queryClient.removeQueries({ queryKey: ["recommendMove"] });
             }
         }
     );
@@ -191,6 +193,7 @@ export default function Home() {
                 queryClient.invalidateQueries( { queryKey: ['roads'] });
                 queryClient.invalidateQueries( { queryKey: ['walls'] });
                 setMenuAnchor(null);
+                queryClient.removeQueries({ queryKey: ["recommendMove"] });
             }
         }
     );
@@ -213,6 +216,7 @@ export default function Home() {
                 queryClient.invalidateQueries({ queryKey: ["settlements"] });
                 queryClient.invalidateQueries({ queryKey: ["roads"] });
                 queryClient.invalidateQueries({ queryKey: ["walls"] });
+                queryClient.removeQueries({ queryKey: ["recommendMove"] });
             }
         }
     );
