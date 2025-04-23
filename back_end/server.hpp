@@ -406,7 +406,7 @@ namespace Server {
 					result["dice"] = loadBlob(liveDb, "lastDice");
 					result["gainedResources"] = loadBlob(liveDb, "lastGainedResources");
 					result["totalResources"] = loadBlob(liveDb, "lastTotalResources");
-					result["possibleNextMoves"] = loadBlob(liveDb, "lastPossibleNextMoves");
+					buildNextMoves(liveDb, result);
 				}
 				catch (const std::exception& e) {
 					result["error"] = std::string("Getting game state failed with the following error. ") + e.what();
