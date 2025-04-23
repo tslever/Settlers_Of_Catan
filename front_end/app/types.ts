@@ -49,7 +49,7 @@ export interface RecommendMoveResponse {
 
 export type ID_Of_Hex = keyof typeof idToColor;
 
-export type AutomateMoveResponse = {
+export type AutomateAndMakeMoveResponse = {
     message: string;
     moveType: string;
     dice?: Dice;

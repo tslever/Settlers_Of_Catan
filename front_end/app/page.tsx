@@ -5,7 +5,7 @@ import { Board } from './BoardLayout';
 import { Player, RecommendMoveResponse, StructureType, Totals, WallInformation } from './types';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex, ResetResponse } from './types';
-import { AutomateMoveResponse } from './types';
+import { AutomateAndMakeMoveResponse } from './types';
 import Ocean from './components/Ocean';
 import { OuterContainer } from './BoardLayout';
 import { BoardContainer } from './BoardLayout';
@@ -75,9 +75,9 @@ export default function Home() {
     const queryClient = useQueryClient();
 
 
-    const { data: stateData, isLoading: stateLoading, error: stateError } = useCentralQuery<AutomateMoveResponse>(
+    const { data: stateData, isLoading: stateLoading, error: stateError } = useCentralQuery<AutomateAndMakeMoveResponse>(
         ["state"],
-        () => apiFetch<AutomateMoveResponse>(API.endpoints.state)
+        () => apiFetch<AutomateAndMakeMoveResponse>(API.endpoints.state)
     );
 
 
@@ -151,9 +151,9 @@ export default function Home() {
     const totals = stateData?.totalResources && !isEmpty(stateData?.totalResources) ? stateData?.totalResources : INITIAL_TOTALS;
 
 
-    const { mutate: postAutomateMove, isPending: automateMoveLoading } = useMutation<AutomateMoveResponse, Error>(
+    const { mutate: postAutomateMove, isPending: automateMoveLoading } = useMutation<AutomateAndMakeMoveResponse, Error>(
         {
-            mutationFn: () => apiFetch<AutomateMoveResponse>(
+            mutationFn: () => apiFetch<AutomateAndMakeMoveResponse>(
                 API.endpoints.automateMove,
                 {
                     method: 'POST',
@@ -168,6 +168,29 @@ export default function Home() {
                 queryClient.invalidateQueries({ queryKey: ["settlements"] });
                 queryClient.invalidateQueries({ queryKey: ["roads"] });
                 queryClient.invalidateQueries({ queryKey: ["walls"] });
+            }
+        }
+    );
+
+
+    const { mutate: postMakeMove, isPending: makeMoveLoading } = useMutation<AutomateAndMakeMoveResponse, Error, { move: string; moveType: string }>(
+        {
+            mutationFn: ({ move, moveType }) => apiFetch<AutomateAndMakeMoveResponse>(
+                API.endpoints.makeMove,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ move, moveType })
+                }
+            ),
+            onSuccess: data => {
+                setPossibleNextMoves(data.possibleNextMoves);
+                queryClient.invalidateQueries( { queryKey: ['state'] });
+                queryClient.invalidateQueries( { queryKey: ['cities'] });
+                queryClient.invalidateQueries( { queryKey: ['settlements'] });
+                queryClient.invalidateQueries( { queryKey: ['roads'] });
+                queryClient.invalidateQueries( { queryKey: ['walls'] });
+                setMenuAnchor(null);
             }
         }
     );
@@ -311,6 +334,9 @@ export default function Home() {
                 <button onClick = {() => resetGame()} disabled = {resetLoading} style = {{ marginLeft: "0.5rem" }}>
                     { resetLoading ? "Resetting..." : "Reset Game" }
                 </button>
+                <button onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })} disabled = {makeMoveLoading} style = {{ marginLeft: "0.5rem" }}>
+                    {makeMoveLoading ? "Passing..." : "Pass"}
+                </button>
                 <div className = "dice-display" style = {{ marginTop: "1rem" }}>
                     <p>Yellow production die: {dice?.yellowProductionDie ?? '?'}</p>
                     <p>Red production die: {dice?.redProductionDie ?? '?'}</p>
@@ -337,11 +363,23 @@ export default function Home() {
                 >
                     {
                         menuAnchor.isEdge
-                            ? (<li key = "road">road</li>)
+                            ? (
+                                <li
+                                    key = "road"
+                                    onClick = {() => postMakeMove({ move: menuAnchor.label, moveType: 'road' })}
+                                    style = {{ opacity: makeMoveLoading ? 0.5 : 1, cursor: 'pointer' }}
+                                >
+                                    road
+                                </li>
+                            )
                             : (
-                                (possibleNextMoves?.vertices[menuAnchor.label] ?? []).map(moveType => (
-                                    <li key = {moveType}>
-                                        {moveType}
+                                (possibleNextMoves?.vertices[menuAnchor.label] ?? []).map(mt => (
+                                    <li
+                                        key = {mt}
+                                        onClick = {() => postMakeMove({ move: menuAnchor.label, moveType: mt })}
+                                        style = {{ opacity: makeMoveLoading ? 0.5 : 1, cursor: 'pointer' }}
+                                    >
+                                        {mt}
                                     </li>
                                 ))
                             )

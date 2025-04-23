@@ -5,6 +5,7 @@ export const API = {
     endpoints: {
         cities: '/cities',
         automateMove: '/automateMove',
+        makeMove: '/makeMove',
         recommendMove: '/recommendMove',
         reset: '/reset',
         roads: '/roads',
@@ -21,12 +22,8 @@ export async function apiFetch<T>(
     const response = await fetch(`${API.baseUrl}${endpoint}`, options);
     if (!response.ok) {
         let errorMessage = response.statusText;
-        try {
-            const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
-        } catch (err) {
-            // TODO: Consider whether falling back to status text if JSON parsing fails requires code here.
-        }
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
         throw new Error(`API Error: ${errorMessage}`);
     }
     return response.json();
