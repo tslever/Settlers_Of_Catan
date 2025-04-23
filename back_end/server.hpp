@@ -106,9 +106,8 @@ namespace Server {
 					}
 				}
 				else if (nextPhase == Game::Phase::TO_PLACE_FIRST_ROAD) {
-					for (auto& labelOfAvailableEdge : vectorOfLabelsOfAvailableEdges) {
-						vectorOfLabelsOfEdgesToHighlight.push_back(labelOfAvailableEdge);
-					}
+					auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
+					vectorOfLabelsOfEdgesToHighlight.insert(vectorOfLabelsOfEdgesToHighlight.end(), adjacentEdges.begin(), adjacentEdges.end());
 				}
 				else if (nextPhase == Game::Phase::TO_PLACE_FIRST_CITY) {
 					for (auto& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
@@ -116,9 +115,8 @@ namespace Server {
 					}
 				}
 				else if (nextPhase == Game::Phase::TO_PLACE_SECOND_ROAD) {
-					for (auto& labelOfAvailableEdge : vectorOfLabelsOfAvailableEdges) {
-						vectorOfLabelsOfEdgesToHighlight.push_back(labelOfAvailableEdge);
-					}
+					auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
+					vectorOfLabelsOfEdgesToHighlight.insert(vectorOfLabelsOfEdgesToHighlight.end(), adjacentEdges.begin(), adjacentEdges.end());
 				}
 				else if (nextPhase == Game::Phase::TO_ROLL_DICE) {
 					nextPlayerWillRollDice = true;
