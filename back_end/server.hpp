@@ -92,31 +92,30 @@ namespace Server {
 				const int nextPlayer = nextState.currentPlayer;
 				const std::string nextPhase = nextState.phase;
 				Board board;
-				std::vector<std::string> vectorOfLabelsOfVerticesToHighlight;
-				std::vector<std::string> vectorOfLabelsOfEdgesToHighlight;
+				std::unordered_map<std::string, std::vector<std::string>> unorderedMapOfLabelsOfVerticesAndMoveTypes;
+				std::vector<std::string> vectorOfLabelsOfEdges;
+				bool nextPlayerWillRollDice = false;
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(nextState);
 				std::vector<std::string> vectorOfLabelsOfOccupiedEdges = board.getVectorOfLabelsOfOccupiedEdges(nextState);
 				std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
-				std::vector<std::string> vectorOfLabelsOfAvailableEdges = board.getVectorOfLabelsOfAvailableEdges(vectorOfLabelsOfOccupiedEdges);
-				bool nextPlayerWillRollDice = false;
 
 				if (nextPhase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
 					for (auto& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
-						vectorOfLabelsOfVerticesToHighlight.push_back(labelOfAvailableVertex);
+						unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("settlement");
 					}
 				}
 				else if (nextPhase == Game::Phase::TO_PLACE_FIRST_ROAD) {
 					auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
-					vectorOfLabelsOfEdgesToHighlight.insert(vectorOfLabelsOfEdgesToHighlight.end(), adjacentEdges.begin(), adjacentEdges.end());
+					vectorOfLabelsOfEdges.insert(vectorOfLabelsOfEdges.end(), adjacentEdges.begin(), adjacentEdges.end());
 				}
 				else if (nextPhase == Game::Phase::TO_PLACE_FIRST_CITY) {
 					for (auto& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
-						vectorOfLabelsOfVerticesToHighlight.push_back(labelOfAvailableVertex);
+						unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("city");
 					}
 				}
 				else if (nextPhase == Game::Phase::TO_PLACE_SECOND_ROAD) {
 					auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
-					vectorOfLabelsOfEdgesToHighlight.insert(vectorOfLabelsOfEdgesToHighlight.end(), adjacentEdges.begin(), adjacentEdges.end());
+					vectorOfLabelsOfEdges.insert(vectorOfLabelsOfEdges.end(), adjacentEdges.begin(), adjacentEdges.end());
 				}
 				else if (nextPhase == Game::Phase::TO_ROLL_DICE) {
 					nextPlayerWillRollDice = true;
@@ -138,13 +137,13 @@ namespace Server {
 							unorderedMapOfNamesAndNumbersOfResources["lumber"] >= 1 &&
 							unorderedMapOfNamesAndNumbersOfResources["wool"] >= 1
 						) {
-							vectorOfLabelsOfVerticesToHighlight.push_back(labelOfAvailableVertex);
+							unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("settlement");
 						}
 					}
 					std::vector<std::string> vectorOfLabelsOfVerticesWithSettlementOfPlayer = nextState.settlements.at(nextPlayer);
 					for (std::string& labelOfVertex : vectorOfLabelsOfVerticesWithSettlementOfPlayer) {
 						if (unorderedMapOfNamesAndNumbersOfResources["grain"] >= 2 && unorderedMapOfNamesAndNumbersOfResources["ore"] >= 3) {
-							vectorOfLabelsOfVerticesToHighlight.push_back(labelOfVertex);
+							unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfVertex].push_back("city");
 						}
 					}
 					std::vector<std::string> vectorOfLabelsOfVerticesWithCityOfPlayer = nextState.cities.at(nextPlayer);
@@ -153,9 +152,10 @@ namespace Server {
 							unorderedMapOfNamesAndNumbersOfResources["brick"] >= 2 &&
 							std::find(nextState.walls.at(nextPlayer).begin(), nextState.walls.at(nextPlayer).end(), labelOfVertex) == nextState.walls.at(nextPlayer).end()
 						) {
-							vectorOfLabelsOfVerticesToHighlight.push_back(labelOfVertex);
+							unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfVertex].push_back("wall");
 						}
 					}
+					std::vector<std::string> vectorOfLabelsOfAvailableEdges = board.getVectorOfLabelsOfAvailableEdges(vectorOfLabelsOfOccupiedEdges);
 					for (auto& labelOfEdge : vectorOfLabelsOfAvailableEdges) {
 						auto [firstLabelOfVertex, secondLabelOfVertex] = board.getVerticesOfEdge(labelOfEdge);
 						if (
@@ -163,23 +163,32 @@ namespace Server {
 							unorderedMapOfNamesAndNumbersOfResources["brick"] >= 1 &&
 							unorderedMapOfNamesAndNumbersOfResources["lumber"] >= 1
 						) {
-							vectorOfLabelsOfEdgesToHighlight.push_back(labelOfEdge);
+							vectorOfLabelsOfEdges.push_back(labelOfEdge);
 						}
 					}
 				}
-				crow::json::wvalue jsonObjectOfMovesToHighlight(crow::json::type::Object);
-				jsonObjectOfMovesToHighlight["player"] = nextPlayer;
-				jsonObjectOfMovesToHighlight["verticesToHighlight"] = crow::json::wvalue(crow::json::type::List);
-				for (size_t i = 0; i < vectorOfLabelsOfVerticesToHighlight.size(); ++i) {
-					jsonObjectOfMovesToHighlight["verticesToHighlight"][i] = vectorOfLabelsOfVerticesToHighlight[i];
+				crow::json::wvalue jsonObjectOfPossibleNextMoves(crow::json::type::Object);
+				jsonObjectOfPossibleNextMoves["player"] = nextPlayer;
+				jsonObjectOfPossibleNextMoves["nextPlayerWillRollDice"] = nextPlayerWillRollDice;
+
+				crow::json::wvalue jsonObjectOfLabelsOfVerticesAndMoveTypes(crow::json::type::Object);
+				for (auto& [labelOfVertex, vectorOfMoveTypes] : unorderedMapOfLabelsOfVerticesAndMoveTypes) {
+					crow::json::wvalue arrayOfMoveTypes(crow::json::type::List);
+					for (size_t i = 0; i < vectorOfMoveTypes.size(); i++) {
+						arrayOfMoveTypes[i] = vectorOfMoveTypes[i];
+					}
+					jsonObjectOfLabelsOfVerticesAndMoveTypes[labelOfVertex] = std::move(arrayOfMoveTypes);
 				}
-				jsonObjectOfMovesToHighlight["edgesToHighlight"] = crow::json::wvalue(crow::json::type::List);
-				for (size_t i = 0; i < vectorOfLabelsOfEdgesToHighlight.size(); ++i) {
-					jsonObjectOfMovesToHighlight["edgesToHighlight"][i] = vectorOfLabelsOfEdgesToHighlight[i];
+				jsonObjectOfPossibleNextMoves["vertices"] = std::move(jsonObjectOfLabelsOfVerticesAndMoveTypes);
+
+				crow::json::wvalue jsonArrayOfLabelsOfEdges(crow::json::type::List);
+				for (size_t i = 0; i < vectorOfLabelsOfEdges.size(); i++) {
+					jsonArrayOfLabelsOfEdges[i] = vectorOfLabelsOfEdges[i];
 				}
-				jsonObjectOfMovesToHighlight["nextPlayerWillRollDice"] = nextPlayerWillRollDice;
-				response["movesToHighlight"] = std::move(jsonObjectOfMovesToHighlight);
-				liveDb.upsertSetting("lastMovesToHighlight", response["movesToHighlight"].dump());
+				jsonObjectOfPossibleNextMoves["edges"] = std::move(jsonArrayOfLabelsOfEdges);
+
+				response["possibleNextMoves"] = std::move(jsonObjectOfPossibleNextMoves);
+				liveDb.upsertSetting("lastPossibleNextMoves", response["possibleNextMoves"].dump());
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
@@ -202,7 +211,7 @@ namespace Server {
 				liveDb.upsertSetting("lastDice", {});
 				liveDb.upsertSetting("lastGainedResources", {});
 				liveDb.upsertSetting("lastTotalResources", {});
-				liveDb.upsertSetting("lastMovesToHighlight", {});
+				liveDb.upsertSetting("lastPossibleNextMoves", {});
 			}
 			catch (const std::exception& e) {
 				response["error"] = std::string("Resetting game failed with the following error. ") + e.what();
@@ -259,7 +268,7 @@ namespace Server {
 				result["dice"] = loadBlob(liveDb, "lastDice");
 				result["gainedResources"] = loadBlob(liveDb, "lastGainedResources");
 				result["totalResources"] = loadBlob(liveDb, "lastTotalResources");
-				result["movesToHighlight"] = loadBlob(liveDb, "lastMovesToHighlight");
+				result["possibleNextMoves"] = loadBlob(liveDb, "lastPossibleNextMoves");
 			}
 			catch (const std::exception& e) {
 				result["error"] = std::string("Getting game state failed with the following error. ") + e.what();

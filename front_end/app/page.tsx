@@ -2,7 +2,7 @@
 
 import { API, apiFetch } from './api';
 import { Board } from './BoardLayout';
-import { Dice, ResourcesByKind, Totals, WallInformation } from './types';
+import { Player, StructureType, Totals, WallInformation } from './types';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex, ResetResponse } from './types';
 import { NextResponse } from './types';
@@ -47,7 +47,10 @@ function isEmpty(obj: object) {
 
 
 export default function Home() {
+
+
     const queryClient = useQueryClient();
+
 
     const { data: stateData, isLoading: stateLoading, error: stateError } = useCentralQuery<NextResponse>(
         ["state"],
@@ -55,17 +58,18 @@ export default function Home() {
     );
 
 
-    const [movesToHighlight, setMovesToHighlight] = useState<{
-        player: number;
-        verticesToHighlight: string[];
-        edgesToHighlight: string[];
+    const [possibleNextMoves, setPossibleNextMoves] = useState<{
+        player: Player;
+        nextPlayerWillRollDice: boolean;
+        vertices: Record<string, StructureType[]>;
+        edges: string[];
     } | null>(null);
 
 
     useEffect(() => {
-        const movesToHighlight = stateData?.movesToHighlight;
-        if (movesToHighlight && Array.isArray(movesToHighlight.verticesToHighlight) && Array.isArray(movesToHighlight.edgesToHighlight)) {
-            setMovesToHighlight(movesToHighlight);
+        const PNM = stateData?.possibleNextMoves;
+        if (PNM && Array.isArray(PNM.vertices) && Array.isArray(PNM.edges)) {
+            setPossibleNextMoves(possibleNextMoves);
         }
     }, [stateData]);
 
@@ -130,7 +134,7 @@ export default function Home() {
                 }
             ),
             onSuccess: (data) => {
-                setMovesToHighlight(data.movesToHighlight);
+                setPossibleNextMoves(data.possibleNextMoves);
                 queryClient.invalidateQueries({ queryKey: ["state"] });
                 queryClient.invalidateQueries({ queryKey: ["cities"] });
                 queryClient.invalidateQueries({ queryKey: ["settlements"] });
@@ -152,7 +156,7 @@ export default function Home() {
                 }
             ),
             onSuccess: () => {
-                setMovesToHighlight(null);
+                setPossibleNextMoves(null);
                 queryClient.invalidateQueries({ queryKey: ["state"] });
                 queryClient.invalidateQueries({ queryKey: ["cities"] });
                 queryClient.invalidateQueries({ queryKey: ["settlements"] });
@@ -225,7 +229,7 @@ export default function Home() {
                                         />
                                     );
                                 })}
-                                {movesToHighlight?.edgesToHighlight.map((labelOfEdge, i) => {
+                                {possibleNextMoves?.edges.map((labelOfEdge, i) => {
                                     const indexOfEdge = parseInt(labelOfEdge.slice(1), 10) - 1;
                                     const { x1, y1, x2, y2 } = jsonArrayOfEdgeInformation[indexOfEdge];
                                     return (
@@ -235,15 +239,15 @@ export default function Home() {
                                             y1 = {y1}
                                             x2 = {x2}
                                             y2 = {y2}
-                                            stroke = {colorMapping[movesToHighlight.player]}
+                                            stroke = {colorMapping[possibleNextMoves.player]}
                                             strokeWidth = {3}
                                             opacity = {0.4}
                                         />
                                     );
                                 })}
                             </RoadLayer>
-                            {movesToHighlight?.verticesToHighlight.map((labelOfVertex, i) => {
-                                const {x, y} = vertexMapping[labelOfVertex];
+                            {possibleNextMoves && Object.keys(possibleNextMoves.vertices).map((labelOfVertex, i) => {
+                                const { x, y } = vertexMapping[labelOfVertex];
                                 return (
                                     <div
                                         key = {i}
@@ -254,7 +258,7 @@ export default function Home() {
                                             width: '2vmin',
                                             height: '2vmin',
                                             borderRadius: '50%',
-                                            backgroundColor: colorMapping[movesToHighlight.player],
+                                            backgroundColor: colorMapping[possibleNextMoves.player],
                                             opacity: 0.8,
                                             transform: 'translate(-50%, -50%)',
                                             border: '0.2vmin solid black'

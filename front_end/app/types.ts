@@ -1,6 +1,6 @@
 export type EdgeKey = string;
 
-export type MoveType = "settlement" | "road";
+export type StructureType = "city" | "settlement" | "wall";
 
 export type Player = 1 | 2 | 3;
 
@@ -48,10 +48,11 @@ export type NextResponse = {
     dice?: Dice;
     totalResources: Totals;
     gainedResources?: Totals;
-    movesToHighlight: {
-        player: number;
-        verticesToHighlight: string[];
-        edgesToHighlight: string[];
+    possibleNextMoves: {
+        player: Player;
+        nextPlayerWillRollDice: boolean;
+        vertices: Record<string, StructureType[]>;
+        edges: string[];
     }
 }
 
