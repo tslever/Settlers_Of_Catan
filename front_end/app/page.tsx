@@ -59,7 +59,7 @@ export default function Home() {
 
     const handleVertexClick = (label: string) => {
         const { x, y } = vertexMapping[label];
-        setMenuAnchor({ label, x, y });
+        setMenuAnchor(prev => prev?.label === label && !prev.isEdge ? null : { label, x, y });
     };
 
 
@@ -68,7 +68,7 @@ export default function Home() {
         const { x1, y1, x2, y2 } = jsonArrayOfEdgeInformation[index];
         const midX = (x1 + x2) / 2;
         const midY = (y1 + y2) / 2;
-        setMenuAnchor({ label, x: midX, y: midY, isEdge: true });
+        setMenuAnchor(prev => prev?.label === label && prev.isEdge ? null : { label, x: midX, y: midY, isEdge: true });
     };
 
 
