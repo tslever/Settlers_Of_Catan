@@ -5,6 +5,7 @@ export const API = {
     endpoints: {
         cities: '/cities',
         automateMove: '/automateMove',
+        recommendMove: '/recommendMove',
         reset: '/reset',
         roads: '/roads',
         settlements: '/settlements',

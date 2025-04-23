@@ -40,242 +40,276 @@ namespace Server {
 		AI::WrapperOfNeuralNetwork& wrapperOfNeuralNetwork,
 		const Config::Config& config
 	) {
-		CROW_ROUTE(app, "/")
-			([]() -> crow::json::wvalue {
-			crow::json::wvalue result;
-			result["message"] = "Welcome to the Settlers of Catan API!";
-			return result;
-				});
-
-
-		CROW_ROUTE(app, "/cities").methods("GET"_method)
-			([&liveDb]() -> crow::json::wvalue {
-			try {
-				return liveDb.getCitiesJson();
+		CROW_ROUTE(app, "/")(
+			[]() -> crow::json::wvalue {
+				crow::json::wvalue result;
+				result["message"] = "Welcome to the Settlers of Catan API!";
+				return result;
 			}
-			catch (const std::exception& e) {
-				crow::json::wvalue error;
-				error["error"] = std::string("Getting cities failed with the following error. ") + e.what();
-				return error;
+		);
+
+
+		CROW_ROUTE(app, "/cities").methods("GET"_method)(
+			[&liveDb]() -> crow::json::wvalue {
+				try {
+					return liveDb.getCitiesJson();
+				}
+				catch (const std::exception& e) {
+					crow::json::wvalue error;
+					error["error"] = std::string("Getting cities failed with the following error. ") + e.what();
+					return error;
+				}
 			}
-		});
+		);
 
 
-		CROW_ROUTE(app, "/automateMove").methods("POST"_method)
-		([&liveDb, &wrapperOfNeuralNetwork, &config]() -> crow::json::wvalue {
-			crow::json::wvalue response;
+		CROW_ROUTE(app, "/automateMove").methods("POST"_method)(
+			[&liveDb, &wrapperOfNeuralNetwork, &config]() -> crow::json::wvalue {
+				crow::json::wvalue response;
 
-			try {
-				Logger::info("A user posted to endpoint automateMove. The game state will be transitioned.");
-				GameState currentGameState = liveDb.getGameState();
-				Game::Game game(
-					liveDb,
-					wrapperOfNeuralNetwork,
-					config.numberOfSimulations,
-					config.cPuct,
-					config.tolerance,
-					currentGameState,
-					config.dirichletMixingWeight,
-					config.dirichletShape
-				);
-				response = game.handlePhase();
-				currentGameState = game.getState();
-				liveDb.updateGameState(currentGameState);
-				std::string messageWithQuotes = response["message"].dump();
-				std::string message = (messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') ? messageWithQuotes.substr(1, messageWithQuotes.size() - 2) : messageWithQuotes;
-				liveDb.upsertSetting("lastMessage", message);
-				liveDb.upsertSetting("lastDice", response["dice"].dump());
-				liveDb.upsertSetting("lastGainedResources", response["gainedResources"].dump());
-				liveDb.upsertSetting("lastTotalResources", response["totalResources"].dump());
+				try {
+					Logger::info("A user posted to endpoint automateMove. The game state will be transitioned.");
+					GameState currentGameState = liveDb.getGameState();
+					Game::Game game(
+						liveDb,
+						wrapperOfNeuralNetwork,
+						config.numberOfSimulations,
+						config.cPuct,
+						config.tolerance,
+						currentGameState,
+						config.dirichletMixingWeight,
+						config.dirichletShape
+					);
+					response = game.handlePhase();
+					currentGameState = game.getState();
+					liveDb.updateGameState(currentGameState);
+					std::string messageWithQuotes = response["message"].dump();
+					std::string message = (messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') ? messageWithQuotes.substr(1, messageWithQuotes.size() - 2) : messageWithQuotes;
+					liveDb.upsertSetting("lastMessage", message);
+					liveDb.upsertSetting("lastDice", response["dice"].dump());
+					liveDb.upsertSetting("lastGainedResources", response["gainedResources"].dump());
+					liveDb.upsertSetting("lastTotalResources", response["totalResources"].dump());
 
-				GameState nextState = liveDb.getGameState();
-				const int nextPlayer = nextState.currentPlayer;
-				const std::string nextPhase = nextState.phase;
-				Board board;
-				std::unordered_map<std::string, std::vector<std::string>> unorderedMapOfLabelsOfVerticesAndMoveTypes;
-				std::vector<std::string> vectorOfLabelsOfEdges;
-				bool nextPlayerWillRollDice = false;
-				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(nextState);
-				std::vector<std::string> vectorOfLabelsOfOccupiedEdges = board.getVectorOfLabelsOfOccupiedEdges(nextState);
-				std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
+					GameState nextState = liveDb.getGameState();
+					const int nextPlayer = nextState.currentPlayer;
+					const std::string nextPhase = nextState.phase;
+					Board board;
+					std::unordered_map<std::string, std::vector<std::string>> unorderedMapOfLabelsOfVerticesAndMoveTypes;
+					std::vector<std::string> vectorOfLabelsOfEdges;
+					bool nextPlayerWillRollDice = false;
+					std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(nextState);
+					std::vector<std::string> vectorOfLabelsOfOccupiedEdges = board.getVectorOfLabelsOfOccupiedEdges(nextState);
+					std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 
-				if (nextPhase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
-					for (auto& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
-						unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("settlement");
-					}
-				}
-				else if (nextPhase == Game::Phase::TO_PLACE_FIRST_ROAD) {
-					auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
-					vectorOfLabelsOfEdges.insert(vectorOfLabelsOfEdges.end(), adjacentEdges.begin(), adjacentEdges.end());
-				}
-				else if (nextPhase == Game::Phase::TO_PLACE_FIRST_CITY) {
-					for (auto& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
-						unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("city");
-					}
-				}
-				else if (nextPhase == Game::Phase::TO_PLACE_SECOND_ROAD) {
-					auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
-					vectorOfLabelsOfEdges.insert(vectorOfLabelsOfEdges.end(), adjacentEdges.begin(), adjacentEdges.end());
-				}
-				else if (nextPhase == Game::Phase::TO_ROLL_DICE) {
-					nextPlayerWillRollDice = true;
-				}
-				else if (nextPhase == Game::Phase::TURN) {
-					std::unordered_map<std::string, int>& unorderedMapOfNamesAndNumbersOfResources = nextState.resources.at(nextPlayer);
-					std::unordered_set<std::string> unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer;
-					std::vector<std::string>& vectorOfLabelsOfEdgesWithRoadsOfPlayer = nextState.roads.at(nextPlayer);
-					for (const std::string& labelOfEdge : vectorOfLabelsOfEdgesWithRoadsOfPlayer) {
-						auto [firstLabelOfVertex, secondLabelOfVertex] = board.getVerticesOfEdge(labelOfEdge);
-						unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.insert(firstLabelOfVertex);
-						unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.insert(secondLabelOfVertex);
-					}
-					for (std::string& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
-						if (
-							unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(labelOfAvailableVertex) &&
-							unorderedMapOfNamesAndNumbersOfResources["brick"] >= 1 &&
-							unorderedMapOfNamesAndNumbersOfResources["grain"] >= 1 &&
-							unorderedMapOfNamesAndNumbersOfResources["lumber"] >= 1 &&
-							unorderedMapOfNamesAndNumbersOfResources["wool"] >= 1
-						) {
+					if (nextPhase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
+						for (auto& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
 							unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("settlement");
 						}
 					}
-					std::vector<std::string> vectorOfLabelsOfVerticesWithSettlementOfPlayer = nextState.settlements.at(nextPlayer);
-					for (std::string& labelOfVertex : vectorOfLabelsOfVerticesWithSettlementOfPlayer) {
-						if (unorderedMapOfNamesAndNumbersOfResources["grain"] >= 2 && unorderedMapOfNamesAndNumbersOfResources["ore"] >= 3) {
-							unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfVertex].push_back("city");
+					else if (nextPhase == Game::Phase::TO_PLACE_FIRST_ROAD) {
+						auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
+						vectorOfLabelsOfEdges.insert(vectorOfLabelsOfEdges.end(), adjacentEdges.begin(), adjacentEdges.end());
+					}
+					else if (nextPhase == Game::Phase::TO_PLACE_FIRST_CITY) {
+						for (auto& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
+							unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("city");
 						}
 					}
-					std::vector<std::string> vectorOfLabelsOfVerticesWithCityOfPlayer = nextState.cities.at(nextPlayer);
-					for (std::string& labelOfVertex : vectorOfLabelsOfVerticesWithCityOfPlayer) {
-						if (
-							unorderedMapOfNamesAndNumbersOfResources["brick"] >= 2 &&
-							std::find(nextState.walls.at(nextPlayer).begin(), nextState.walls.at(nextPlayer).end(), labelOfVertex) == nextState.walls.at(nextPlayer).end()
-						) {
-							unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfVertex].push_back("wall");
+					else if (nextPhase == Game::Phase::TO_PLACE_SECOND_ROAD) {
+						auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
+						vectorOfLabelsOfEdges.insert(vectorOfLabelsOfEdges.end(), adjacentEdges.begin(), adjacentEdges.end());
+					}
+					else if (nextPhase == Game::Phase::TO_ROLL_DICE) {
+						nextPlayerWillRollDice = true;
+					}
+					else if (nextPhase == Game::Phase::TURN) {
+						std::unordered_map<std::string, int>& unorderedMapOfNamesAndNumbersOfResources = nextState.resources.at(nextPlayer);
+						std::unordered_set<std::string> unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer;
+						std::vector<std::string>& vectorOfLabelsOfEdgesWithRoadsOfPlayer = nextState.roads.at(nextPlayer);
+						for (const std::string& labelOfEdge : vectorOfLabelsOfEdgesWithRoadsOfPlayer) {
+							auto [firstLabelOfVertex, secondLabelOfVertex] = board.getVerticesOfEdge(labelOfEdge);
+							unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.insert(firstLabelOfVertex);
+							unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.insert(secondLabelOfVertex);
+						}
+						for (std::string& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
+							if (
+								unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(labelOfAvailableVertex) &&
+								unorderedMapOfNamesAndNumbersOfResources["brick"] >= 1 &&
+								unorderedMapOfNamesAndNumbersOfResources["grain"] >= 1 &&
+								unorderedMapOfNamesAndNumbersOfResources["lumber"] >= 1 &&
+								unorderedMapOfNamesAndNumbersOfResources["wool"] >= 1
+							) {
+								unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("settlement");
+							}
+						}
+						std::vector<std::string> vectorOfLabelsOfVerticesWithSettlementOfPlayer = nextState.settlements.at(nextPlayer);
+						for (std::string& labelOfVertex : vectorOfLabelsOfVerticesWithSettlementOfPlayer) {
+							if (unorderedMapOfNamesAndNumbersOfResources["grain"] >= 2 && unorderedMapOfNamesAndNumbersOfResources["ore"] >= 3) {
+								unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfVertex].push_back("city");
+							}
+						}
+						std::vector<std::string> vectorOfLabelsOfVerticesWithCityOfPlayer = nextState.cities.at(nextPlayer);
+						for (std::string& labelOfVertex : vectorOfLabelsOfVerticesWithCityOfPlayer) {
+							if (
+								unorderedMapOfNamesAndNumbersOfResources["brick"] >= 2 &&
+								std::find(nextState.walls.at(nextPlayer).begin(), nextState.walls.at(nextPlayer).end(), labelOfVertex) == nextState.walls.at(nextPlayer).end()
+							) {
+								unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfVertex].push_back("wall");
+							}
+						}
+						std::vector<std::string> vectorOfLabelsOfAvailableEdges = board.getVectorOfLabelsOfAvailableEdges(vectorOfLabelsOfOccupiedEdges);
+						for (auto& labelOfEdge : vectorOfLabelsOfAvailableEdges) {
+							auto [firstLabelOfVertex, secondLabelOfVertex] = board.getVerticesOfEdge(labelOfEdge);
+							if (
+								(unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(firstLabelOfVertex) || unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(secondLabelOfVertex)) &&
+								unorderedMapOfNamesAndNumbersOfResources["brick"] >= 1 &&
+								unorderedMapOfNamesAndNumbersOfResources["lumber"] >= 1
+							) {
+								vectorOfLabelsOfEdges.push_back(labelOfEdge);
+							}
 						}
 					}
-					std::vector<std::string> vectorOfLabelsOfAvailableEdges = board.getVectorOfLabelsOfAvailableEdges(vectorOfLabelsOfOccupiedEdges);
-					for (auto& labelOfEdge : vectorOfLabelsOfAvailableEdges) {
-						auto [firstLabelOfVertex, secondLabelOfVertex] = board.getVerticesOfEdge(labelOfEdge);
-						if (
-							(unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(firstLabelOfVertex) || unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(secondLabelOfVertex)) &&
-							unorderedMapOfNamesAndNumbersOfResources["brick"] >= 1 &&
-							unorderedMapOfNamesAndNumbersOfResources["lumber"] >= 1
-						) {
-							vectorOfLabelsOfEdges.push_back(labelOfEdge);
+					crow::json::wvalue jsonObjectOfPossibleNextMoves(crow::json::type::Object);
+					jsonObjectOfPossibleNextMoves["player"] = nextPlayer;
+					jsonObjectOfPossibleNextMoves["nextPlayerWillRollDice"] = nextPlayerWillRollDice;
+
+					crow::json::wvalue jsonObjectOfLabelsOfVerticesAndMoveTypes(crow::json::type::Object);
+					for (auto& [labelOfVertex, vectorOfMoveTypes] : unorderedMapOfLabelsOfVerticesAndMoveTypes) {
+						crow::json::wvalue arrayOfMoveTypes(crow::json::type::List);
+						for (size_t i = 0; i < vectorOfMoveTypes.size(); i++) {
+							arrayOfMoveTypes[i] = vectorOfMoveTypes[i];
 						}
+						jsonObjectOfLabelsOfVerticesAndMoveTypes[labelOfVertex] = std::move(arrayOfMoveTypes);
 					}
-				}
-				crow::json::wvalue jsonObjectOfPossibleNextMoves(crow::json::type::Object);
-				jsonObjectOfPossibleNextMoves["player"] = nextPlayer;
-				jsonObjectOfPossibleNextMoves["nextPlayerWillRollDice"] = nextPlayerWillRollDice;
+					jsonObjectOfPossibleNextMoves["vertices"] = std::move(jsonObjectOfLabelsOfVerticesAndMoveTypes);
 
-				crow::json::wvalue jsonObjectOfLabelsOfVerticesAndMoveTypes(crow::json::type::Object);
-				for (auto& [labelOfVertex, vectorOfMoveTypes] : unorderedMapOfLabelsOfVerticesAndMoveTypes) {
-					crow::json::wvalue arrayOfMoveTypes(crow::json::type::List);
-					for (size_t i = 0; i < vectorOfMoveTypes.size(); i++) {
-						arrayOfMoveTypes[i] = vectorOfMoveTypes[i];
+					crow::json::wvalue jsonArrayOfLabelsOfEdges(crow::json::type::List);
+					for (size_t i = 0; i < vectorOfLabelsOfEdges.size(); i++) {
+						jsonArrayOfLabelsOfEdges[i] = vectorOfLabelsOfEdges[i];
 					}
-					jsonObjectOfLabelsOfVerticesAndMoveTypes[labelOfVertex] = std::move(arrayOfMoveTypes);
+					jsonObjectOfPossibleNextMoves["edges"] = std::move(jsonArrayOfLabelsOfEdges);
+
+					response["possibleNextMoves"] = std::move(jsonObjectOfPossibleNextMoves);
+					liveDb.upsertSetting("lastPossibleNextMoves", response["possibleNextMoves"].dump());
 				}
-				jsonObjectOfPossibleNextMoves["vertices"] = std::move(jsonObjectOfLabelsOfVerticesAndMoveTypes);
-
-				crow::json::wvalue jsonArrayOfLabelsOfEdges(crow::json::type::List);
-				for (size_t i = 0; i < vectorOfLabelsOfEdges.size(); i++) {
-					jsonArrayOfLabelsOfEdges[i] = vectorOfLabelsOfEdges[i];
+				catch (const std::exception& e) {
+					response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
+					Logger::error("setUpRoutes", e);
 				}
-				jsonObjectOfPossibleNextMoves["edges"] = std::move(jsonArrayOfLabelsOfEdges);
-
-				response["possibleNextMoves"] = std::move(jsonObjectOfPossibleNextMoves);
-				liveDb.upsertSetting("lastPossibleNextMoves", response["possibleNextMoves"].dump());
+				return response;
 			}
-			catch (const std::exception& e) {
-				response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
-				Logger::error("setUpRoutes", e);
-			}
-			return response;
-		});
+		);
 
 
-		CROW_ROUTE(app, "/reset").methods("POST"_method)
-			([&liveDb]() -> crow::json::wvalue {
-			crow::json::wvalue response;
-			try {
-				Logger::info("A user posted to endpoint reset. Game state and database will be reset.");
-				bool success = liveDb.resetGame();
-				response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
-				std::string messageWithQuotes = response["message"].dump();
-				std::string message = (messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') ? messageWithQuotes.substr(1, messageWithQuotes.size() - 2) : messageWithQuotes;
-				liveDb.upsertSetting("lastMessage", message);
-				liveDb.upsertSetting("lastDice", {});
-				liveDb.upsertSetting("lastGainedResources", {});
-				liveDb.upsertSetting("lastTotalResources", {});
-				liveDb.upsertSetting("lastPossibleNextMoves", {});
+		CROW_ROUTE(app, "/reset").methods("POST"_method)(
+			[&liveDb]() -> crow::json::wvalue {
+				crow::json::wvalue response;
+				try {
+					Logger::info("A user posted to endpoint reset. Game state and database will be reset.");
+					bool success = liveDb.resetGame();
+					response["message"] = success ? "Game has been reset to initial state." : "Resetting game failed.";
+					std::string messageWithQuotes = response["message"].dump();
+					std::string message = (messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') ? messageWithQuotes.substr(1, messageWithQuotes.size() - 2) : messageWithQuotes;
+					liveDb.upsertSetting("lastMessage", message);
+					liveDb.upsertSetting("lastDice", {});
+					liveDb.upsertSetting("lastGainedResources", {});
+					liveDb.upsertSetting("lastTotalResources", {});
+					liveDb.upsertSetting("lastPossibleNextMoves", {});
+				}
+				catch (const std::exception& e) {
+					response["error"] = std::string("Resetting game failed with the following error. ") + e.what();
+					Logger::error("setUpRoutes", e);
+				}
+				return response;
 			}
-			catch (const std::exception& e) {
-				response["error"] = std::string("Resetting game failed with the following error. ") + e.what();
-				Logger::error("setUpRoutes", e);
-			}
-			return response;
-		});
+		);
 
 
-		CROW_ROUTE(app, "/roads").methods("GET"_method)
-			([&liveDb]() -> crow::json::wvalue {
-			try {
-				return liveDb.getRoadsJson();
+		CROW_ROUTE(app, "/roads").methods("GET"_method)(
+			[&liveDb]() -> crow::json::wvalue {
+				try {
+					return liveDb.getRoadsJson();
+				}
+				catch (const std::exception& e) {
+					crow::json::wvalue error;
+					error["error"] = std::string("Getting roads failed with the following error. ") + e.what();
+					return error;
+				}
 			}
-			catch (const std::exception& e) {
-				crow::json::wvalue error;
-				error["error"] = std::string("Getting roads failed with the following error. ") + e.what();
-				return error;
-			}
-		});
+		);
 
 
-		CROW_ROUTE(app, "/settlements").methods("GET"_method)
-			([&liveDb]() -> crow::json::wvalue {
-			try {
-				return liveDb.getSettlementsJson();
+		CROW_ROUTE(app, "/settlements").methods("GET"_method)(
+			[&liveDb]() -> crow::json::wvalue {
+				try {
+					return liveDb.getSettlementsJson();
+				}
+				catch (const std::exception& e) {
+					crow::json::wvalue error;
+					error["error"] = std::string("Getting settlements failed with the following error. ") + e.what();
+					return error;
+				}
 			}
-			catch (const std::exception& e) {
-				crow::json::wvalue error;
-				error["error"] = std::string("Getting settlements failed with the following error. ") + e.what();
-				return error;
-			}
-		});
+		);
 
 
-		CROW_ROUTE(app, "/walls").methods("GET"_method)
-			([&liveDb]() -> crow::json::wvalue {
-			try {
-				return liveDb.getWallsJson();
+		CROW_ROUTE(app, "/walls").methods("GET"_method)(
+			[&liveDb]() -> crow::json::wvalue {
+				try {
+					return liveDb.getWallsJson();
+				}
+				catch (const std::exception& e) {
+					crow::json::wvalue error;
+					error["error"] = std::string("Getting walls failed with the following error. ") + e.what();
+					return error;
+				}
 			}
-			catch (const std::exception& e) {
-				crow::json::wvalue error;
-				error["error"] = std::string("Getting walls failed with the following error. ") + e.what();
-				return error;
-			}
-		});
+		);
 
 
-		CROW_ROUTE(app, "/state").methods("GET"_method)
-			([&liveDb]() -> crow::json::wvalue {
-			crow::json::wvalue result;
-			try {
-				result["message"] = liveDb.getSetting("lastMessage");
-				result["dice"] = loadBlob(liveDb, "lastDice");
-				result["gainedResources"] = loadBlob(liveDb, "lastGainedResources");
-				result["totalResources"] = loadBlob(liveDb, "lastTotalResources");
-				result["possibleNextMoves"] = loadBlob(liveDb, "lastPossibleNextMoves");
+		CROW_ROUTE(app, "/recommendMove").methods("GET"_method)(
+			[&liveDb, &wrapperOfNeuralNetwork, &config]() -> crow::json::wvalue {
+				crow::json::wvalue response;
+				try {
+					GameState state = liveDb.getGameState();
+					auto [move, moveType, visitCount] = runMcts(
+						state,
+						wrapperOfNeuralNetwork,
+						config.numberOfSimulations,
+						config.cPuct,
+						config.tolerance,
+						config.dirichletMixingWeight,
+						config.dirichletShape
+					);
+					response["move"] = move;
+					response["moveType"] = moveType;
+				}
+				catch (const std::exception& e) {
+					response["error"] = std::string("Recommendation failed with error ") + e.what();
+					Logger::error("recommendMove", e);
+				}
+				return response;
 			}
-			catch (const std::exception& e) {
-				result["error"] = std::string("Getting game state failed with the following error. ") + e.what();
-				Logger::error("state", e);
+		);
+
+
+		CROW_ROUTE(app, "/state").methods("GET"_method)(
+			[&liveDb]() -> crow::json::wvalue {
+				crow::json::wvalue result;
+				try {
+					result["message"] = liveDb.getSetting("lastMessage");
+					result["dice"] = loadBlob(liveDb, "lastDice");
+					result["gainedResources"] = loadBlob(liveDb, "lastGainedResources");
+					result["totalResources"] = loadBlob(liveDb, "lastTotalResources");
+					result["possibleNextMoves"] = loadBlob(liveDb, "lastPossibleNextMoves");
+				}
+				catch (const std::exception& e) {
+					result["error"] = std::string("Getting game state failed with the following error. ") + e.what();
+					Logger::error("state", e);
+				}
+				return result;
 			}
-			return result;
-		});
+		);
 	}
 
 }

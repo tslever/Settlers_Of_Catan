@@ -40,6 +40,13 @@ export interface ResourcesByKind {
     paper: number;
 }
 
+
+export interface RecommendMoveResponse {
+    move: string;
+    moveType: string;
+}
+
+
 export type ID_Of_Hex = keyof typeof idToColor;
 
 export type AutomateMoveResponse = {

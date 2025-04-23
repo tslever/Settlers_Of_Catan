@@ -2,7 +2,7 @@
 
 import { API, apiFetch } from './api';
 import { Board } from './BoardLayout';
-import { Player, StructureType, Totals, WallInformation } from './types';
+import { Player, RecommendMoveResponse, StructureType, Totals, WallInformation } from './types';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex, ResetResponse } from './types';
 import { AutomateMoveResponse } from './types';
@@ -94,6 +94,12 @@ export default function Home() {
             setPossibleNextMoves(stateData.possibleNextMoves);
         }
     }, [stateData]);
+
+
+    const { data: recommendation, isLoading: recommendationLoading, error: recommendationError, refetch: refetchRecommendation } = useCentralQuery<RecommendMoveResponse>(
+        ['recommendMove'],
+        () => apiFetch<RecommendMoveResponse>(API.endpoints.recommendMove)
+    );
 
 
     const {
@@ -342,6 +348,17 @@ export default function Home() {
                     }
                 </ul>
             )}
+            <div style = {{ marginTop: '1rem' }}>
+                <button onClick = {() => refetchRecommendation()} disabled = {recommendationLoading}>
+                    {recommendationLoading ? "Thinking..." : "Recommend Move"}
+                </button>
+                {recommendationError && <p style = {{ color: "red" }}>Error: {(recommendationError as Error).message}</p>}
+                {recommendation && (
+                    <p>
+                        Recommendation: <strong>{recommendation.moveType}</strong> at <strong>{recommendation.move}</strong>
+                    </p>
+                )}
+            </div>
         </div>
     );
 }
