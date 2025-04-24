@@ -84,19 +84,7 @@ export default function Home() {
     const phase = stateData?.phase;
 
 
-    const [possibleNextMoves, setPossibleNextMoves] = useState<{
-        player: Player;
-        nextPlayerWillRollDice: boolean;
-        vertices: Record<string, StructureType[]>;
-        edges: string[];
-    } | null>(null);
-
-
-    useEffect(() => {
-        if (stateData?.possibleNextMoves) {
-            setPossibleNextMoves(stateData.possibleNextMoves);
-        }
-    }, [stateData]);
+    const possibleNextMoves = stateData?.possibleNextMoves;
 
 
     const { data: recommendation, isLoading: recommendationLoading, error: recommendationError, refetch: refetchRecommendation } = useCentralQuery<RecommendMoveResponse>(
@@ -166,7 +154,6 @@ export default function Home() {
                 }
             ),
             onSuccess: (data) => {
-                setPossibleNextMoves(data.possibleNextMoves);
                 queryClient.invalidateQueries({ queryKey: ["state"] });
                 queryClient.invalidateQueries({ queryKey: ["cities"] });
                 queryClient.invalidateQueries({ queryKey: ["settlements"] });
@@ -189,7 +176,6 @@ export default function Home() {
                 }
             ),
             onSuccess: data => {
-                setPossibleNextMoves(data.possibleNextMoves);
                 queryClient.invalidateQueries( { queryKey: ['state'] });
                 queryClient.invalidateQueries( { queryKey: ['cities'] });
                 queryClient.invalidateQueries( { queryKey: ['settlements'] });
@@ -213,13 +199,13 @@ export default function Home() {
                 }
             ),
             onSuccess: () => {
-                setPossibleNextMoves(null);
                 queryClient.invalidateQueries({ queryKey: ["state"] });
                 queryClient.invalidateQueries({ queryKey: ["cities"] });
                 queryClient.invalidateQueries({ queryKey: ["settlements"] });
                 queryClient.invalidateQueries({ queryKey: ["roads"] });
                 queryClient.invalidateQueries({ queryKey: ["walls"] });
                 queryClient.removeQueries({ queryKey: ["recommendMove"] });
+                setMenuAnchor(null);
             }
         }
     );
