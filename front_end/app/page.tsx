@@ -331,6 +331,26 @@ export default function Home() {
                             })}
 
                         </Board>
+                        {possibleNextMoves?.nextPlayerWillRollDice && (
+                            <div
+                                onClick = {() => postAutomateMove()}
+                                style = {{
+                                    position: "absolute",
+                                    top: "5vmin",
+                                    right: "0vmin",
+                                    zIndex: 20,
+                                    padding: "0.5rem 1rem",
+                                    borderRadius: "0.5rem",
+                                    background: "white",
+                                    border: "1px solid #333",
+                                    cursor: "pointer",
+                                    fontWeight: "bold",
+                                    textAlign: "center"
+                                }}
+                            >
+                                Roll Dice
+                            </div>
+                        )}
                         {phase === "turn" && (
                             <div
                                 onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })}
