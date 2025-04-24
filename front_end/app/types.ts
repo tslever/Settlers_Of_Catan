@@ -60,8 +60,9 @@ export type AutomateAndMakeMoveResponse = {
         nextPlayerWillRollDice: boolean;
         vertices: Record<string, StructureType[]>;
         edges: string[];
-    }
-}
+    };
+    phase: string;
+};
 
 export interface Road {
     id: number;

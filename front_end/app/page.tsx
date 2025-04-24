@@ -81,6 +81,9 @@ export default function Home() {
     );
 
 
+    const phase = stateData?.phase;
+
+
     const [possibleNextMoves, setPossibleNextMoves] = useState<{
         player: Player;
         nextPlayerWillRollDice: boolean;
@@ -338,9 +341,11 @@ export default function Home() {
                 <button onClick = {() => resetGame()} disabled = {resetLoading} style = {{ marginLeft: "0.5rem" }}>
                     { resetLoading ? "Resetting..." : "Reset Game" }
                 </button>
-                <button onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })} disabled = {makeMoveLoading} style = {{ marginLeft: "0.5rem" }}>
-                    {makeMoveLoading ? "Passing..." : "Pass"}
-                </button>
+                {phase === "turn" && (
+                    <button onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })} disabled = {makeMoveLoading} style = {{ marginLeft: "0.5rem" }}>
+                        {makeMoveLoading ? "Passing..." : "Pass"}
+                    </button>
+                )}
                 <div className = "dice-display" style = {{ marginTop: "1rem" }}>
                     <p>Yellow production die: {dice?.yellowProductionDie ?? '?'}</p>
                     <p>Red production die: {dice?.redProductionDie ?? '?'}</p>

@@ -199,6 +199,7 @@ namespace Server {
 					liveDb.upsertSetting("lastTotalResources", response["totalResources"].dump());
 
 					buildNextMoves(liveDb, response);
+					response["phase"] = liveDb.getGameState().phase;
 				}
 				catch (const std::exception& e) {
 					response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
@@ -298,6 +299,7 @@ namespace Server {
 					liveDb.upsertSetting("lastTotalResources", response["totalResources"].dump());
 
 					buildNextMoves(liveDb, response);
+					response["phase"] = currentGameState.phase;
 					liveDb.upsertSetting("lastPossibleNextMoves", response["possibleNextMoves"].dump());
 					std::string lastMessage = crow::json::load(response["message"].dump()).s();
 					liveDb.upsertSetting("lastMessage", lastMessage);
@@ -412,6 +414,7 @@ namespace Server {
 					result["gainedResources"] = loadBlob(liveDb, "lastGainedResources");
 					result["totalResources"] = loadBlob(liveDb, "lastTotalResources");
 					buildNextMoves(liveDb, result);
+					result["phase"] = liveDb.getGameState().phase;
 				}
 				catch (const std::exception& e) {
 					result["error"] = std::string("Getting game state failed with the following error. ") + e.what();
