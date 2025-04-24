@@ -2,7 +2,7 @@
 
 import { API, apiFetch } from './api';
 import { Board } from './BoardLayout';
-import { Player, RecommendMoveResponse, StructureType, Totals, WallInformation } from './types';
+import { Dice, Player, RecommendMoveResponse, StructureType, Totals, WallInformation } from './types';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex, ResetResponse } from './types';
 import { AutomateAndMakeMoveResponse } from './types';
@@ -137,7 +137,7 @@ export default function Home() {
     }
 
 
-    const dice = stateData?.dice ?? null;
+    const dice: Dice | null = stateData?.dice ?? null;
     const message = stateData?.message ?? "";
     const gainedResources = stateData?.gainedResources && !isEmpty(stateData.gainedResources) ? stateData.gainedResources : INITIAL_TOTALS;
     const totals = stateData?.totalResources && !isEmpty(stateData?.totalResources) ? stateData?.totalResources : INITIAL_TOTALS;
@@ -219,8 +219,26 @@ export default function Home() {
         3: "green"
     };
 
+    const eventColor: Record<Dice["whiteEventDie"], string> = {
+        yellow: "yellow",
+        green: "green",
+        blue: "blue",
+        black: "black"
+    };
+
+    const pillStyle: React.CSSProperties = {
+        padding: '0.5rem 1rem',
+        borderRadius: '0.5rem',
+        background: 'white',
+        border: '1px solid #333',
+        fontWeight: 'bold',
+        cursor: 'pointer',
+        width: '6rem',
+        textAlign: 'center'
+    };
+
     return (
-        <div style = {{ display: 'grid', gridTemplateColumns: '100vmin auto', alignItems: 'start', columnGap: '1rem', padding: '1rem' }}>
+        <div style = {{ display: 'grid', gridTemplateColumns: '100vmin min-content auto', alignItems: 'start', columnGap: '1rem', padding: '1rem' }}>
             <QueryBoundary isLoading = {isBoardLoading} error = {boardError}>
                 <OuterContainer>
                     <Ocean />
@@ -317,49 +335,76 @@ export default function Home() {
                             })}
 
                         </Board>
-                        {possibleNextMoves?.nextPlayerWillRollDice && (
-                            <div
-                                onClick = {() => postAutomateMove()}
-                                style = {{
-                                    position: "absolute",
-                                    top: "5vmin",
-                                    right: "0vmin",
-                                    zIndex: 20,
-                                    padding: "0.5rem 1rem",
-                                    borderRadius: "0.5rem",
-                                    background: "white",
-                                    border: "1px solid #333",
-                                    cursor: "pointer",
-                                    fontWeight: "bold",
-                                    textAlign: "center"
-                                }}
-                            >
-                                Roll Dice
-                            </div>
-                        )}
-                        {phase === "turn" && (
-                            <div
-                                onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })}
-                                style = {{
-                                    position: "absolute",
-                                    top: "5vmin",
-                                    right: "0vmin",
-                                    zIndex: 20,
-                                    padding: "0.5rem 1rem",
-                                    borderRadius: "0.5rem",
-                                    background: "white",
-                                    border: "1px solid #333",
-                                    cursor: "pointer",
-                                    fontWeight: "bold",
-                                    textAlign: "center"
-                                }}
-                            >
-                                Pass
-                            </div>
-                        )}
                     </BoardContainer>
                 </OuterContainer>
             </QueryBoundary>
+
+            <div
+                style = {{display: "flex", flexDirection: "column", alignItems: "center", rowGap: "1rem"}}
+            >
+                <button style = {pillStyle} onClick = {() => postAutomateMove()} disabled = {!possibleNextMoves?.nextPlayerWillRollDice}>
+                    Roll Dice
+                </button>
+
+                <button style = {pillStyle} onClick = {() => postMakeMove({move: "pass", moveType: "pass"})} disabled = {phase !== "turn"}>
+                    Pass
+                </button>
+
+                <div
+                    style = {{
+                        width: "3rem",
+                        height: "3rem",
+                        background: "yellow",
+                        border: "1px solid #333",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "red",
+                        fontWeight: "bold"
+                    }}
+                >
+                    {dice?.yellowProductionDie ?? ""}
+                </div>
+
+                <div
+                    style = {{
+                        width: "3rem",
+                        height: "3rem",
+                        background: "red",
+                        border: "1px solid #333",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "yellow",
+                        fontWeight: "bold"
+                    }}
+                >
+                    {dice?.redProductionDie ?? ""}
+                </div>
+
+                <div
+                    style = {{
+                        width: "3rem",
+                        height: "3rem",
+                        background: "white",
+                        border: "1px solid #333",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    {dice?.whiteEventDie && (
+                        <div
+                            style = {{
+                                width: "60%",
+                                height: "60%",
+                                borderRadius: "50%",
+                                background: eventColor[dice.whiteEventDie]
+                            }}
+                        />
+                    )}
+                </div>
+            </div>
 
             <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
                 <button onClick = {() => postAutomateMove()} disabled = {automateMoveLoading}>
@@ -368,11 +413,6 @@ export default function Home() {
                 <button onClick = {() => resetGame()} disabled = {resetLoading} style = {{ marginLeft: "0.5rem" }}>
                     { resetLoading ? "Resetting..." : "Reset Game" }
                 </button>
-                <div className = "dice-display" style = {{ marginTop: "1rem" }}>
-                    <p>Yellow production die: {dice?.yellowProductionDie ?? '?'}</p>
-                    <p>Red production die: {dice?.redProductionDie ?? '?'}</p>
-                    <p>White event die: {dice?.whiteEventDie ?? '?'}</p>
-                </div>
                 <p>{message}</p>
                 <ResourcesDisplay totals = {totals} gained = {gainedResources} />
             </div>
