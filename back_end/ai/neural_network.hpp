@@ -190,30 +190,29 @@ namespace AI {
 
         void reloadIfUpdated() {
 			std::lock_guard<std::mutex> lock(mutex);
-            try {
-                auto currentWriteTime = std::filesystem::last_write_time(pathToFileOfParameters);
-                if (currentWriteTime > lastWriteTime) {
-                    std::vector<torch::Tensor> vectorOfParameters;
-                    torch::load(vectorOfParameters, pathToFileOfParameters);
-                    torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
-                    if (variableListOfParameters.size() != vectorOfParameters.size()) {
-                        throw std::runtime_error("Numbers of parameters were mismatched during reload.");
-                    }
-                    torch::NoGradGuard noGrad;
-                    for (size_t i = 0; i < vectorOfParameters.size(); i++) {
-                        variableListOfParameters[i].data().copy_(vectorOfParameters[i].data());
-                    }
-                    lastWriteTime = currentWriteTime;
-                    Logger::info("Model was reloaded after updated model parameters were detected.");
-                }
+
+            auto currentWriteTime = std::filesystem::last_write_time(pathToFileOfParameters);
+            if (currentWriteTime <= lastWriteTime) {
+                return;
             }
-            catch (const c10::Error& e) {
-                Logger::error("reloadIfUpdated", e.what());
-                throw e; // TODO: Remove this throw statement only after figuring out why this error occurs.
+
+            try {
+                std::vector<torch::Tensor> vectorOfParameters;
+                torch::load(vectorOfParameters, pathToFileOfParameters);
+                torch::autograd::variable_list variableListOfParameters = neuralNetwork->parameters();
+                if (variableListOfParameters.size() != vectorOfParameters.size()) {
+                    throw std::runtime_error("Numbers of parameters were mismatched during reload.");
+                }
+                torch::NoGradGuard noGrad;
+                for (size_t i = 0; i < vectorOfParameters.size(); i++) {
+                    variableListOfParameters[i].data().copy_(vectorOfParameters[i].data());
+                }
+                lastWriteTime = currentWriteTime;
+                Logger::info("Model was reloaded after updated model parameters were detected.");
             }
             catch (const std::exception& e) {
-                Logger::error("reloadIfUpdated", e.what());
-                throw e; // TODO: Remove this throw statement only after figuring out why this error occurs.
+                Logger::error("reloadIfUpdated", e);
+                throw e;
             }
         }
     };

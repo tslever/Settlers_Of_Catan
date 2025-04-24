@@ -240,6 +240,7 @@ namespace AI {
             }
 
             variableListOfParameters = neuralNetwork->parameters();
+            std::lock_guard<std::mutex> lock(wrapperOfNeuralNetwork->mutex);
             torch::save(variableListOfParameters, wrapperOfNeuralNetwork->pathToFileOfParameters);
             Logger::info("[TRAINING] Model parameters were saved after training.");
 
