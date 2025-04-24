@@ -329,7 +329,28 @@ export default function Home() {
                                     />
                                 );
                             })}
+
                         </Board>
+                        {phase === "turn" && (
+                            <div
+                                onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })}
+                                style = {{
+                                    position: "absolute",
+                                    top: "5vmin",
+                                    right: "0vmin",
+                                    zIndex: 20,
+                                    padding: "0.5rem 1rem",
+                                    borderRadius: "0.5rem",
+                                    background: "white",
+                                    border: "1px solid #333",
+                                    cursor: "pointer",
+                                    fontWeight: "bold",
+                                    textAlign: "center"
+                                }}
+                            >
+                                Pass
+                            </div>
+                        )}
                     </BoardContainer>
                 </OuterContainer>
             </QueryBoundary>
@@ -341,11 +362,6 @@ export default function Home() {
                 <button onClick = {() => resetGame()} disabled = {resetLoading} style = {{ marginLeft: "0.5rem" }}>
                     { resetLoading ? "Resetting..." : "Reset Game" }
                 </button>
-                {phase === "turn" && (
-                    <button onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })} disabled = {makeMoveLoading} style = {{ marginLeft: "0.5rem" }}>
-                        {makeMoveLoading ? "Passing..." : "Pass"}
-                    </button>
-                )}
                 <div className = "dice-display" style = {{ marginTop: "1rem" }}>
                     <p>Yellow production die: {dice?.yellowProductionDie ?? '?'}</p>
                     <p>Red production die: {dice?.redProductionDie ?? '?'}</p>
@@ -370,8 +386,7 @@ export default function Home() {
                         transform: 'translate(-50%, -100%)'
                     }}
                 >
-                    {
-                        menuAnchor.isEdge
+                    {menuAnchor.isEdge
                             ? (
                                 <li
                                     key = "road"
