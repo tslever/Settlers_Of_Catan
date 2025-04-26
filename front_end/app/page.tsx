@@ -238,7 +238,7 @@ export default function Home() {
     };
 
     return (
-        <div style = {{ display: 'grid', gridTemplateColumns: '100vmin min-content auto', alignItems: 'start', columnGap: '1rem', padding: '1rem' }}>
+        <div style = {{ display: 'grid', gridTemplateColumns: '100vmin 1fr', alignItems: 'start', columnGap: '1rem', padding: '1rem' }}>
             <QueryBoundary isLoading = {isBoardLoading} error = {boardError}>
                 <OuterContainer>
                     <Ocean />
@@ -339,82 +339,41 @@ export default function Home() {
                 </OuterContainer>
             </QueryBoundary>
 
-            <div
-                style = {{display: "flex", flexDirection: "column", alignItems: "center", rowGap: "1rem"}}
-            >
-                <button style = {pillStyle} onClick = {() => postAutomateMove()} disabled = {!possibleNextMoves?.nextPlayerWillRollDice}>
-                    Roll Dice
-                </button>
-
-                <button style = {pillStyle} onClick = {() => postMakeMove({move: "pass", moveType: "pass"})} disabled = {phase !== "turn"}>
-                    Pass
-                </button>
-
-                <div
-                    style = {{
-                        width: "3rem",
-                        height: "3rem",
-                        background: "yellow",
-                        border: "1px solid #333",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "red",
-                        fontWeight: "bold"
-                    }}
-                >
-                    {dice?.yellowProductionDie ?? ""}
+            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", width: "100%", rowGap: "1rem" }}>
+                <p style = {{ margin: 0 }}>{message}</p>
+                <div style = {{ display: "flex", columnGap: "1rem" }}>
+                    <button
+                        style = {pillStyle}
+                        onClick = {() => postAutomateMove()}
+                        disabled = {!possibleNextMoves?.nextPlayerWillRollDice}
+                    >
+                        Roll Dice
+                    </button>
+                    <button
+                        style = {pillStyle}
+                        onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })}
+                        disabled = {phase != "turn"}
+                    >
+                        Pass
+                    </button>
+                </div>
+                <div style = {{ display: "flex", columnGap: "1rem" }}>
+                    <div style = {{ width: "3rem", height: "3rem", background: "yellow", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                        {dice?.yellowProductionDie ?? ""}
+                    </div>
+                    <div style = {{ width: "3rem", height: "3rem", background: "red", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                        {dice?.redProductionDie ?? ""}
+                    </div>
+                    <div style = {{ width: "3rem", height: "3rem", background: "white", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {dice?.whiteEventDie && (
+                            <div style = {{width: "60%", height: "60%", borderRadius: "50%", background: eventColor[dice.whiteEventDie]}}/>
+                        )}
+                    </div>
                 </div>
 
-                <div
-                    style = {{
-                        width: "3rem",
-                        height: "3rem",
-                        background: "red",
-                        border: "1px solid #333",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "yellow",
-                        fontWeight: "bold"
-                    }}
-                >
-                    {dice?.redProductionDie ?? ""}
+                <div style = {{ display: "flex", columnGap: "1rem", alignItems: "center" }}>
+                    <ResourcesDisplay totals = {totals} gained = {gainedResources}/>
                 </div>
-
-                <div
-                    style = {{
-                        width: "3rem",
-                        height: "3rem",
-                        background: "white",
-                        border: "1px solid #333",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                    }}
-                >
-                    {dice?.whiteEventDie && (
-                        <div
-                            style = {{
-                                width: "60%",
-                                height: "60%",
-                                borderRadius: "50%",
-                                background: eventColor[dice.whiteEventDie]
-                            }}
-                        />
-                    )}
-                </div>
-            </div>
-
-            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                <button onClick = {() => postAutomateMove()} disabled = {automateMoveLoading}>
-                    {automateMoveLoading ? "Loading..." : "Automate Move"}
-                </button>
-                <button onClick = {() => resetGame()} disabled = {resetLoading} style = {{ marginLeft: "0.5rem" }}>
-                    { resetLoading ? "Resetting..." : "Reset Game" }
-                </button>
-                <p>{message}</p>
-                <ResourcesDisplay totals = {totals} gained = {gainedResources} />
             </div>
 
             {menuAnchor && (
@@ -456,17 +415,21 @@ export default function Home() {
                     }
                 </ul>
             )}
-            <div style = {{ marginTop: '1rem' }}>
-                <button onClick = {() => refetchRecommendation()} disabled = {recommendationLoading}>
-                    {recommendationLoading ? "Thinking..." : "Recommend Move"}
-                </button>
-                {recommendationError && <p style = {{ color: "red" }}>Error: {(recommendationError as Error).message}</p>}
-                {recommendation && (
-                    <p>
-                        Recommendation: <strong>{recommendation.moveType}</strong> at <strong>{recommendation.move}</strong>
-                    </p>
-                )}
-            </div>
+            <button onClick = {() => refetchRecommendation()} disabled = {recommendationLoading}>
+                {recommendationLoading ? "Thinking..." : "Recommend Move"}
+            </button>
+            {recommendationError && <p style = {{ color: "red" }}>Error: {(recommendationError as Error).message}</p>}
+            {recommendation && (
+                <p>
+                    Recommendation: <strong>{recommendation.moveType}</strong> at <strong>{recommendation.move}</strong>
+                </p>
+            )}
+            <button onClick = {() => postAutomateMove()} disabled = {automateMoveLoading}>
+                {automateMoveLoading ? "Loading..." : "Automate Move"}
+            </button>
+            <button onClick = {() => resetGame()} disabled = {resetLoading}>
+                {resetLoading ? "Resetting..." : "Reset Game"}
+            </button>
         </div>
     );
 }
