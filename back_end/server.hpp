@@ -420,8 +420,9 @@ namespace Server {
 						config.dirichletMixingWeight,
 						config.dirichletShape
 					);
-					response["move"] = move;
-					response["moveType"] = moveType;
+					std::string message = "Recommended move: " + moveType + " at " + move + ".";
+					response["message"] = message;
+					liveDb.upsertSetting("lastMessage", message);
 				}
 				catch (const std::exception& e) {
 					response["error"] = std::string("Recommendation failed with error ") + e.what();

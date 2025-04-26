@@ -81,10 +81,11 @@ export default function Home() {
     const possibleNextMoves = stateData?.possibleNextMoves;
 
 
-    const { data: recommendation, isLoading: recommendationLoading, error: recommendationError, refetch: refetchRecommendation } = useCentralQuery<RecommendMoveResponse>(
-        ['recommendMove'],
-        () => apiFetch<RecommendMoveResponse>(API.endpoints.recommendMove),
-        { enabled: false }
+    const { mutate: fireRecommendMove, isPending: recommendLoading } = useMutation<RecommendMoveResponse, Error>(
+        {
+            mutationFn: () => apiFetch<RecommendMoveResponse>(API.endpoints.recommendMove),
+            onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['state'] }); }
+        }
     );
 
 
@@ -223,7 +224,8 @@ export default function Home() {
         border: '1px solid #333',
         fontWeight: 'bold',
         cursor: 'pointer',
-        width: '6rem',
+        minWidth: '9rem',
+        whiteSpace: 'nowrap',
         textAlign: 'center'
     };
 
@@ -329,35 +331,70 @@ export default function Home() {
                 </OuterContainer>
             </QueryBoundary>
 
-            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", rowGap: "1rem", padding: "1rem", background: "#fff", color: "#000", height: "95%", minHeight: 0, overflowY: "auto", boxSizing: "border-box" }}>
-                <p style = {{ margin: 0 }}>{message}</p>
-                <div style = {{ display: "flex", columnGap: "1rem" }}>
-                    <button
-                        style = {pillStyle}
-                        onClick = {() => postAutomateMove()}
-                        disabled = {!possibleNextMoves?.nextPlayerWillRollDice}
-                    >
-                        Roll Dice
-                    </button>
-                    <button
-                        style = {pillStyle}
-                        onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })}
-                        disabled = {phase != "turn"}
-                    >
-                        Pass
-                    </button>
-                </div>
-                <div style = {{ display: "flex", columnGap: "1rem" }}>
-                    <div style = {{ width: "3rem", height: "3rem", background: "yellow", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                        {dice?.yellowProductionDie ?? ""}
+            <div style = {{ display: "flex", flexDirection: "column", rowGap: "1rem", padding: "1rem", background: "#fff", color: "#000", height: "95%", minHeight: 0, overflowY: "auto", boxSizing: "border-box" }}>
+                <div
+                    style = {{
+                        display: "grid",
+                        gridTemplateColumns: "1fr auto",
+                        columnGap: "1rem",
+                        alignItems: "start"
+                    }}
+                >
+                    <div style = {{display: "flex", flexDirection: "column", rowGap: "1rem"}}>
+                        <p style = {{ margin: 0 }}>{message}</p>
+                        <div style = {{ display: "flex", columnGap: "1rem" }}>
+                            <button
+                                style = {pillStyle}
+                                onClick = {() => postAutomateMove()}
+                                disabled = {!possibleNextMoves?.nextPlayerWillRollDice}
+                            >
+                                Roll Dice
+                            </button>
+                            <button
+                                style = {pillStyle}
+                                onClick = {() => postMakeMove({ move: "pass", moveType: "pass" })}
+                                disabled = {phase != "turn"}
+                            >
+                                Pass
+                            </button>
+                        </div>
+                        <div style = {{ display: "flex", columnGap: "1rem" }}>
+                            <div style = {{ width: "3rem", height: "3rem", background: "yellow", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                                {dice?.yellowProductionDie ?? ""}
+                            </div>
+                            <div style = {{ width: "3rem", height: "3rem", background: "red", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                                {dice?.redProductionDie ?? ""}
+                            </div>
+                            <div style = {{ width: "3rem", height: "3rem", background: "white", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {dice?.whiteEventDie && (
+                                    <div style = {{width: "60%", height: "60%", borderRadius: "50%", background: eventColor[dice.whiteEventDie]}}/>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                    <div style = {{ width: "3rem", height: "3rem", background: "red", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                        {dice?.redProductionDie ?? ""}
-                    </div>
-                    <div style = {{ width: "3rem", height: "3rem", background: "white", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {dice?.whiteEventDie && (
-                            <div style = {{width: "60%", height: "60%", borderRadius: "50%", background: eventColor[dice.whiteEventDie]}}/>
-                        )}
+
+                    <div style = {{ display: "flex", flexDirection: "column", rowGap: "0.75rem" }}>
+                        <button
+                            style = {pillStyle}
+                            onClick = {() => fireRecommendMove()}
+                            disabled = {recommendLoading}
+                        >
+                            {recommendLoading ? "Thinking..." : "Recommend Move"}
+                        </button>
+                        <button
+                            style = {pillStyle}
+                            onClick = {() => postAutomateMove()}
+                            disabled = {automateMoveLoading}
+                        >
+                            {automateMoveLoading ? "Loading..." : "Automate Move"}
+                        </button>
+                        <button
+                            style = {pillStyle}
+                            onClick = {() => resetGame()}
+                            disabled = {resetLoading}
+                        >
+                            {resetLoading ? "Resetting..." : "Reset Game"}
+                        </button>
                     </div>
                 </div>
 
@@ -405,21 +442,6 @@ export default function Home() {
                     }
                 </ul>
             )}
-            <button onClick = {() => refetchRecommendation()} disabled = {recommendationLoading}>
-                {recommendationLoading ? "Thinking..." : "Recommend Move"}
-            </button>
-            {recommendationError && <p style = {{ color: "red" }}>Error: {(recommendationError as Error).message}</p>}
-            {recommendation && (
-                <p>
-                    Recommendation: <strong>{recommendation.moveType}</strong> at <strong>{recommendation.move}</strong>
-                </p>
-            )}
-            <button onClick = {() => postAutomateMove()} disabled = {automateMoveLoading}>
-                {automateMoveLoading ? "Loading..." : "Automate Move"}
-            </button>
-            <button onClick = {() => resetGame()} disabled = {resetLoading}>
-                {resetLoading ? "Resetting..." : "Reset Game"}
-            </button>
         </div>
     );
 }
