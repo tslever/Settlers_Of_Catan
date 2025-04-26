@@ -234,7 +234,7 @@ export default function Home() {
     };
 
     return (
-        <div style = {{ display: 'grid', gridTemplateColumns: '100vmin 1fr', alignItems: 'start', columnGap: '1rem', padding: '1rem' }}>
+        <div style = {{ display: 'grid', gridTemplateColumns: '100vmin 1fr', gridTemplateRows: "1fr", alignItems: 'stretch', height: "100dvh", columnGap: '1rem', padding: '1rem' }}>
             <QueryBoundary isLoading = {isBoardLoading} error = {boardError}>
                 <OuterContainer>
                     <Ocean />
@@ -335,7 +335,7 @@ export default function Home() {
                 </OuterContainer>
             </QueryBoundary>
 
-            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", rowGap: "1rem", padding: "1rem" }}>
+            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", rowGap: "1rem", padding: "1rem", background: "#000", color: "#fff", height: "100%", minHeight: 0, overflowY: "auto", boxSizing: "border-box" }}>
                 <p style = {{ margin: 0 }}>{message}</p>
                 <div style = {{ display: "flex", columnGap: "1rem" }}>
                     <button
@@ -367,7 +367,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div style = {{ width: "100%", columnGap: "1rem", alignItems: "center" }}>
+                <div style = {{ flex: 1, width: "100%", overflowY: "auto" }}>
                     <ResourcesDisplay totals = {totals} gained = {gainedResources}/>
                 </div>
             </div>
