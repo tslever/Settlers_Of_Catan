@@ -339,7 +339,7 @@ export default function Home() {
                 </OuterContainer>
             </QueryBoundary>
 
-            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", width: "100%", rowGap: "1rem" }}>
+            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", width: "100%", rowGap: "1rem", padding: "1rem" }}>
                 <p style = {{ margin: 0 }}>{message}</p>
                 <div style = {{ display: "flex", columnGap: "1rem" }}>
                     <button
@@ -371,7 +371,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div style = {{ display: "flex", columnGap: "1rem", alignItems: "center" }}>
+                <div style = {{ width: "100%", columnGap: "1rem", alignItems: "center" }}>
                     <ResourcesDisplay totals = {totals} gained = {gainedResources}/>
                 </div>
             </div>
