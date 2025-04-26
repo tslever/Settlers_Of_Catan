@@ -33,7 +33,7 @@ const PADDING = 1; // vmin
 
 const STAT_H = 3;      // vmin – height of stat boxes
 const STAT_PAD = 0.75; // vmin - inner padding around each stats box
-const FS      = 2.5;    // baseline font‑size in vmin
+const FS      = 2.3;    // baseline font‑size in vmin
 
 const baseCell:React.CSSProperties = {
   display     :'flex',

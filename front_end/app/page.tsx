@@ -329,7 +329,7 @@ export default function Home() {
                 </OuterContainer>
             </QueryBoundary>
 
-            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", rowGap: "1rem", padding: "1rem", background: "#000", color: "#fff", height: "100%", minHeight: 0, overflowY: "auto", boxSizing: "border-box" }}>
+            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", rowGap: "1rem", padding: "1rem", background: "#fff", color: "#000", height: "95%", minHeight: 0, overflowY: "auto", boxSizing: "border-box" }}>
                 <p style = {{ margin: 0 }}>{message}</p>
                 <div style = {{ display: "flex", columnGap: "1rem" }}>
                     <button
