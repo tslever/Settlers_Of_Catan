@@ -151,11 +151,10 @@ const ResourcesDisplay:React.FC<Props> = ({ totals, gained }) => {
 
   return (
     <div style={{
-      flex:1,
-      display:'flex', flexDirection:'column',
+      display:'flex',
+      flexDirection:'column',
       rowGap:`${PAD*2}vmin`,
-      padding:`${PAD}vmin`,
-      overflowY:'auto'  // vertical scroll for many players
+      padding:`${PAD}vmin`
     }}>
       {players.map(label=>(
         <PlayerPanel
