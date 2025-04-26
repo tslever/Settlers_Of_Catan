@@ -130,17 +130,13 @@ export default function Home() {
     );
 
 
-    const INITIAL_TOTALS: Totals = {
-        "Player 1": ZERO_BAG,
-        "Player 2": ZERO_BAG,
-        "Player 3": ZERO_BAG
-    }
+    const EMPTY_TOTALS: Totals = {};
 
 
     const dice: Dice | null = stateData?.dice ?? null;
     const message = stateData?.message ?? "";
-    const gainedResources = stateData?.gainedResources && !isEmpty(stateData.gainedResources) ? stateData.gainedResources : INITIAL_TOTALS;
-    const totals = stateData?.totalResources && !isEmpty(stateData?.totalResources) ? stateData?.totalResources : INITIAL_TOTALS;
+    const gainedResources = stateData?.gainedResources ?? EMPTY_TOTALS;
+    const totals = stateData?.totalResources ?? EMPTY_TOTALS;
 
 
     const { mutate: postAutomateMove, isPending: automateMoveLoading } = useMutation<AutomateAndMakeMoveResponse, Error>(
@@ -339,7 +335,7 @@ export default function Home() {
                 </OuterContainer>
             </QueryBoundary>
 
-            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", width: "100%", rowGap: "1rem", padding: "1rem" }}>
+            <div style = {{ display: "flex", flexDirection: "column", alignItems: "flex-start", rowGap: "1rem", padding: "1rem" }}>
                 <p style = {{ margin: 0 }}>{message}</p>
                 <div style = {{ display: "flex", columnGap: "1rem" }}>
                     <button

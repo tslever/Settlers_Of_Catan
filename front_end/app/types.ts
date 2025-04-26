@@ -2,7 +2,7 @@ export type EdgeKey = string;
 
 export type StructureType = "city" | "settlement" | "wall";
 
-export type Player = 1 | 2 | 3;
+export type Player = number;
 
 export type ResetResponse = { message: string };
 

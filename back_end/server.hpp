@@ -192,11 +192,17 @@ namespace Server {
 					currentGameState = game.getState();
 					liveDb.updateGameState(currentGameState);
 
+					auto save_if_present = [&](const char* field, const char* setting) {
+						const auto& val = response[field];
+						if (val.t() != crow::json::type::Null) {
+							liveDb.upsertSetting(setting, val.dump());
+						}
+					};
 					std::string message = crow::json::load(response["message"].dump()).s();
 					liveDb.upsertSetting("lastMessage", message);
-					liveDb.upsertSetting("lastDice", response["dice"].dump());
-					liveDb.upsertSetting("lastGainedResources", response["gainedResources"].dump());
-					liveDb.upsertSetting("lastTotalResources", response["totalResources"].dump());
+					save_if_present("dice", "lastDice");
+					save_if_present("gainedResources", "lastGainedResources");
+					save_if_present("totalResources", "lastTotalResources");
 
 					buildNextMoves(liveDb, response);
 					response["phase"] = liveDb.getGameState().phase;
@@ -324,8 +330,29 @@ namespace Server {
 					std::string message = (messageWithQuotes.front() == '"' && messageWithQuotes.back() == '"') ? messageWithQuotes.substr(1, messageWithQuotes.size() - 2) : messageWithQuotes;
 					liveDb.upsertSetting("lastMessage", message);
 					liveDb.upsertSetting("lastDice", {});
-					liveDb.upsertSetting("lastGainedResources", {});
-					liveDb.upsertSetting("lastTotalResources", {});
+					
+					auto makeZeroBag = []() {
+						crow::json::wvalue bag(crow::json::type::Object);
+						bag["brick"] = 0;
+						bag["grain"] = 0;
+						bag["lumber"] = 0;
+						bag["ore"] = 0;
+						bag["wool"] = 0;
+						bag["cloth"] = 0;
+						bag["coin"] = 0;
+						bag["paper"] = 0;
+						return bag;
+					};
+					crow::json::wvalue zeroTotals(crow::json::type::Object);
+					crow::json::wvalue zeroGained(crow::json::type::Object);
+					for (int player = 1; player <= 3; ++player) {
+						const std::string key = "Player " + std::to_string(player);
+						zeroTotals[key] = makeZeroBag();
+						zeroGained[key] = makeZeroBag();
+					}
+					liveDb.upsertSetting("lastGainedResources", zeroGained.dump());
+					liveDb.upsertSetting("lastTotalResources", zeroTotals.dump());
+
 					liveDb.upsertSetting("lastPossibleNextMoves", {});
 				}
 				catch (const std::exception& e) {

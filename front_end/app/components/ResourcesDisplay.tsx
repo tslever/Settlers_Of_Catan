@@ -14,8 +14,6 @@ interface Props {
   gained: Totals;
 }
 
-const MAX_PLAYERS = 6;
-
 export const ZERO_BAG: ResourcesByKind = {
   brick: 0, grain: 0, lumber: 0, ore: 0,
   wool: 0, cloth: 0, coin: 0, paper: 0
@@ -116,17 +114,19 @@ function PlayerColumn({label, totals, gained, active} : {label: string; totals: 
 }
 
 const ResourcesDisplay: React.FC<Props> = ({totals,gained}) => {
-  const labels = Array.from({length: MAX_PLAYERS}, (_, i) => `Player ${i + 1}`);
+  const players = React.useMemo(
+    () => Object.keys(totals).sort(),
+    [totals]
+  );
   return (
     <div
       style = {{
         display: 'grid',
         gap: `${GAP*2}vmin`,
-        gridTemplateColumns: `repeat(${MAX_PLAYERS},1fr)`,
-        width: '100%'
+        gridTemplateColumns: `repeat(${players.length},1fr)`
       }}
     >
-      {labels.map(label => (
+      {players.map(label => (
         <PlayerColumn
           key = {label}
           label = {label}
