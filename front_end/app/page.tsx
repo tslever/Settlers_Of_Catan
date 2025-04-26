@@ -2,7 +2,7 @@
 
 import { API, apiFetch } from './api';
 import { Board } from './BoardLayout';
-import { Dice, Player, RecommendMoveResponse, StructureType, Totals, WallInformation } from './types';
+import { Dice, RecommendMoveResponse, Totals, WallInformation } from './types';
 import HexTile from './components/HexTile';
 import { ID_Of_Hex, ResetResponse } from './types';
 import { AutomateAndMakeMoveResponse } from './types';
@@ -23,7 +23,6 @@ import { tokenMapping } from './types';
 import { vertices } from './board';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 import { useState } from 'react';
 import CanvasLayer from './CanvasLayer';
 import Marker from './components/Marker';
@@ -39,11 +38,6 @@ const vertexMapping: Record<string, { x: number, y: number }> =
         acc[label] = v;
         return acc;
     }, {} as Record<string, { x: number; y: number }>);
-
-
-function isEmpty(obj: object) {
-    return Object.keys(obj).length == 0;
-}
 
 
 export default function Home() {

@@ -1,6 +1,5 @@
 import React from 'react';
 
-
 export type ResourcesByKind = Record<
   | 'brick' | 'grain' | 'lumber' | 'ore'
   | 'wool'  | 'cloth' | 'coin'   | 'paper',
@@ -28,43 +27,44 @@ const ORDER: (keyof ResourcesByKind)[] = [
   'brick', 'grain', 'lumber', 'ore', 'wool', 'cloth', 'coin', 'paper'
 ];
 
-const GAP = 0.5; // vmin
-const STAT_H = 2; // vmin
+
+const GAP   = 1; // vmin
+const STAT_H = 3; // vmin
+const FS     = 3; // baseline font‑size in vmin
 
 const baseCell:React.CSSProperties = {
-  display:'flex',
-  alignItems:'center',
+  display     :'flex',
+  alignItems  :'center',
   justifyContent:'center',
-  fontSize:'1vmin'
+  fontSize    : `calc(${FS}vmin)`
 };
 
 const rectStyle = (r: keyof ResourcesByKind, active: boolean) : React.CSSProperties => ({
   ...baseCell,
-  width: '100%',
-  aspectRatio: '2 / 3', // width : height  = 1 : 1.5
-  background:active?resourceColours[r]: '#bdbdbd',
-  borderRadius: '0.4vmin',
-  color: '#fff',
-  fontWeight: 600
+  width        : '100%',
+  aspectRatio  : '2 / 3', // width : height  = 1 : 1.5
+  background   : active ? resourceColours[r] : '#bdbdbd',
+  borderRadius : '0.4vmin',
+  color        : '#fff',
+  fontWeight   : 600
 });
 
 const statBox:React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  columnGap: `${GAP}vmin`,
-  height: `${STAT_H}vmin`,
-  border: '0.15vmin solid #ddd',
+  display           :'grid',
+  gridTemplateColumns:'1fr 1fr',
+  columnGap         : `${GAP}vmin`,
+  height            : `${STAT_H}vmin`,
+  border            : '0.15vmin solid #ddd',
   ...baseCell
 };
 
-function StatCell({total, gain, active}: {total: number; gain: number; active:boolean}) {
-  const col = gain > 0 ? 'green' : gain < 0 ? 'red' : '#555';
+function StatCell({ total, gain, active }: { total: number; gain: number; active: boolean }) {
   return (
-    <div style = {statBox}>
-      <span style = {{fontWeight: 700, opacity: active ? 1 : 0.4}}>{total}</span>
-      <span style = {{
+    <div style={statBox}>
+      <span style={{ fontWeight: 700, opacity: active ? 1 : 0.4 }}>{total}</span>
+      <span style={{
         textAlign: 'right',
-        color: active ? col : '#777',
+        color: 'inherit',
         opacity: active ? 1 : 0.4
       }}>
         {gain >= 0 ? `+${gain}` : gain}
@@ -73,25 +73,26 @@ function StatCell({total, gain, active}: {total: number; gain: number; active:bo
   );
 }
 
-function PlayerColumn({label, totals, gained, active} : {label: string; totals: ResourcesByKind; gained: ResourcesByKind; active: boolean;}) {
+function PlayerColumn({ label, totals, gained, active } : { label: string; totals: ResourcesByKind; gained: ResourcesByKind; active: boolean; }) {
   return (
     <div
-      style = {{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2,1fr)',
-        gap: `${GAP}vmin`,
-        padding: `${GAP}vmin`,
-        border: '0.2vmin solid #ccc',
-        background: active ? 'transparent' : '#efefef',
-        opacity: active ? 1 : 0.35,
-        filter: active ? 'none' : 'grayscale(100%)'
+      style={{
+        display         :'grid',
+        gridTemplateColumns:'repeat(2,1fr)',
+        gap             : `${GAP}vmin`,
+        padding         : `${GAP}vmin`,
+        border          : '0.2vmin solid #ccc',
+        background      : active ? 'transparent' : '#efefef',
+        opacity         : active ? 1 : 0.35,
+        filter          : active ? 'none' : 'grayscale(100%)',
+        color           : 'inherit'
       }}
     >
-      <div style = {{
+      <div style={{
         gridColumn: '1 / span 2',
-        textAlign: 'center',
+        textAlign : 'center',
         fontWeight: 700,
-        fontSize: '1.2vmin'
+        fontSize  : `calc(${FS * 1.2}vmin)`
       }}>
         {label}
       </div>
@@ -100,12 +101,12 @@ function PlayerColumn({label, totals, gained, active} : {label: string; totals: 
         if (idx % 2) { return nodes; }
         const resB = ORDER[idx + 1];
         nodes.push(
-          <div key = {`${label}-${resA}-r`} style = {rectStyle(resA, active)} title = {resA}/>,
-          <div key = {`${label}-${resB}-r`} style = {rectStyle(resB,active)} title = {resB}/>
+          <div key={`${label}-${resA}-r`} style={rectStyle(resA, active)} title={resA}/> ,
+          <div key={`${label}-${resB}-r`} style={rectStyle(resB, active)} title={resB}/>
         );
         nodes.push(
-          <StatCell key = {`${label}-${resA}-s`} total = {totals[resA]} gain = {gained[resA]} active = {active}/>,
-          <StatCell key = {`${label}-${resB}-s`} total = {totals[resB]} gain = {gained[resB]} active = {active}/>
+          <StatCell key={`${label}-${resA}-s`} total={totals[resA]} gain={gained[resA]} active={active}/> ,
+          <StatCell key={`${label}-${resB}-s`} total={totals[resB]} gain={gained[resB]} active={active}/>
         );
         return nodes;
       }, [])}
@@ -113,26 +114,24 @@ function PlayerColumn({label, totals, gained, active} : {label: string; totals: 
   );
 }
 
-const ResourcesDisplay: React.FC<Props> = ({totals,gained}) => {
-  const players = React.useMemo(
-    () => Object.keys(totals).sort(),
-    [totals]
-  );
+const ResourcesDisplay: React.FC<Props> = ({ totals, gained }) => {
+  const players = React.useMemo(() => Object.keys(totals).sort(), [totals]);
   return (
     <div
-      style = {{
+      style={{
         display: 'grid',
-        gap: `${GAP*2}vmin`,
-        gridTemplateColumns: `repeat(${players.length},1fr)`
+        gap    : `${GAP * 2}vmin`,
+        gridTemplateColumns: `repeat(${players.length}, 1fr)`,
+        color  : 'inherit'
       }}
     >
       {players.map(label => (
         <PlayerColumn
-          key = {label}
-          label = {label}
-          totals = {totals[label] ?? ZERO_BAG}
-          gained = {gained[label] ?? ZERO_BAG}
-          active = {Boolean(totals[label])}
+          key    ={label}
+          label  ={label}
+          totals ={totals[label] ?? ZERO_BAG}
+          gained ={gained[label] ?? ZERO_BAG}
+          active ={Boolean(totals[label])}
         />
       ))}
     </div>
