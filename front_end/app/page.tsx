@@ -361,7 +361,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div style = {{ flex: 1, width: "100%", overflowY: "auto" }}>
+                <div style = {{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
                     <ResourcesDisplay totals = {totals} gained = {gainedResources}/>
                 </div>
             </div>

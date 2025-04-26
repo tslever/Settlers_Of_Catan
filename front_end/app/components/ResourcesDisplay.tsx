@@ -27,16 +27,20 @@ const ORDER: (keyof ResourcesByKind)[] = [
   'brick', 'grain', 'lumber', 'ore', 'wool', 'cloth', 'coin', 'paper'
 ];
 
+const BOX: React.CSSProperties = { boxSizing: "border-box" };
 
-const GAP   = 1; // vmin
-const STAT_H = 3; // vmin
-const FS     = 3; // baseline font‑size in vmin
+const PADDING = 1; // vmin
+
+const STAT_H = 3;      // vmin – height of stat boxes
+const STAT_PAD = 0.75; // vmin - inner padding around each stats box
+const FS      = 2.5;    // baseline font‑size in vmin
 
 const baseCell:React.CSSProperties = {
   display     :'flex',
   alignItems  :'center',
   justifyContent:'center',
-  fontSize    : `calc(${FS}vmin)`
+  fontSize    : `calc(${FS}vmin)`,
+  ...BOX
 };
 
 const rectStyle = (r: keyof ResourcesByKind, active: boolean) : React.CSSProperties => ({
@@ -46,16 +50,18 @@ const rectStyle = (r: keyof ResourcesByKind, active: boolean) : React.CSSPropert
   background   : active ? resourceColours[r] : '#bdbdbd',
   borderRadius : '0.4vmin',
   color        : '#fff',
-  fontWeight   : 600
+  fontWeight   : 600,
+  padding      : `${PADDING * 0.25}vmin`
 });
 
-const statBox:React.CSSProperties = {
-  display           :'grid',
-  gridTemplateColumns:'1fr 1fr',
-  columnGap         : `${GAP}vmin`,
-  height            : `${STAT_H}vmin`,
+const statBox: React.CSSProperties = {
+  display           : 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  columnGap         : `${PADDING}vmin`,
+  minHeight         : `${STAT_H}vmin`,
   border            : '0.15vmin solid #ddd',
-  ...baseCell
+  ...baseCell,
+  padding           : `${STAT_PAD}vmin`
 };
 
 function StatCell({ total, gain, active }: { total: number; gain: number; active: boolean }) {
@@ -77,15 +83,18 @@ function PlayerColumn({ label, totals, gained, active } : { label: string; total
   return (
     <div
       style={{
-        display         :'grid',
-        gridTemplateColumns:'repeat(2,1fr)',
-        gap             : `${GAP}vmin`,
-        padding         : `${GAP}vmin`,
+        display         : 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        rowGap          : `${PADDING}vmin`,
+        columnGap       : `${PADDING}vmin`,
+        padding         : `${PADDING}vmin`,
         border          : '0.2vmin solid #ccc',
         background      : active ? 'transparent' : '#efefef',
         opacity         : active ? 1 : 0.35,
         filter          : active ? 'none' : 'grayscale(100%)',
-        color           : 'inherit'
+        color           : 'inherit',
+        overflow        : 'hidden',
+        ...BOX
       }}
     >
       <div style={{
@@ -119,10 +128,14 @@ const ResourcesDisplay: React.FC<Props> = ({ totals, gained }) => {
   return (
     <div
       style={{
+        flex: 1,
         display: 'grid',
-        gap    : `${GAP * 2}vmin`,
+        columnGap : `${PADDING * 2}vmin`,
+        rowGap    : `${PADDING * 2}vmin`,
         gridTemplateColumns: `repeat(${players.length}, 1fr)`,
-        color  : 'inherit'
+        color  : 'inherit',
+        alignContent: 'start',
+        padding: `${PADDING}vmin`
       }}
     >
       {players.map(label => (
