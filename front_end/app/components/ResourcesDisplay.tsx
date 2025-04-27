@@ -22,8 +22,14 @@ export const ZERO_BAG: ResourcesByKind = {
 }
 
 const COLORS: Record<keyof ResourcesByKind,string> = {
-  brick:'#aa4a44', grain:'#fadb5e', lumber:'#228b22', ore:'gray',
-  wool:'#79d021', cloth:'#e682b4', coin:'gold',  paper:'wheat'
+  brick: "rgb(170, 74, 68)",
+  grain: "rgb(250, 219, 94)",
+  lumber: "rgb(34, 139, 34)",
+  ore: "rgb(128, 128, 128)",
+  wool: "rgb(121, 208, 33)",
+  cloth: "rgb(250, 219, 94)",
+  coin: "rgb(128, 128, 128)",
+  paper: "rgb(34, 139, 34)"
 }
 
 // order of the eight real resources
@@ -53,32 +59,33 @@ const baseCell:React.CSSProperties = {
   fontSize:`calc(${FS}vmin)`
 }
 
-const rectCss = (bg:string, active:boolean):React.CSSProperties=>({
+const makeRectCss = (bg:string,dim:boolean=false):React.CSSProperties=>({
   ...baseCell,
   width:'100%',
   aspectRatio:'2/3',
   background:bg,
   borderRadius:'0.25vmin',
   color:'#fff', fontWeight:600,
-  opacity:active?1:0.35
+  opacity:dim?0.35:1
 })
 
-const statBoxCss:React.CSSProperties = {
+const statBoxCss = (dim:boolean):React.CSSProperties => ({
   ...baseCell,
   display:'grid', gridTemplateColumns:'1fr 1fr',
   columnGap:`${PAD}vmin`,
   minHeight:`${STAT_H}vmin`,
   border:'0.15vmin solid #ddd',
-  padding:`${STAT_PAD}vmin`
-}
+  padding:`${STAT_PAD}vmin`,
+  opacity:dim?0.35:1
+})
 
-function StatCell({total,gain,active}:{total:number;gain:number;active:boolean}) {
+function StatCell(
+  {total,gain,dim}:{total:number;gain:number;dim:boolean}
+) {
   return(
-    <div style={statBoxCss}>
-      <span style={{fontWeight:700,opacity:active?1:0.4}}>{total}</span>
-      <span style={{textAlign:'right',opacity:active?1:0.4}}>
-        {gain>=0?`+${gain}`:gain}
-      </span>
+    <div style={statBoxCss(dim)}>
+      <span style={{fontWeight:700}}>{total}</span>
+      <span style={{textAlign:'right'}}>{gain>=0?`+${gain}`:gain}</span>
     </div>
   )
 }
@@ -86,10 +93,12 @@ function StatCell({total,gain,active}:{total:number;gain:number;active:boolean})
 /* ─────── resource card (rectangle + stats) ─────────────────────────────── */
 
 function ResourceCard(
-  {res,total,gain,active}:{
-    res:keyof ResourcesByKind,total:number,gain:number,active:boolean
+  {res,total,gain}: {
+    res:keyof ResourcesByKind,total:number,gain:number
   }
 ){
+  const dim = total===0
+  const rectColor = dim ? '#bdbdbd' : COLORS[res]
   return(
     <div style={{
       display:'flex', flexDirection:'column',
@@ -97,15 +106,16 @@ function ResourceCard(
       flex:`0 0 ${CARD_W}`,
       width:CARD_W
     }}>
-      <div style={rectCss(COLORS[res],active)} title={res}/>
-      <StatCell total={total} gain={gain} active={active}/>
+      <div style={makeRectCss(rectColor,dim)} title={res}/>
+      <StatCell total={total} gain={gain} dim={dim}/>
     </div>
   )
 }
 
 /* ─────── placeholder card (grey rectangle, empty stats) ───────────────── */
 
-function PlaceholderCard({active}:{active:boolean}){
+function PlaceholderCard(){
+  const dim=true
   return(
     <div style={{
       display:'flex', flexDirection:'column',
@@ -113,8 +123,8 @@ function PlaceholderCard({active}:{active:boolean}){
       flex:`0 0 ${CARD_W}`,
       width:CARD_W
     }}>
-      <div style={rectCss('#bdbdbd',active)}/>
-      <div style={{...statBoxCss,opacity:active?1:0.4}}></div>
+      <div style={makeRectCss('#bdbdbd',dim)}/>
+      <div style={statBoxCss(dim)}></div>
     </div>
   )
 }
@@ -122,23 +132,25 @@ function PlaceholderCard({active}:{active:boolean}){
 /* ─────── per-player panel ─────────────────────────────────────────────── */
 
 function PlayerPanel(
-  {label,totals,gained,active}:{
-    label:string, totals:ResourcesByKind, gained:ResourcesByKind, active:boolean
+  {label,totals,gained}: {
+    label:string, totals:ResourcesByKind, gained:ResourcesByKind
   }
 ){
   return(
     <div style={{
       border:'0.2vmin solid #ccc',
       padding:`${PAD}vmin`,
-      display:'flex', flexDirection:'column', rowGap:`${PAD}vmin`,
-      background:active?'transparent':'#efefef',
-      opacity:active?1:0.35, filter:active?'none':'grayscale(100%)'
+      display:'flex', flexDirection:'column', rowGap:`${PAD}vmin`
     }}>
-      <div style={{textAlign:'center',fontWeight:700,fontSize:`calc(${FS*1.05}vmin)`}}>
+      {/* Player label – never greyed out */}
+      <div style={{
+        textAlign:'center',
+        fontWeight:700,
+        fontSize:`calc(${FS*1.05}vmin)`
+      }}>
         {label}
       </div>
 
-      {/* fixed-width row – exactly MAX_PER_ROW cards fit */}
       <div style={{
         display:'flex',
         flexWrap:'nowrap',
@@ -151,11 +163,10 @@ function PlayerPanel(
             res={res}
             total={totals[res]}
             gain={gained[res]}
-            active={active}
           />
         ))}
         {Array.from({length:PLACEHOLDER_COUNT},(_,i)=>(
-          <PlaceholderCard key={`ph-${label}-${i}`} active={active}/>
+          <PlaceholderCard key={`ph-${label}-${i}`}/>
         ))}
       </div>
     </div>
@@ -166,11 +177,9 @@ function PlayerPanel(
 
 const ResourcesDisplay:React.FC<Props> = ({ totals,gained }) => {
 
-  /* numeric sort → Player 1, Player 2, … */
   const players = React.useMemo(
     ()=>Object.keys(totals)
-          .sort((a,b)=>parseInt(a.replace(/\D/g,''))
-                       -parseInt(b.replace(/\D/g,''))),
+            .sort((a,b)=>parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,''))),
     [totals]
   )
 
@@ -183,11 +192,10 @@ const ResourcesDisplay:React.FC<Props> = ({ totals,gained }) => {
     }}>
       {players.map(label=>(
         <PlayerPanel
-          key   ={label}
-          label ={label}
+          key={label}
+          label={label}
           totals={totals[label] ?? ZERO_BAG}
           gained={gained[label] ?? ZERO_BAG}
-          active={Boolean(totals[label])}
         />
       ))}
     </div>
