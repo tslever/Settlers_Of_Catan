@@ -75,16 +75,16 @@ std::tuple<std::string, std::string, int> runMcts(
 
 	// Create root node for current phase.
 	std::string moveType = "";
-	if (currentState.phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
+	if (currentState.phase == Game::Phase::FirstSettlement) {
 		moveType = "settlement";
 	}
-	else if (currentState.phase == Game::Phase::TO_PLACE_FIRST_ROAD || currentState.phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
+	else if (currentState.phase == Game::Phase::FirstRoad || currentState.phase == Game::Phase::SecondRoad) {
 		moveType = "road";
 	}
-	else if (currentState.phase == Game::Phase::TO_PLACE_FIRST_CITY) {
+	else if (currentState.phase == Game::Phase::FirstCity) {
 		moveType = "city";
 	}
-	else if (currentState.phase == Game::Phase::TURN) {
+	else if (currentState.phase == Game::Phase::Turn) {
 		moveType = "turn";
 	}
 	std::unique_ptr<AI::MCTS::MCTSNode> root = std::make_unique<AI::MCTS::MCTSNode>(currentState, "", nullptr, moveType);

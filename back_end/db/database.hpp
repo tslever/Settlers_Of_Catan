@@ -218,14 +218,14 @@ namespace DB {
             mysqlx::Row row = rowResult.fetchOne();
             if (row) {
                 gameState.currentPlayer = row[0];
-                gameState.phase = row[1].get<std::string>();
+                gameState.phase = Game::fromString(row[1].get<std::string>());
                 gameState.lastBuilding = row[2].get<std::string>();
             }
             else {
                 gameState = GameState();
                 session.sql("REPLACE INTO " + tablePrefix + "state(id, current_player, phase, last_building) VALUES(1, ? , ? , ? )")
                     .bind(gameState.currentPlayer)
-                    .bind(gameState.phase)
+                    .bind(Game::toString(gameState.phase))
                     .bind(gameState.lastBuilding)
                     .execute();
             }
@@ -431,7 +431,7 @@ namespace DB {
                 mysqlx::Table stateTable = schema.getTable(tablePrefix + "state");
                 stateTable.update()
                     .set("current_player", initialState.currentPlayer)
-                    .set("phase", initialState.phase)
+                    .set("phase", Game::toString(initialState.phase))
                     .set("last_building", initialState.lastBuilding)
                     .where("id = 1")
                     .execute();
@@ -461,7 +461,7 @@ namespace DB {
             table
                 .update()
                 .set("current_player", gameState.currentPlayer)
-                .set("phase", gameState.phase)
+                .set("phase", Game::toString(gameState.phase))
                 .set("last_building", gameState.lastBuilding)
                 .where("id = 1")
                 .execute();

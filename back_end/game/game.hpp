@@ -37,30 +37,30 @@ namespace Game {
 		}
 
 		crow::json::wvalue handlePhase() {
-			if (state.phase == Phase::TO_PLACE_FIRST_SETTLEMENT) {
+			if (state.phase == Phase::FirstSettlement) {
 				return handleFirstSettlement();
 			}
-			else if (state.phase == Phase::TO_PLACE_FIRST_ROAD) {
+			else if (state.phase == Phase::FirstRoad) {
 				return handleFirstRoad();
 			}
-			else if (state.phase == Phase::TO_PLACE_FIRST_CITY) {
+			else if (state.phase == Phase::FirstCity) {
 				return handleFirstCity();
 			}
-			else if (state.phase == Phase::TO_PLACE_SECOND_ROAD) {
+			else if (state.phase == Phase::SecondRoad) {
 				return handleSecondRoad();
 			}
-			else if (state.phase == Phase::TO_ROLL_DICE) {
+			else if (state.phase == Phase::RollDice) {
 				return handleRollingDice();
 			}
-			else if (state.phase == Phase::TURN) {
+			else if (state.phase == Phase::Turn) {
 				return handleTurn();
 			}
-			else if (state.phase == Phase::DONE) {
+			else if (state.phase == Phase::Done) {
 				return handleEnd();
 			}
 			else {
 				crow::json::wvalue jsonObject;
-				jsonObject["error"] = "Phase " + state.phase + " is unrecognized.";
+				jsonObject["error"] = "Phase " + toString(state.phase) + " is unrecognized.";
 				return jsonObject;
 			}
 		}
@@ -157,7 +157,7 @@ namespace Game {
 			}
 			int currentPlayer = state.currentPlayer;
 			state.placeCity(currentPlayer, labelOfChosenVertex);
-			state.phase = Phase::TO_PLACE_SECOND_ROAD;
+			state.phase = Phase::SecondRoad;
 			int cityId = db.addStructure("cities", currentPlayer, labelOfChosenVertex, "vertex");
 			jsonObjectOfMoveInformation["message"] = "Player " + std::to_string(currentPlayer) + " placed a city at " + labelOfChosenVertex + ".";
 			crow::json::wvalue jsonObjectOfCityInformation;
@@ -225,7 +225,7 @@ namespace Game {
 
 			jsonObject["totalResources"] = makeTotalsJson();
 
-			state.phase = Phase::TURN;
+			state.phase = Phase::Turn;
 			return jsonObject;
 		}
 

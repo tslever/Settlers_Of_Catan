@@ -40,7 +40,7 @@ namespace Server {
 	void buildNextMoves(DB::Database liveDb, crow::json::wvalue& response) {
 		GameState nextState = liveDb.getGameState();
 		const int nextPlayer = nextState.currentPlayer;
-		const std::string nextPhase = nextState.phase;
+		const Game::Phase nextPhase = nextState.phase;
 		Board board;
 		std::unordered_map<std::string, std::vector<std::string>> unorderedMapOfLabelsOfVerticesAndMoveTypes;
 		std::vector<std::string> vectorOfLabelsOfEdges;
@@ -49,28 +49,28 @@ namespace Server {
 		std::vector<std::string> vectorOfLabelsOfOccupiedEdges = board.getVectorOfLabelsOfOccupiedEdges(nextState);
 		std::vector<std::string> vectorOfLabelsOfAvailableVertices = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 
-		if (nextPhase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
+		if (nextPhase == Game::Phase::FirstSettlement) {
 			for (auto& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
 				unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("settlement");
 			}
 		}
-		else if (nextPhase == Game::Phase::TO_PLACE_FIRST_ROAD) {
+		else if (nextPhase == Game::Phase::FirstRoad) {
 			auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
 			vectorOfLabelsOfEdges.insert(vectorOfLabelsOfEdges.end(), adjacentEdges.begin(), adjacentEdges.end());
 		}
-		else if (nextPhase == Game::Phase::TO_PLACE_FIRST_CITY) {
+		else if (nextPhase == Game::Phase::FirstCity) {
 			for (auto& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
 				unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("city");
 			}
 		}
-		else if (nextPhase == Game::Phase::TO_PLACE_SECOND_ROAD) {
+		else if (nextPhase == Game::Phase::SecondRoad) {
 			auto adjacentEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(nextState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
 			vectorOfLabelsOfEdges.insert(vectorOfLabelsOfEdges.end(), adjacentEdges.begin(), adjacentEdges.end());
 		}
-		else if (nextPhase == Game::Phase::TO_ROLL_DICE) {
+		else if (nextPhase == Game::Phase::RollDice) {
 			nextPlayerWillRollDice = true;
 		}
-		else if (nextPhase == Game::Phase::TURN) {
+		else if (nextPhase == Game::Phase::Turn) {
 			std::unordered_map<std::string, int>& unorderedMapOfNamesAndNumbersOfResources = nextState.resources.at(nextPlayer);
 			std::unordered_set<std::string> unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer;
 			std::vector<std::string>& vectorOfLabelsOfEdgesWithRoadsOfPlayer = nextState.roads.at(nextPlayer);
@@ -205,7 +205,7 @@ namespace Server {
 					save_if_present("totalResources", "lastTotalResources");
 
 					buildNextMoves(liveDb, response);
-					response["phase"] = liveDb.getGameState().phase;
+					response["phase"] = Game::toString(liveDb.getGameState().phase);
 				}
 				catch (const std::exception& e) {
 					response["error"] = std::string("The following error occurred while transitioning the game state. ") + e.what();
@@ -266,7 +266,7 @@ namespace Server {
 						response["message"] = "Player " + std::to_string(player) + " placed a wall at " + move + ".";
 					}
 					else if (moveType == "pass") {
-						if (currentGameState.phase == Game::Phase::TURN) {
+						if (currentGameState.phase == Game::Phase::Turn) {
 							currentGameState.updatePhase();
 							response["message"] = "Player " + std::to_string(player) + " passed.";
 						}
@@ -305,7 +305,7 @@ namespace Server {
 					liveDb.upsertSetting("lastTotalResources", response["totalResources"].dump());
 
 					buildNextMoves(liveDb, response);
-					response["phase"] = currentGameState.phase;
+					response["phase"] = Game::toString(currentGameState.phase);
 					liveDb.upsertSetting("lastPossibleNextMoves", response["possibleNextMoves"].dump());
 					std::string lastMessage = crow::json::load(response["message"].dump()).s();
 					liveDb.upsertSetting("lastMessage", lastMessage);
@@ -442,7 +442,7 @@ namespace Server {
 					result["gainedResources"] = loadBlob(liveDb, "lastGainedResources");
 					result["totalResources"] = loadBlob(liveDb, "lastTotalResources");
 					buildNextMoves(liveDb, result);
-					result["phase"] = liveDb.getGameState().phase;
+					result["phase"] = Game::toString(liveDb.getGameState().phase);
 				}
 				catch (const std::exception& e) {
 					result["error"] = std::string("Getting game state failed with the following error. ") + e.what();

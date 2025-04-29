@@ -39,9 +39,9 @@ namespace AI {
         GameState gameState;
         // Simulate moves until phase becomes `Phase::DONE`, or up to a maximum number of moves to safeguard against infinite loops.
         int numberOfMovesSimulated = 0;
-        while (gameState.phase != Game::Phase::DONE && numberOfMovesSimulated < MAXIMUM_NUMBER_OF_MOVES) {
+        while (gameState.phase != Game::Phase::Done && numberOfMovesSimulated < MAXIMUM_NUMBER_OF_MOVES) {
 
-            if (gameState.phase == Game::Phase::TO_ROLL_DICE) {
+            if (gameState.phase == Game::Phase::RollDice) {
                 gameState.rollDice();
                 Logger::info(
                     "    [SELF PLAY PHASE] Player " + std::to_string(gameState.currentPlayer) + " rolling the dice was simulated."

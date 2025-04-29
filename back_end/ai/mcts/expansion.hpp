@@ -17,21 +17,21 @@ namespace AI {
 			Board board;
 			std::vector<std::string> vectorOfLabelsOfAvailableVerticesOrEdges;
 			GameState gameState = node->gameState;
-			std::string phase = gameState.phase;
+			Game::Phase phase = gameState.phase;
 
-			if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
+			if (phase == Game::Phase::FirstSettlement) {
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(gameState);
 				vectorOfLabelsOfAvailableVerticesOrEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
-			else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD || phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
+			else if (phase == Game::Phase::FirstRoad || phase == Game::Phase::SecondRoad) {
 				std::vector<std::string> vectorOfLabelsOfOccupiedEdges = board.getVectorOfLabelsOfOccupiedEdges(gameState);
 				vectorOfLabelsOfAvailableVerticesOrEdges = board.getVectorOfLabelsOfAvailableEdgesExtendingFromLastBuilding(node->gameState.lastBuilding, vectorOfLabelsOfOccupiedEdges);
 			}
-			else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
+			else if (phase == Game::Phase::FirstCity) {
 				std::vector<std::string> vectorOfLabelsOfOccupiedVertices = board.getVectorOfLabelsOfOccupiedVertices(gameState);
 				vectorOfLabelsOfAvailableVerticesOrEdges = board.getVectorOfLabelsOfAvailableVertices(vectorOfLabelsOfOccupiedVertices);
 			}
-			else if (phase == Game::Phase::TURN) {
+			else if (phase == Game::Phase::Turn) {
 				const int currentPlayer = node->gameState.currentPlayer;
 				auto& resources = node->gameState.resources.at(currentPlayer);
 
@@ -101,19 +101,19 @@ namespace AI {
 				}
 				else {
 					int currentPlayer = gameStateOfChild.currentPlayer;
-					if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
+					if (phase == Game::Phase::FirstSettlement) {
 						gameStateOfChild.placeSettlement(currentPlayer, labelOfAvailableVertexOrEdge);
 						moveType = "settlement";
 					}
-					else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD || phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
+					else if (phase == Game::Phase::FirstRoad || phase == Game::Phase::SecondRoad) {
 						gameStateOfChild.placeRoad(currentPlayer, labelOfAvailableVertexOrEdge);
 						moveType = "road";
 					}
-					else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
+					else if (phase == Game::Phase::FirstCity) {
 						gameStateOfChild.placeCity(currentPlayer, labelOfAvailableVertexOrEdge);
 						moveType = "city";
 					}
-					else if (phase == Game::Phase::TURN) {
+					else if (phase == Game::Phase::Turn) {
 						if (board.isLabelOfVertex(labelOfAvailableVertexOrEdge)) {
 							const auto& cities = gameStateOfChild.cities.at(currentPlayer);
 							bool hasCity = std::find(cities.begin(), cities.end(), labelOfAvailableVertexOrEdge) != cities.end();

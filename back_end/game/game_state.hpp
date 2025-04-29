@@ -14,7 +14,7 @@ public:
 
 
     int currentPlayer;
-    std::string phase;
+    Game::Phase phase;
     std::unordered_map<int, std::vector<std::string>> settlements;
     std::unordered_map<int, std::vector<std::string>> cities;
     std::unordered_map<int, std::vector<std::string>> roads;
@@ -30,7 +30,7 @@ public:
     GameState() :
         currentPlayer(1),
         lastBuilding(""),
-        phase(Game::Phase::TO_PLACE_FIRST_SETTLEMENT),
+        phase(Game::Phase::FirstSettlement),
         redProductionDie(0),
         yellowProductionDie(0),
         whiteEventDie(""),
@@ -99,42 +99,46 @@ public:
 
 
     void updatePhase() {
-        if (phase == Game::Phase::TO_PLACE_FIRST_SETTLEMENT) {
-            phase = Game::Phase::TO_PLACE_FIRST_ROAD;
-        }
-        else if (phase == Game::Phase::TO_PLACE_FIRST_ROAD) {
+        switch (phase) {
+        case Game::Phase::FirstSettlement:
+            phase = Game::Phase::FirstRoad;
+            break;
+        case Game::Phase::FirstRoad:
             if (currentPlayer < 3) {
-                currentPlayer++;
-                phase = Game::Phase::TO_PLACE_FIRST_SETTLEMENT;
+                ++currentPlayer;
+                phase = Game::Phase::FirstSettlement;
             }
             else {
-                phase = Game::Phase::TO_PLACE_FIRST_CITY;
+                phase = Game::Phase::FirstCity;
             }
-        }
-        else if (phase == Game::Phase::TO_PLACE_FIRST_CITY) {
-            phase = Game::Phase::TO_PLACE_SECOND_ROAD;
-        }
-        else if (phase == Game::Phase::TO_PLACE_SECOND_ROAD) {
+            break;
+        case Game::Phase::FirstCity:
+            phase = Game::Phase::SecondRoad;
+            break;
+        case Game::Phase::SecondRoad:
             if (currentPlayer > 1) {
-                currentPlayer--;
-                phase = Game::Phase::TO_PLACE_FIRST_CITY;
+                --currentPlayer;
+                phase = Game::Phase::FirstCity;
             }
             else {
-                phase = Game::Phase::TO_ROLL_DICE;
+                phase = Game::Phase::RollDice;
             }
-        }
-        else if (phase == Game::Phase::TO_ROLL_DICE) {
-            phase = Game::Phase::TURN;
-        }
-        else if (phase == Game::Phase::TURN) {
+            break;
+        case Game::Phase::RollDice:
+            phase = Game::Phase::Turn;
+            break;
+        case Game::Phase::Turn:
             currentPlayer = (currentPlayer % 3) + 1;
-            phase = Game::Phase::TO_ROLL_DICE;
+            phase = Game::Phase::RollDice;
+            break;
+        case Game::Phase::Done:
+            break;
         }
     }
 
 
     void placeSettlement(int player, const std::string& vertex) {
-		bool isMainTurn = (phase == Game::Phase::TURN);
+		bool isMainTurn = (phase == Game::Phase::Turn);
         if (isMainTurn) {
 			resources[player]["brick"]--;
 			resources[player]["grain"]--;
@@ -153,7 +157,7 @@ public:
 
 
     void placeCity(int player, const std::string& vertex) {
-		bool isMainTurn = (phase == Game::Phase::TURN);
+		bool isMainTurn = (phase == Game::Phase::Turn);
         if (isMainTurn) {
 			resources[player]["grain"] -= 2;
 			resources[player]["ore"] -= 3;
@@ -178,7 +182,7 @@ public:
 
 
     bool placeCityWall(int player, const std::string& vertex) {
-        bool isMainTurn = (phase == Game::Phase::TURN);
+        bool isMainTurn = (phase == Game::Phase::Turn);
         if (isMainTurn) {
             resources[player]["brick"] -= 2;
         }
@@ -193,7 +197,7 @@ public:
 
 
     void placeRoad(int player, const std::string& labelOfEdge) {
-		bool isMainTurn = (phase == Game::Phase::TURN);
+		bool isMainTurn = (phase == Game::Phase::Turn);
         if (isMainTurn) {
 			resources[player]["brick"]--;
 			resources[player]["lumber"]--;
@@ -209,7 +213,7 @@ public:
     crow::json::wvalue toJson() const {
         crow::json::wvalue json;
         json["currentPlayer"] = currentPlayer;
-        json["phase"] = phase;
+        json["phase"] = Game::toString(phase);
         json["lastBuilding"] = lastBuilding;
 
         crow::json::wvalue resourcesJson(crow::json::type::Object);
@@ -306,7 +310,7 @@ private:
 			int numberOfBuildings = static_cast<int>(settlements[player].size() + cities[player].size());
             if (numberOfBuildings >= 5) {
                 winner = player;
-                phase = Game::Phase::DONE;
+                phase = Game::Phase::Done;
                 return true;
             }
         }
