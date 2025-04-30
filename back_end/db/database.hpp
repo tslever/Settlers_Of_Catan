@@ -138,16 +138,8 @@ namespace DB {
             mysqlx::Session& session = wrapperOfSession.getSession();
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + structureSuffix);
-            table.insert("player", locationField).values(player, location).execute();
-            mysqlx::RowResult rowResult = table
-                .select("id")
-                .where("player = " + std::to_string(player) + " AND " + locationField + " = '" + location + "'")
-                .execute();
-            mysqlx::Row row = rowResult.fetchOne();
-            if (row) {
-                return row[0];
-            }
-            return -1;
+            mysqlx::abi2::r0::Result result = table.insert("player", locationField).values(player, location).execute();
+            return static_cast<int>(result.getAutoIncrementValue());
         }
 
         std::vector<City> getCities() const {
@@ -213,8 +205,9 @@ namespace DB {
             WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
             mysqlx::Session& session = wrapperOfSession.getSession();
             mysqlx::Schema schema = session.getSchema(dbName);
+
             mysqlx::Table table = schema.getTable(tablePrefix + "state");
-            mysqlx::RowResult rowResult = table.select("current_player", "phase", "last_building").where("id = 1").execute();
+            mysqlx::RowResult rowResult = table.select("current_player", "phase", "last_building").where("id = :id").bind("id", 1).execute();
             mysqlx::Row row = rowResult.fetchOne();
             if (row) {
                 gameState.currentPlayer = row[0];
@@ -223,10 +216,11 @@ namespace DB {
             }
             else {
                 gameState = GameState();
-                session.sql("REPLACE INTO " + tablePrefix + "state(id, current_player, phase, last_building) VALUES(1, ? , ? , ? )")
-                    .bind(gameState.currentPlayer)
-                    .bind(Game::toString(gameState.phase))
-                    .bind(gameState.lastBuilding)
+                session.sql("REPLACE INTO " + tablePrefix + "state(id, current_player, phase, last_building) VALUES(:id, :p , :ph , :lb)")
+                    .bind("id", 1)
+                    .bind("p", gameState.currentPlayer)
+                    .bind("ph", Game::toString(gameState.phase))
+                    .bind("lb", gameState.lastBuilding)
                     .execute();
             }
             mysqlx::Table settlementsTable = schema.getTable(tablePrefix + "settlements");
@@ -271,7 +265,7 @@ namespace DB {
                     int player = row[0];
                     auto& bag = gameState.resources[player];
                     bag.brick = row[1];
-                    bag.brick = row[2];
+                    bag.grain = row[2];
                     bag.lumber = row[3];
                     bag.ore = row[4];
                     bag.wool = row[5];
@@ -316,9 +310,9 @@ namespace DB {
         void removeStructure(const std::string& structureSuffix, int player, const std::string& location, const std::string& locationField) {
 			WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
 			mysqlx::Session& session = wrapperOfSession.getSession();
-            session.sql(
-				"DELETE FROM " + tablePrefix + structureSuffix + " WHERE player = ? AND " + locationField + " = ?"
-			).bind(player, location).execute();
+            mysqlx::Schema schema = session.getSchema(dbName);
+            mysqlx::Table table = schema.getTable(tablePrefix + structureSuffix);
+            table.remove().where("player = :p AND " + locationField + " = :loc").bind("p", player).bind("loc", location).execute();
         }
 
 
@@ -465,7 +459,8 @@ namespace DB {
                 .set("current_player", gameState.currentPlayer)
                 .set("phase", Game::toString(gameState.phase))
                 .set("last_building", gameState.lastBuilding)
-                .where("id = 1")
+                .where("id = :id")
+                .bind("id", 1)
                 .execute();
 			upsertResources(gameState.resources);
         }
