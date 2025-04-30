@@ -199,32 +199,34 @@ namespace Game {
 
 
 		crow::json::wvalue handleRollingDice() {
-			std::unordered_map<int, std::unordered_map<std::string, int>> resourcesBeforeRoll = state.resources;
+			auto resourcesBeforeRoll = state.resources;
 
 			state.rollDice();
 			crow::json::wvalue jsonObject;
 			jsonObject["message"] = "Player " + std::to_string(state.currentPlayer) + " rolled the dice.";
-			crow::json::wvalue jsonObjectOfDescriptionOfDiceAndRolls;
+			crow::json::wvalue jsonObjectOfDescriptionOfDiceAndRolls(crow::json::type::Object);
 			jsonObjectOfDescriptionOfDiceAndRolls["yellowProductionDie"] = state.yellowProductionDie;
 			jsonObjectOfDescriptionOfDiceAndRolls["redProductionDie"] = state.redProductionDie;
 			jsonObjectOfDescriptionOfDiceAndRolls["whiteEventDie"] = state.whiteEventDie;
 			jsonObject["dice"] = std::move(jsonObjectOfDescriptionOfDiceAndRolls);
 
 			crow::json::wvalue gainedAll(crow::json::type::Object);
-			for (const auto& [player, newBag] : state.resources) {
+			for (int player = 1; player <= 3; ++player) {
+				const auto& oldBag = resourcesBeforeRoll[player];
+				const auto& newBag = state.resources[player];
 				crow::json::wvalue bagJson(crow::json::type::Object);
-				const auto& oldBag = resourcesBeforeRoll.at(player);
-				for (const auto& [kind, newQuantity] : newBag) {
-					int oldQuantity = oldBag.at(kind);
-					int gainedQuantity = newQuantity - oldQuantity;
-					bagJson[kind] = gainedQuantity;
-				}
+				bagJson["brick"] = newBag.brick - oldBag.brick;
+				bagJson["grain"] = newBag.grain - oldBag.grain;
+				bagJson["lumber"] = newBag.lumber - oldBag.lumber;
+				bagJson["ore"] = newBag.ore - oldBag.ore;
+				bagJson["wool"] = newBag.wool - oldBag.wool;
+				bagJson["cloth"] = newBag.cloth - oldBag.cloth;
+				bagJson["coin"] = newBag.coin - oldBag.coin;
+				bagJson["paper"] = newBag.paper - oldBag.paper;
 				gainedAll["Player " + std::to_string(player)] = std::move(bagJson);
 			}
 			jsonObject["gainedResources"] = std::move(gainedAll);
-
 			jsonObject["totalResources"] = makeTotalsJson();
-
 			state.phase = Phase::Turn;
 			return jsonObject;
 		}
@@ -299,13 +301,18 @@ namespace Game {
 			}
 
 			crow::json::wvalue gainedAll(crow::json::type::Object);
-			for (const auto& [player, newBag] : state.resources) {
+			for (int player = 1; player <= 3; ++player) {
+				const auto& oldBag = resourcesBeforeMove[player];
+				const auto& newBag = state.resources[player];
 				crow::json::wvalue bagJson(crow::json::type::Object);
-				const auto& oldBag = resourcesBeforeMove.at(player);
-				for (const auto& [kind, newQuantity] : newBag) {
-					int oldQuantity = oldBag.at(kind);
-					bagJson[kind] = newQuantity - oldQuantity;
-				}
+				bagJson["brick"] = newBag.brick - oldBag.brick;
+				bagJson["grain"] = newBag.grain - oldBag.grain;
+				bagJson["lumber"] = newBag.lumber - oldBag.lumber;
+				bagJson["ore"] = newBag.ore - oldBag.ore;
+				bagJson["wool"] = newBag.wool - oldBag.wool;
+				bagJson["cloth"] = newBag.cloth - oldBag.cloth;
+				bagJson["coin"] = newBag.coin - oldBag.coin;
+				bagJson["paper"] = newBag.paper - oldBag.paper;
 				gainedAll["Player " + std::to_string(player)] = std::move(bagJson);
 			}
 			jsonObjectOfMoveInformation["gainedResources"] = std::move(gainedAll);
@@ -322,11 +329,17 @@ namespace Game {
 
 		crow::json::wvalue makeTotalsJson() const {
 			crow::json::wvalue all(crow::json::type::Object);
-			for (const auto& [player, bag] : state.resources) {
+			for (int player = 1; player <= 3; ++player) {
+				const auto& bag = state.resources[player];
 				crow::json::wvalue bagJson(crow::json::type::Object);
-				for (const auto& [kind, quantity] : bag) {
-					bagJson[kind] = quantity;
-				}
+				bagJson["brick"] = bag.brick;
+				bagJson["grain"] = bag.grain;
+				bagJson["lumber"] = bag.lumber;
+				bagJson["ore"] = bag.ore;
+				bagJson["wool"] = bag.wool;
+				bagJson["cloth"] = bag.cloth;
+				bagJson["coin"] = bag.coin;
+				bagJson["paper"] = bag.paper;
 				all["Player " + std::to_string(player)] = std::move(bagJson);
 			}
 			return all;

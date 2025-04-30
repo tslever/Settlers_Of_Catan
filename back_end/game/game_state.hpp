@@ -7,6 +7,18 @@
 #include <vector>
 
 
+struct ResourceBag {
+    int brick{ 0 };
+    int grain{ 0 };
+    int lumber{ 0 };
+    int ore{ 0 };
+    int wool{ 0 };
+    int cloth{ 0 };
+    int coin{ 0 };
+    int paper{ 0 };
+};
+
+
 class GameState {
 
 
@@ -23,7 +35,7 @@ public:
     int redProductionDie;
     int yellowProductionDie;
     std::string whiteEventDie;
-    std::unordered_map<int, std::unordered_map<std::string, int>> resources;
+    std::array<ResourceBag, 4> resources;
     int winner;
     
 
@@ -56,19 +68,6 @@ public:
             {2, {}},
             {3, {}}
         };
-
-        for (int player = 1; player <= 3; player++) {
-            resources[player] = {
-                {"brick", 0},
-                {"grain", 0},
-                {"lumber", 0},
-                {"ore", 0},
-                {"wool", 0},
-                {"cloth", 0},
-                {"coin", 0},
-                {"paper", 0}
-            };
-        }
     }
     
 
@@ -140,10 +139,11 @@ public:
     void placeSettlement(int player, const std::string& vertex) {
 		bool isMainTurn = (phase == Game::Phase::Turn);
         if (isMainTurn) {
-			resources[player]["brick"]--;
-			resources[player]["grain"]--;
-			resources[player]["lumber"]--;
-			resources[player]["wool"]--;
+            auto& bag = resources[player];
+            bag.brick--;
+            bag.grain--;
+            bag.lumber--;
+            bag.wool--;
         }
         settlements[player].push_back(vertex);
         lastBuilding = vertex;
@@ -159,8 +159,9 @@ public:
     void placeCity(int player, const std::string& vertex) {
 		bool isMainTurn = (phase == Game::Phase::Turn);
         if (isMainTurn) {
-			resources[player]["grain"] -= 2;
-			resources[player]["ore"] -= 3;
+            auto& bag = resources[player];
+            bag.grain -= 2;
+            bag.ore -= 3;
             std::vector<std::string>& vectorOfLabelsOfSettlementsOfPlayer = settlements[player];
 			vectorOfLabelsOfSettlementsOfPlayer.erase(
                 std::remove(
@@ -184,7 +185,7 @@ public:
     bool placeCityWall(int player, const std::string& vertex) {
         bool isMainTurn = (phase == Game::Phase::Turn);
         if (isMainTurn) {
-            resources[player]["brick"] -= 2;
+            resources[player].brick -= 2;
         }
         auto& playerWalls = walls[player];
 		if (std::find(playerWalls.begin(), playerWalls.end(), vertex) == playerWalls.end()) {
@@ -199,8 +200,9 @@ public:
     void placeRoad(int player, const std::string& labelOfEdge) {
 		bool isMainTurn = (phase == Game::Phase::Turn);
         if (isMainTurn) {
-			resources[player]["brick"]--;
-			resources[player]["lumber"]--;
+            auto& bag = resources[player];
+            bag.brick--;
+            bag.lumber--;
         }
         roads[player].push_back(labelOfEdge);
         lastBuilding = "";
@@ -217,12 +219,18 @@ public:
         json["lastBuilding"] = lastBuilding;
 
         crow::json::wvalue resourcesJson(crow::json::type::Object);
-        for (const auto& [player, bag] : resources) {
-			crow::json::wvalue bagJson(crow::json::type::Object);
-            for (const auto& [kind, quantity] : bag) {
-				bagJson[kind] = quantity;
-            }
-			resourcesJson["Player " + std::to_string(player)] = std::move(bagJson);
+        for (int player = 1; player <= 3; ++player) {
+            const auto& bag = resources[player];
+            crow::json::wvalue bagJson(crow::json::type::Object);
+            bagJson["brick"] = bag.brick;
+            bagJson["grain"] = bag.grain;
+            bagJson["lumber"] = bag.lumber;
+            bagJson["ore"] = bag.ore;
+            bagJson["wool"] = bag.wool;
+            bagJson["cloth"] = bag.cloth;
+            bagJson["coin"] = bag.coin;
+            bagJson["paper"] = bag.paper;
+            resourcesJson["Player " + std::to_string(player)] = std::move(bagJson);
         }
 		json["resources"] = std::move(resourcesJson);
 
@@ -337,41 +345,50 @@ private:
 				continue;
 			}
             const crow::json::rvalue& jsonArrayOfLabelsOfVertices = jsonObjectOfIdsOfHexesAndArraysOfLabelsOfVertices[idOfHex];
-            for (auto& [player, bag] : resources) {
-				for (const std::string& labelOfVertex : settlements[player]) {
-					for (const crow::json::rvalue& keyValuePair : jsonArrayOfLabelsOfVertices) {
-						if (keyValuePair.s() == labelOfVertex) {
-							bag[resource]++;
+            for (int player = 1; player <= 3; ++player) {
+                auto& bag = resources[player];
+                for (const std::string& labelOfVertex : settlements[player]) {
+                    for (const crow::json::rvalue& keyValuePair : jsonArrayOfLabelsOfVertices) {
+                        if (keyValuePair.s() == labelOfVertex) {
+                            if (resource == "brick") { bag.brick++; }
+                            else if (resource == "grain") { bag.grain++; }
+                            else if (resource == "lumber") { bag.lumber++; }
+                            else if (resource == "ore") { bag.ore++; }
+                            else if (resource == "wool") { bag.wool++; }
+                            else if (resource == "cloth") { bag.cloth++; }
+                            else if (resource == "coin") { bag.coin++; }
+                            else if (resource == "paper") { bag.paper++; }
                             break;
-						}
-					}
-				}
-				for (const std::string& labelOfVertex : cities[player]) {
-					for (const crow::json::rvalue& keyValuePair : jsonArrayOfLabelsOfVertices) {
-						if (keyValuePair.s() == labelOfVertex) {
-							bag[resource]++;
+                        }
+                    }
+                }
+                for (const std::string& labelOfVertex : cities[player]) {
+                    for (const crow::json::rvalue& keyValuePair : jsonArrayOfLabelsOfVertices) {
+                        if (keyValuePair.s() == labelOfVertex) {
                             if (resource == "brick") {
-                                bag["brick"]++;
+                                bag.brick += 2;
                             }
-							else if (resource == "grain") {
-								bag["grain"]++;
-							}
+                            else if (resource == "grain") {
+                                bag.grain += 2;
+                            }
                             else if (resource == "lumber") {
-                                bag["paper"]++;
+                                bag.lumber += 1;
+                                bag.paper += 1;
                             }
                             else if (resource == "ore") {
-                                bag["coin"]++;
+                                bag.ore += 1;
+                                bag.coin += 1;
                             }
                             else if (resource == "wool") {
-								bag["cloth"]++;
-							}
-							break;
-						}
-					}
-				}
+                                bag.wool += 1;
+                                bag.cloth += 1;
+                            }
+                            break;
+                        }
+                    }
+                }
             }
         }
     }
-
 
 };

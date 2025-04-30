@@ -31,7 +31,7 @@ namespace Game {
 	Phase fromString(const std::string& string) {
 		if (string == "phase to place first settlement") { return Phase::FirstSettlement; }
 		if (string == "phase to place first road") { return Phase::FirstRoad; }
-		if (string == "phase to palce first city") { return Phase::FirstCity; }
+		if (string == "phase to place first city") { return Phase::FirstCity; }
 		if (string == "phase to place second road") { return Phase::SecondRoad; }
 		if (string == "phase to roll dice") { return Phase::RollDice; }
 		if (string == "turn") { return Phase::Turn; }

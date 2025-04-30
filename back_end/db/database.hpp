@@ -269,14 +269,15 @@ namespace DB {
             else {
                 for (mysqlx::Row row : resourcesResult) {
                     int player = row[0];
-					gameState.resources[player]["brick"] = row[1];
-					gameState.resources[player]["grain"] = row[2];
-					gameState.resources[player]["lumber"] = row[3];
-					gameState.resources[player]["ore"] = row[4];
-					gameState.resources[player]["wool"] = row[5];
-					gameState.resources[player]["cloth"] = row[6];
-					gameState.resources[player]["coin"] = row[7];
-					gameState.resources[player]["paper"] = row[8];
+                    auto& bag = gameState.resources[player];
+                    bag.brick = row[1];
+                    bag.brick = row[2];
+                    bag.lumber = row[3];
+                    bag.ore = row[4];
+                    bag.wool = row[5];
+                    bag.cloth = row[6];
+                    bag.coin = row[7];
+                    bag.paper = row[8];
                 }
             }
             return gameState;
@@ -321,11 +322,12 @@ namespace DB {
         }
 
 
-        void upsertResources(const std::unordered_map<int, std::unordered_map<std::string, int>>& resources) {
+        void upsertResources(const std::array<ResourceBag, 4>& resources) {
 			WrapperOfSession wrapperOfSession(dbName, host, password, port, username);
 			mysqlx::Session& session = wrapperOfSession.getSession();
             const std::string table = tablePrefix + "resources";
-            for (const auto& [player, bag] : resources) {
+            for (int player = 1; player <= 3; ++player) {
+                const auto& bag = resources[player];
                 session.sql(
                     "INSERT INTO " + table + " (player, brick, grain, lumber, ore, wool, cloth, coin, paper) "
                     "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
@@ -339,14 +341,14 @@ namespace DB {
 					"paper = VALUES(paper)"
                 ).bind(
                     player,
-					bag.at("brick"),
-					bag.at("grain"),
-					bag.at("lumber"),
-					bag.at("ore"),
-					bag.at("wool"),
-					bag.at("cloth"),
-                    bag.at("coin"),
-					bag.at("paper")
+					bag.brick,
+					bag.grain,
+					bag.lumber,
+					bag.ore,
+					bag.wool,
+					bag.cloth,
+                    bag.coin,
+					bag.paper
 				).execute();
             }
         }

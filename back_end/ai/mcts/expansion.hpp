@@ -33,7 +33,7 @@ namespace AI {
 			}
 			else if (phase == Game::Phase::Turn) {
 				const int currentPlayer = node->gameState.currentPlayer;
-				auto& resources = node->gameState.resources.at(currentPlayer);
+				const ResourceBag& resources = node->gameState.resources[currentPlayer];
 
 				std::unordered_set<std::string> unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer;
 				const auto& labelsOfEdgesWithRoadsOfPlayer = node->gameState.roads.at(currentPlayer);
@@ -48,7 +48,7 @@ namespace AI {
 
 				for (const std::string& labelOfVertex : vectorOfLabelsOfAvailableVertices) {
 					if (unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(labelOfVertex)) {
-						if (resources["brick"] >= 1 && resources["grain"] >= 1 && resources["lumber"] >= 1 && resources["wool"] >= 1) {
+						if (resources.brick >= 1 && resources.grain >= 1 && resources.lumber >= 1 && resources.wool >= 1) {
 							vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfVertex);
 						}
 					}
@@ -60,7 +60,7 @@ namespace AI {
 				for (const std::string& labelOfEdge : vectorOfLabelsOfAvailableEdges) {
 					auto verticesOfEdge = board.getVerticesOfEdge(labelOfEdge);
 					if (unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(verticesOfEdge.first) || unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(verticesOfEdge.second)) {
-						if (resources["brick"] >= 1 && resources["lumber"] >= 1) {
+						if (resources.brick >= 1 && resources.lumber >= 1) {
 							vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfEdge);
 						}
 					}
@@ -68,7 +68,7 @@ namespace AI {
 
 				const std::vector<std::string>& vectorOfLabelsOfVerticesOfSettlementsOfPlayer = node->gameState.settlements.at(currentPlayer);
 				for (const std::string& labelOfVertex : vectorOfLabelsOfVerticesOfSettlementsOfPlayer) {
-					if (resources["grain"] >= 2 && resources["ore"] >= 3) {
+					if (resources.grain >= 2 && resources.ore >= 3) {
 						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfVertex);
 					}
 				}
@@ -77,7 +77,7 @@ namespace AI {
 				const auto& walls = node->gameState.walls.at(currentPlayer);
 				for (const std::string& labelOfVertex : cities) {
 					bool alreadyHasWall = std::find(walls.begin(), walls.end(), labelOfVertex) != walls.end();
-					if (!alreadyHasWall && node->gameState.resources.at(currentPlayer).at("brick") >= 2) {
+					if (!alreadyHasWall && node->gameState.resources[currentPlayer].brick >= 2) {
 						vectorOfLabelsOfAvailableVerticesOrEdges.push_back(labelOfVertex);
 					}
 				}
@@ -117,7 +117,7 @@ namespace AI {
 						if (board.isLabelOfVertex(labelOfAvailableVertexOrEdge)) {
 							const auto& cities = gameStateOfChild.cities.at(currentPlayer);
 							bool hasCity = std::find(cities.begin(), cities.end(), labelOfAvailableVertexOrEdge) != cities.end();
-							if (hasCity && gameStateOfChild.resources.at(currentPlayer).at("brick") >= 2) {
+							if (hasCity && gameStateOfChild.resources[currentPlayer].brick >= 2) {
 								gameStateOfChild.placeCityWall(currentPlayer, labelOfAvailableVertexOrEdge);
 								moveType = "wall";
 							}
@@ -129,8 +129,8 @@ namespace AI {
 									labelOfAvailableVertexOrEdge
 								) != vectorOfLabelsOfVerticesOfSettlementsOfPlayer.end();
 								if (hadSettlement &&
-									gameStateOfChild.resources.at(currentPlayer).at("grain") >= 2 &&
-									gameStateOfChild.resources.at(currentPlayer).at("ore") >= 3
+									gameStateOfChild.resources[currentPlayer].grain >= 2 &&
+									gameStateOfChild.resources[currentPlayer].ore >= 3
 									) {
 									gameStateOfChild.placeCity(currentPlayer, labelOfAvailableVertexOrEdge);
 									moveType = "city";

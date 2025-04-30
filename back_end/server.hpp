@@ -71,7 +71,7 @@ namespace Server {
 			nextPlayerWillRollDice = true;
 		}
 		else if (nextPhase == Game::Phase::Turn) {
-			std::unordered_map<std::string, int>& unorderedMapOfNamesAndNumbersOfResources = nextState.resources.at(nextPlayer);
+			const ResourceBag& resources = nextState.resources[nextPlayer];
 			std::unordered_set<std::string> unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer;
 			std::vector<std::string>& vectorOfLabelsOfEdgesWithRoadsOfPlayer = nextState.roads.at(nextPlayer);
 			for (const std::string& labelOfEdge : vectorOfLabelsOfEdgesWithRoadsOfPlayer) {
@@ -82,26 +82,26 @@ namespace Server {
 			for (std::string& labelOfAvailableVertex : vectorOfLabelsOfAvailableVertices) {
 				if (
 					unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(labelOfAvailableVertex) &&
-					unorderedMapOfNamesAndNumbersOfResources["brick"] >= 1 &&
-					unorderedMapOfNamesAndNumbersOfResources["grain"] >= 1 &&
-					unorderedMapOfNamesAndNumbersOfResources["lumber"] >= 1 &&
-					unorderedMapOfNamesAndNumbersOfResources["wool"] >= 1
-					) {
+					resources.brick >= 1 &&
+					resources.grain >= 1 &&
+					resources.lumber >= 1 &&
+					resources.wool >= 1
+				) {
 					unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfAvailableVertex].push_back("settlement");
 				}
 			}
-			std::vector<std::string> vectorOfLabelsOfVerticesWithSettlementOfPlayer = nextState.settlements.at(nextPlayer);
+			std::vector<std::string> vectorOfLabelsOfVerticesWithSettlementOfPlayer = nextState.settlements[nextPlayer];
 			for (std::string& labelOfVertex : vectorOfLabelsOfVerticesWithSettlementOfPlayer) {
-				if (unorderedMapOfNamesAndNumbersOfResources["grain"] >= 2 && unorderedMapOfNamesAndNumbersOfResources["ore"] >= 3) {
+				if (resources.grain >= 2 && resources.ore >= 3) {
 					unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfVertex].push_back("city");
 				}
 			}
-			std::vector<std::string> vectorOfLabelsOfVerticesWithCityOfPlayer = nextState.cities.at(nextPlayer);
+			std::vector<std::string> vectorOfLabelsOfVerticesWithCityOfPlayer = nextState.cities[nextPlayer];
 			for (std::string& labelOfVertex : vectorOfLabelsOfVerticesWithCityOfPlayer) {
 				if (
-					unorderedMapOfNamesAndNumbersOfResources["brick"] >= 2 &&
-					std::find(nextState.walls.at(nextPlayer).begin(), nextState.walls.at(nextPlayer).end(), labelOfVertex) == nextState.walls.at(nextPlayer).end()
-					) {
+					resources.brick >= 2 &&
+					std::find(nextState.walls[nextPlayer].begin(), nextState.walls[nextPlayer].end(), labelOfVertex) == nextState.walls[nextPlayer].end()
+				) {
 					unorderedMapOfLabelsOfVerticesAndMoveTypes[labelOfVertex].push_back("wall");
 				}
 			}
@@ -110,9 +110,9 @@ namespace Server {
 				auto [firstLabelOfVertex, secondLabelOfVertex] = board.getVerticesOfEdge(labelOfEdge);
 				if (
 					(unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(firstLabelOfVertex) || unorderedSetOfLabelsOfVerticesOfRoadsOfPlayer.contains(secondLabelOfVertex)) &&
-					unorderedMapOfNamesAndNumbersOfResources["brick"] >= 1 &&
-					unorderedMapOfNamesAndNumbersOfResources["lumber"] >= 1
-					) {
+					resources.brick >= 1 &&
+					resources.lumber >= 1
+				) {
 					vectorOfLabelsOfEdges.push_back(labelOfEdge);
 				}
 			}
@@ -281,25 +281,36 @@ namespace Server {
 					liveDb.updateGameState(currentGameState);
 					
 					crow::json::wvalue gainedAll(crow::json::type::Object);
-					for (const auto& [p, newBag] : currentGameState.resources) {
+					for (int player = 1; player <= 3; ++player) {
+						const auto& newBag = currentGameState.resources[player];
+						const auto& oldBag = resourcesBeforeMove[player];
 						crow::json::wvalue bagJson(crow::json::type::Object);
-						const auto& oldBag = resourcesBeforeMove.at(p);
-						for (const auto& [kind, newQuantity] : newBag) {
-							int diff = newQuantity - oldBag.at(kind);
-							bagJson[kind] = diff;
-						}
-						gainedAll["Player " + std::to_string(p)] = std::move(bagJson);
+						bagJson["brick"] = newBag.brick - oldBag.brick;
+						bagJson["grain"] = newBag.grain - oldBag.grain;
+						bagJson["lumber"] = newBag.lumber - oldBag.lumber;
+						bagJson["ore"] = newBag.ore - oldBag.ore;
+						bagJson["wool"] = newBag.wool - oldBag.wool;
+						bagJson["cloth"] = newBag.cloth - oldBag.cloth;
+						bagJson["coin"] = newBag.coin - oldBag.coin;
+						bagJson["paper"] = newBag.paper - oldBag.paper;
+						gainedAll["Player " + std::to_string(player)] = std::move(bagJson);
 					}
 					response["gainedResources"] = std::move(gainedAll);
 					liveDb.upsertSetting("lastGainedResources", response["gainedResources"].dump());
 
 					crow::json::wvalue totalAll(crow::json::type::Object);
-					for (const auto& [p, bag] : currentGameState.resources) {
+					for (int player = 1; player <= 3; ++player) {
+						const auto& bag = currentGameState.resources[player];
 						crow::json::wvalue bagJson(crow::json::type::Object);
-						for (const auto& [kind, quantity] : bag) {
-							bagJson[kind] = quantity;
-						}
-						totalAll["Player " + std::to_string(p)] = std::move(bagJson);
+						bagJson["brick"] = bag.brick;
+						bagJson["grain"] = bag.grain;
+						bagJson["lumber"] = bag.lumber;
+						bagJson["ore"] = bag.ore;
+						bagJson["wool"] = bag.wool;
+						bagJson["cloth"] = bag.cloth;
+						bagJson["coin"] = bag.coin;
+						bagJson["paper"] = bag.paper;
+						totalAll["Player " + std::to_string(player)] = std::move(bagJson);
 					}
 					response["totalResources"] = std::move(totalAll);
 					liveDb.upsertSetting("lastTotalResources", response["totalResources"].dump());
