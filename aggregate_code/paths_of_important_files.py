@@ -3,7 +3,6 @@ paths_of_back_end_files = [
     r'back_end\config.hpp',
     r'back_end\interface_design.csv',
     r'back_end\logger.hpp',
-    r'back_end\server.hpp',
 
     r'back_end\back_end.sln',
     r'back_end\back_end.vcxproj',
@@ -27,7 +26,14 @@ paths_of_back_end_files = [
     r'back_end\game\board.hpp',
     r'back_end\game\game.hpp',
     r'back_end\game\game_state.hpp',
-    r'back_end\game\phase.hpp'
+    r'back_end\game\phase.hpp',
+
+    r'back_end\server\build_next_moves.hpp',
+    r'back_end\server\cors_middleware.hpp',
+    r'back_end\server\data_routes.hpp',
+    r'back_end\server\game_routes.hpp',
+    r'back_end\server\meta_routes.hpp',
+    r'back_end\server\server.hpp'
 ]
 
 paths_of_files_to_alter_database = [

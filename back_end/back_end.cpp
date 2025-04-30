@@ -3,8 +3,9 @@
 // Change C++ Language Standard to ISO C++20 Standard (/std:c++20).
 
 #include "config.hpp"
+#include "server/cors_middleware.hpp"
 #include "logger.hpp"
-#include "server.hpp"
+#include "server/server.hpp"
 #include "ai/trainer.hpp"
 
 // TODO: Consider whether database driven state management needs to be implemented more.

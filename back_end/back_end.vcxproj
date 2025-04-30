@@ -209,7 +209,11 @@ xcopy /Y /I "$(SolutionDir)\dependencies\release_version_of_libtorch\lib\nvJitLi
     <ClInclude Include="game\game_state.hpp" />
     <ClInclude Include="game\phase.hpp" />
     <ClInclude Include="logger.hpp" />
-    <ClInclude Include="server.hpp" />
+    <ClInclude Include="server\build_next_moves.hpp" />
+    <ClInclude Include="server\cors_middleware.hpp" />
+    <ClInclude Include="server\data_routes.hpp" />
+    <ClInclude Include="server\game_routes.hpp" />
+    <ClInclude Include="server\meta_routes.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
