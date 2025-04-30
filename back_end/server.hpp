@@ -247,12 +247,26 @@ namespace Server {
 					}
 					else if (moveType == "city") {
 						currentGameState.placeCity(player, move);
-						liveDb.removeStructure("settlements", player, move, "vertex");
-						int id = liveDb.addStructure("cities", player, move, "vertex");
-						response["city"]["id"] = id;
-						response["city"]["player"] = player;
-						response["city"]["vertex"] = move;
-						response["message"] = "Player " + std::to_string(player) + " upgraded to a city at " + move + ".";
+						DB::WrapperOfSession wrapperOfSession(liveDb.dbName, liveDb.host, liveDb.password, liveDb.port, liveDb.username);
+						mysqlx::Session& session = wrapperOfSession.getSession();
+						session.startTransaction();
+						try {
+							mysqlx::Schema schema = session.getSchema(liveDb.dbName);
+							mysqlx::Table settlements = schema.getTable(liveDb.tablePrefix + "settlements");
+							settlements.remove().where("player = :p AND vertex = :v").bind("p", player).bind("v", move).execute();
+							mysqlx::Table cities = schema.getTable(liveDb.tablePrefix + "cities");
+							mysqlx::abi2::r0::Result result = cities.insert("player", "vertex").values(player, move).execute();
+							int id = static_cast<int>(result.getAutoIncrementValue());
+							session.commit();
+							response["city"]["id"] = id;
+							response["city"]["player"] = player;
+							response["city"]["vertex"] = move;
+							response["message"] = "Player " + std::to_string(player) + " upgraded to a city at " + move + ".";
+						}
+						catch (const std::exception& e) {
+							session.rollback();
+							throw;
+						}
 					}
 					else if (moveType == "wall") {
 						bool ok = currentGameState.placeCityWall(player, move);
