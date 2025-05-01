@@ -2,6 +2,7 @@
 
 
 #include <chrono>
+#include <cmath>
 #include <iostream>
 #include <string>
 
@@ -10,18 +11,8 @@ namespace Logger {
 
 	std::string currentTime() {
 		std::chrono::system_clock::time_point timePoint = std::chrono::system_clock::now();
-		time_t time = std::chrono::system_clock::to_time_t(timePoint);
-		const int numberOfCharactersInBufferPerCTimeS = 26;
-		char buffer[numberOfCharactersInBufferPerCTimeS];
-		errno_t errorNumber = ctime_s(buffer, sizeof(buffer), &time);
-		if (errorNumber != 0) {
-			throw std::runtime_error("ctime_s failed with error number " + std::to_string(errorNumber) + ".");
-		}
-		std::string timeString(buffer);
-		if (!timeString.empty() && timeString.back() == '\n') {
-			timeString.pop_back();
-		}
-		return timeString;
+		auto now = std::chrono::time_point_cast<std::chrono::seconds>(timePoint);
+		return std::format("{:%Y-%m-%d %H:%M:%S}", now);
 	}
 
 	void error(const std::string& context, const std::exception& e) {

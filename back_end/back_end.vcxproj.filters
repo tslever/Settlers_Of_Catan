@@ -92,13 +92,13 @@
     <ClInclude Include="server\data_routes.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="server\cors_middleware.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="server\build_next_moves.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="server\game_routes.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="server\cors_middleware.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
