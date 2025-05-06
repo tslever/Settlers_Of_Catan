@@ -13,7 +13,17 @@ namespace Server {
 
 	crow::json::wvalue loadBlob(const DB::Database& db, const std::string& key) {
 		std::string setting = db.getSetting(key);
-		return setting.empty() ? crow::json::wvalue(crow::json::type::Object) : crow::json::load(setting);
+        if (setting.empty()) {
+            return crow::json::wvalue(crow::json::type::Object);
+        }
+        auto parsed = crow::json::load(setting);
+        if (!parsed) {
+            Logger::warn("/state", "Setting \"" + key + "\" contained invalid JSON - returning empty object.");
+            return crow::json::wvalue(crow::json::type::Object);
+        }
+        crow::json::wvalue object;
+        object = parsed;
+        return object;
 	};
 
 
@@ -46,15 +56,23 @@ namespace Server {
             );
 
             CROW_ROUTE(app, "/state").methods("GET"_method)(
-                [&db]() -> crow::json::wvalue {
-                    crow::json::wvalue result;
-                    result["message"]         = db.getSetting("lastMessage");
-                    result["dice"]            = loadBlob(db, "lastDice");
-                    result["gainedResources"] = loadBlob(db, "lastGainedResources");
-                    result["totalResources"]  = loadBlob(db, "lastTotalResources");
-                    buildNextMoves(db, result);
-                    result["phase"] = Game::toString(db.getGameState().phase);
-                    return result;
+                [&db]() -> crow::response {
+                    try {
+                        crow::json::wvalue result;
+                        result["message"] = db.getSetting("lastMessage");
+                        result["dice"] = loadBlob(db, "lastDice");
+                        result["gainedResources"] = loadBlob(db, "lastGainedResources");
+                        result["totalResources"] = loadBlob(db, "lastTotalResources");
+                        buildNextMoves(db, result);
+                        result["phase"] = Game::toString(db.getGameState().phase);
+                        return crow::response{ 200, result.dump() };
+                    }
+                    catch (const std::exception& e) {
+                        Logger::error("/state", e);
+                        crow::json::wvalue err;
+                        err["error"] = std::string("Failed to build /state: ") + e.what();
+                        return crow::response{ 500, err.dump() };
+                    }
                 }
             );
         }

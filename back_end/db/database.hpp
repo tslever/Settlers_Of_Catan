@@ -207,20 +207,23 @@ namespace DB {
             mysqlx::Schema schema = session.getSchema(dbName);
 
             mysqlx::Table table = schema.getTable(tablePrefix + "state");
-            mysqlx::RowResult rowResult = table.select("current_player", "phase", "last_building").where("id = :id").bind("id", 1).execute();
+            mysqlx::RowResult rowResult = table.select("current_player", "phase", "last_building").where("id = 1").execute();
             mysqlx::Row row = rowResult.fetchOne();
             if (row) {
                 gameState.currentPlayer = row[0];
-                gameState.phase = Game::fromString(row[1].get<std::string>());
-                gameState.lastBuilding = row[2].get<std::string>();
+                if (!row[1].isNull()) {
+                    gameState.phase = Game::fromString(row[1].get<std::string>());
+                }
+                gameState.lastBuilding = row[2].isNull() ? "" : row[2].get<std::string>();
             }
             else {
                 gameState = GameState();
-                session.sql("REPLACE INTO " + tablePrefix + "state(id, current_player, phase, last_building) VALUES(:id, :p , :ph , :lb)")
-                    .bind("id", 1)
-                    .bind("p", gameState.currentPlayer)
-                    .bind("ph", Game::toString(gameState.phase))
-                    .bind("lb", gameState.lastBuilding)
+                session
+                    .sql(
+                        "REPLACE INTO " + tablePrefix + "state(id, current_player, phase, last_building) " +
+                        "VALUES(1, ?, ?, ?)"
+                    )
+                    .bind(gameState.currentPlayer, Game::toString(gameState.phase), gameState.lastBuilding.empty() ? mysqlx::nullvalue : gameState.lastBuilding)
                     .execute();
             }
             mysqlx::Table settlementsTable = schema.getTable(tablePrefix + "settlements");
@@ -312,7 +315,7 @@ namespace DB {
 			mysqlx::Session& session = wrapperOfSession.getSession();
             mysqlx::Schema schema = session.getSchema(dbName);
             mysqlx::Table table = schema.getTable(tablePrefix + structureSuffix);
-            table.remove().where("player = :p AND " + locationField + " = :loc").bind("p", player).bind("loc", location).execute();
+            table.remove().where("player = " + std::to_string(player) + " AND " + locationField + " = " + location).execute();
         }
 
 
@@ -458,9 +461,8 @@ namespace DB {
                 .update()
                 .set("current_player", gameState.currentPlayer)
                 .set("phase", Game::toString(gameState.phase))
-                .set("last_building", gameState.lastBuilding)
-                .where("id = :id")
-                .bind("id", 1)
+                .set("last_building", gameState.lastBuilding.empty() ? mysqlx::nullvalue : gameState.lastBuilding)
+                .where("id = 1")
                 .execute();
 			upsertResources(gameState.resources);
         }

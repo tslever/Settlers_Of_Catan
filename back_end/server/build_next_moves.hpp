@@ -9,7 +9,7 @@
 namespace Server {
 
 
-	void buildNextMoves(DB::Database liveDb, crow::json::wvalue& response) {
+	void buildNextMoves(DB::Database& liveDb, crow::json::wvalue& response) {
 		GameState nextState = liveDb.getGameState();
 		const int nextPlayer = nextState.currentPlayer;
 		const Game::Phase nextPhase = nextState.phase;
@@ -99,13 +99,13 @@ namespace Server {
 			for (size_t i = 0; i < vectorOfMoveTypes.size(); i++) {
 				arrayOfMoveTypes[i] = vectorOfMoveTypes[i];
 			}
-			jsonObjectOfLabelsOfVerticesAndMoveTypes[labelOfVertex] = std::move(arrayOfMoveTypes);
+			jsonObjectOfLabelsOfVerticesAndMoveTypes[labelOfVertex.c_str()] = std::move(arrayOfMoveTypes);
 		}
 		jsonObjectOfPossibleNextMoves["vertices"] = std::move(jsonObjectOfLabelsOfVerticesAndMoveTypes);
 
 		crow::json::wvalue jsonArrayOfLabelsOfEdges(crow::json::type::List);
 		for (size_t i = 0; i < vectorOfLabelsOfEdges.size(); i++) {
-			jsonArrayOfLabelsOfEdges[i] = vectorOfLabelsOfEdges[i];
+			jsonArrayOfLabelsOfEdges[i] = vectorOfLabelsOfEdges[i].c_str();
 		}
 		jsonObjectOfPossibleNextMoves["edges"] = std::move(jsonArrayOfLabelsOfEdges);
 

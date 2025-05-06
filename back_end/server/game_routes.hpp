@@ -103,7 +103,7 @@ namespace Server {
 							try {
 								mysqlx::Schema schema = session.getSchema(db.dbName);
 								mysqlx::Table settlements = schema.getTable(db.tablePrefix + "settlements");
-								settlements.remove().where("player = :p AND vertex = :v").bind("p", player).bind("v", move).execute();
+								settlements.remove().where("player = " + std::to_string(player) + " AND vertex = " + move).execute();
 								mysqlx::Table cities = schema.getTable(db.tablePrefix + "cities");
 								mysqlx::abi2::r0::Result result = cities.insert("player", "vertex").values(player, move).execute();
 								int id = static_cast<int>(result.getAutoIncrementValue());
